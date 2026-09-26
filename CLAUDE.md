@@ -13,8 +13,9 @@ Deployed to GitHub Pages at `/torneio-ilog/` on every push to `main`.
   - `js/algorithms.js` holds pure logic: Berger schedule, standings, head-to-head
     tiebreaks, ratings, snake draft. Keep logic here so it stays testable.
   - `js/ui.js` renders; `js/main.js` wires event handlers; `js/firebase.js` syncs.
-- All state lives in one Firebase node, `torneio_state`, overwritten with `set()`
-  (last write wins). Any change to the state shape must bump `SNAPSHOT_VERSION`
+- All state lives in one Firebase node, `torneio_state`. Saves send only what
+  changed since the last sync with `update()` (`js/sync.js`): results per game,
+  other sections whole (last write wins within a section). Any change to the state shape must bump `SNAPSHOT_VERSION`
   in `js/state.js` and still load data already saved on other devices.
 - The app is used live on phones during matches: check mobile widths and both
   light and dark themes when touching UI.

@@ -1,8 +1,8 @@
-import { state, persistConfigTeams, loadState, persistSchedule, persistResults, persistBackup, persistPlayers, persistJogosSingulares, currentTheme, setCurrentTheme, exportJSON, importJSON, applyGeneratedSchedule, applySnapshot, defaultConfig, defaultTeams, defaultSquads } from './state.js';
+import { state, persistConfigTeams, loadState, persistSchedule, persistResults, persistBackup, persistPlayers, persistJogosSingulares, currentTheme, setCurrentTheme, exportJSON, importJSON, applyGeneratedSchedule, applySnapshot, buildSnapshot, defaultTeams, defaultSquads } from './state.js';
 import { dom, cacheDom, renderAll, refreshComputed, renderScheduleHint, renderSquadList, renderSquadsDropdown, renderCalendar, renderResults, showToast, flashSaved, openConfirm, closeConfirm, openDangerConfirm, switchTab, confirmCallback, openScorerModal, openPlayerProfile, computeStatsSummary, renderPlayersList, openPlayerModal, renderSquadPlayerFromDBDropdown, renderDraftPlayerList, renderDraftTeams, renderSingularHistorico, currentDraft } from './ui.js';
 import { clamp, numOr } from './utils.js';
-import { bergerRounds, snakeDraft } from './algorithms.js';
-import { initFirebaseListener, onFirebaseStateChange } from './firebase.js';
+import { bergerRounds, snakeDraft, buildFirstRoundSeeding, buildExtraVolta, getPlayoffWinner } from './algorithms.js';
+import { initFirebaseListener, onFirebaseStateChange, setSyncedSnapshot } from './firebase.js';
 
 // ---------------------------------------------------------------------------
 // Handlers de configuração
@@ -91,6 +91,20 @@ export function onSquadListClick(e) {
 // ---------------------------------------------------------------------------
 // Handlers de resultados
 // ---------------------------------------------------------------------------
+/** Passa o vencedor de um jogo de eliminatória terminado para o jogo seguinte do bracket. */
+function propagatePlayoffWinner(gi) {
+  const game = state.schedule[gi];
+  const winnerIdx = getPlayoffWinner(game, state.results[gi]);
+  if (winnerIdx === null || !game.nextMatchId) return;
+
+  const [targetMatchId, targetSide] = game.nextMatchId.split('_');
+  const targetGame = state.schedule.find((g) => g.playoffMatchId === targetMatchId);
+  if (targetGame && targetGame[targetSide] !== winnerIdx) {
+    targetGame[targetSide] = winnerIdx;
+    persistSchedule();
+  }
+}
+
 export function onStatusBtnClick(e) {
   const gi = e.target.dataset.gi;
 
@@ -101,6 +115,7 @@ export function onStatusBtnClick(e) {
   const current = state.results[gi].status || 'agendado';
   const cycle = { agendado: 'decorrer', decorrer: 'terminado', terminado: 'agendado' };
   state.results[gi].status = cycle[current] ?? 'agendado';
+  propagatePlayoffWinner(gi);
 
   persistResults();
   renderResults();
@@ -133,7 +148,10 @@ export function onScoreBtnClick(e) {
         state.results[gi].status = 'decorrer';
       }
 
-      state.results[gi].scorers[side].push(pid);
+      const res = state.results[gi];
+      res.scorers = res.scorers || {};
+      res.scorers[side] = res.scorers[side] || [];
+      res.scorers[side].push(pid);
 
       const h = side === 'home' ? input.value : (row.querySelector('input[data-side="home"]').value || 0);
       const a = side === 'away' ? input.value : (row.querySelector('input[data-side="away"]').value || 0);
@@ -197,30 +215,7 @@ export function onResultCommit(e) {
     else delete state.results[gi].penalties;
 
     // Propagar vencedor para o próximo jogo de playoff
-    const game = state.schedule[gi];
-    if (game && game.isPlayoff && state.results[gi].status === 'terminado') {
-      const hScore = parseInt(vHome, 10);
-      const aScore = parseInt(vAway, 10);
-      let winnerIdx = null;
-
-      if (hScore > aScore) winnerIdx = game.home;
-      else if (aScore > hScore) winnerIdx = game.away;
-      else if (newPenalties) {
-        const ph = parseInt(pHome, 10);
-        const pa = parseInt(pAway, 10);
-        if (ph > pa) winnerIdx = game.home;
-        else if (pa > ph) winnerIdx = game.away;
-      }
-
-      if (winnerIdx !== null && game.nextMatchId) {
-        const [targetMatchId, targetSide] = game.nextMatchId.split('_');
-        const targetGame = state.schedule.find((g) => g.playoffMatchId === targetMatchId);
-        if (targetGame) {
-          targetGame[targetSide] = winnerIdx;
-          persistSchedule();
-        }
-      }
-    }
+    propagatePlayoffWinner(gi);
 
     clearInvalid();
   } else {
@@ -302,7 +297,6 @@ export function onNovoTorneio() {
     if (delTeams) {
       state.teams = defaultTeams();
       state.squads = defaultSquads();
-      state.config = Object.assign(defaultConfig(), { numEquipas: state.config.numEquipas });
       await persistConfigTeams();
     }
     renderAll();
@@ -323,14 +317,22 @@ export function onAdicionarVolta() {
     return;
   }
 
+  if (state.schedule.some((g) => g.isPlayoff)) {
+    showToast('Não é possível adicionar voltas depois de gerar as eliminatórias.', 'error');
+    return;
+  }
+
   const novaVolta = state.scheduleVoltas + 1;
 
   openConfirm(
     'Adicionar Volta Extra',
     `A volta ${novaVolta} será adicionada. Os resultados mantêm-se. Continuar?`,
     () => {
+      const { games, rounds } = buildExtraVolta(state.schedule, state.roundsMeta, state.scheduleVoltas);
+      state.schedule = state.schedule.concat(games);
+      state.roundsMeta = state.roundsMeta.concat(rounds);
+      state.scheduleVoltas = novaVolta;
       state.config.numVoltas = novaVolta;
-      applyGeneratedSchedule(state.scheduleTeamCount, novaVolta, false);
       if (dom.cfgNumVoltas) dom.cfgNumVoltas.value = novaVolta;
       persistConfigTeams();
       persistSchedule();
@@ -413,32 +415,6 @@ function buildPlayoffBracket(teamCount, seeds) {
   });
 
   return { games, rounds };
-}
-
-/**
- * Calcula os pares de seeds para a 1ª ronda de um bracket de N equipas.
- * Segue o padrão: 1 vs N, N/2 vs N/2+1, depois divide recursivamente cada metade.
- * Exemplo para N=8: [0,7], [3,4], [1,6], [2,5]
- *
- * @param {number} n - Número total de equipas (potência de 2)
- * @returns {[number, number][]} - Pares de índices de seed (0-based)
- */
-function buildFirstRoundSeeding(n) {
-  if (n === 2) return [[0, 1]];
-
-  // Constrói o bracket recursivamente: divide em duas metades e intercala
-  function buildSlots(slots) {
-    if (slots.length === 2) return [[slots[0], slots[1]]];
-    const mid = slots.length / 2;
-    const top = slots.slice(0, mid);
-    const bot = slots.slice(mid).reverse();
-    const left = top.filter((_, i) => i % 2 === 0).map((s, i) => [s, bot[i]]);
-    const right = top.filter((_, i) => i % 2 !== 0).map((s, i) => [s, bot[mid / 2 + i]]);
-    return [...buildSlots(left.flat()), ...buildSlots(right.flat())];
-  }
-
-  const seeds = Array.from({ length: n }, (_, i) => i);
-  return buildSlots(seeds);
 }
 
 export function onGerarEliminatorias() {
@@ -674,6 +650,7 @@ export async function init() {
   onFirebaseStateChange((data) => {
     if (data) {
       applySnapshot(data);
+      setSyncedSnapshot(buildSnapshot());
       renderAll();
       //showToast('Dados atualizados da nuvem', 'ok');
     }
