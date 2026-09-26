@@ -1,5 +1,5 @@
-import { state } from './state.js';
-import { getTeamName, getTeamDisplay, escapeHtml, fmtTimestamp, clamp } from './utils.js';
+import { state, MAX_TEAMS, normalizePlayer, persistPlayers, persistConfigTeams, persistJogosSingulares } from './state.js';
+import { getTeamName, getTeamDisplay, escapeHtml, fmtTimestamp, clamp, safeColor } from './utils.js';
 import { computeStandings, GAME_STATUS, getPlayerRating, getTeamTotalRating } from './algorithms.js';
 import { onStatusBtnClick, onScoreBtnClick, onResultCommit, onTeamPropChange, onSquadListClick } from './main.js';
 
@@ -117,7 +117,7 @@ export function renderScheduleHint() {
 // ---------------------------------------------------------------------------
 export function renderTeams() {
   const html = [];
-  for (let i = 0; i < 32; i++) {
+  for (let i = 0; i < MAX_TEAMS; i++) {
     const active = i < state.scheduleTeamCount;
     const t = state.teams[i] || { name: '', color: '#2F7A4F' };
     const groupTag = (active && state.config.numGrupos > 1 && t.group !== undefined)
@@ -127,7 +127,7 @@ export function renderTeams() {
     html.push(
       `<div class="team-row${active ? '' : ' team-row-inactive'}">` +
       `<span class="team-num">${i + 1}</span>` +
-      `<input type="color" class="team-color-picker team-prop" data-prop="color" data-idx="${i}" value="${escapeHtml(t.color)}" title="Cor da Equipa">` +
+      `<input type="color" class="team-color-picker team-prop" data-prop="color" data-idx="${i}" value="${safeColor(t.color)}" title="Cor da Equipa">` +
       `<input type="text" class="input team-prop" data-prop="name" data-idx="${i}" value="${escapeHtml(t.name)}" placeholder="Equipa ${i + 1}">` +
       groupTag +
       (active ? '' : '<span class="team-tag">fora do calendário atual</span>') +
@@ -182,10 +182,10 @@ export function renderSquadList() {
     const ratingStr = dbPlayer ? ` <span style="font-size:12px; color:var(--gold-dark); font-weight:700;">&#9733; ${getPlayerRating(dbPlayer).toFixed(1)}</span>` : '';
     return (
       `<div class="player-row">` +
-      `<div class="player-info"><span class="player-num">${p.num}</span><span style="font-weight:600;">${escapeHtml(p.name)}</span>${ratingStr}</div>` +
+      `<div class="player-info"><span class="player-num">${escapeHtml(p.num)}</span><span style="font-weight:600;">${escapeHtml(p.name)}</span>${ratingStr}</div>` +
       `<div style="display:flex; gap:6px;">` +
-      `<button class="btn btn-ghost player-stats-btn" data-idx="${tIdx}" data-pid="${p.id}" style="color:var(--pitch-800); background:var(--paper); border:1px solid var(--line); padding:4px 8px; font-size:12px;">📊 Ficha</button>` +
-      `<button class="player-del" data-idx="${tIdx}" data-pid="${p.id}" title="Remover jogador">&times;</button>` +
+      `<button class="btn btn-ghost player-stats-btn" data-idx="${tIdx}" data-pid="${escapeHtml(p.id)}" style="color:var(--pitch-800); background:var(--paper); border:1px solid var(--line); padding:4px 8px; font-size:12px;">📊 Ficha</button>` +
+      `<button class="player-del" data-idx="${tIdx}" data-pid="${escapeHtml(p.id)}" title="Remover jogador">&times;</button>` +
       `</div></div>`
     );
   }).join('');
@@ -751,7 +751,7 @@ export function openScorerModal(gi, side, onSelect) {
 
   dom.modalBody.innerHTML = players.length
     ? players.map((p) =>
-      `<button class="btn btn-ghost scorer-btn" data-pid="${p.id}">${p.num} - ${escapeHtml(p.name)}</button>`
+      `<button class="btn btn-ghost scorer-btn" data-pid="${escapeHtml(p.id)}">${escapeHtml(p.num)} - ${escapeHtml(p.name)}</button>`
     ).join('')
     : '<p class="empty" style="margin-bottom:14px;">Nenhum jogador registado nesta equipa.</p>';
 
@@ -808,7 +808,7 @@ export function openPlayerProfile(pId, tIdx = null) {
     const attrs = Object.entries(ATTR_LABELS).map(([key, label]) =>
       `<div class="player-attr-item">` +
       `<span class="player-attr-label">${label.substring(0, 3)}</span>` +
-      `<span class="player-attr-val">${dbPlayer.atributos[key] || 0}</span>` +
+      `<span class="player-attr-val">${Number(dbPlayer.atributos[key]) || 0}</span>` +
       `</div>`
     ).join('');
     attrsHtml =
@@ -960,7 +960,7 @@ export function renderPlayersList() {
     const attrs = Object.entries(ATTR_LABELS).map(([key, label]) =>
       `<div class="player-attr-item">` +
       `<span class="player-attr-label">${label.substring(0, 3)}</span>` +
-      `<span class="player-attr-val">${p.atributos[key] || 0}</span>` +
+      `<span class="player-attr-val">${Number(p.atributos[key]) || 0}</span>` +
       `</div>`
     ).join('');
 
@@ -997,7 +997,6 @@ export function renderPlayersList() {
       const pid = btn.dataset.pid;
       const pl = state.players.find((p) => p.id === pid);
       openConfirm('Apagar Jogador', `Tens a certeza que queres apagar <strong>${escapeHtml(pl ? pl.nome : pid)}</strong>? Será removido de todos os plantéis.`, async () => {
-        const { persistPlayers, persistConfigTeams } = await import('./state.js');
         state.players = state.players.filter((p) => p.id !== pid);
         // Remove dos squads também
         state.squads.forEach((squad, i) => {
@@ -1102,7 +1101,6 @@ export function openPlayerModal(pid = null) {
     const teamVal = document.getElementById('playerModalTeam').value;
     const teamIdx = teamVal !== '' ? parseInt(teamVal, 10) : null;
 
-    const { normalizePlayer, persistPlayers } = await import('./state.js');
 
     if (existing) {
       const idx = state.players.findIndex((p) => p.id === existing.id);
@@ -1285,7 +1283,7 @@ export function renderSingularHistorico() {
     return (
       `<div class="historico-card">` +
       `<div class="historico-header">` +
-      `<span class="historico-date">📅 ${dateStr}</span>` +
+      `<span class="historico-date">📅 ${escapeHtml(dateStr)}</span>` +
       `<button class="btn btn-ghost" style="font-size:12px; padding:4px 10px; border:1px solid var(--danger); color:var(--danger);" data-action="del-jogo" data-jid="${escapeHtml(jogo.id)}">🗑️</button>` +
       `</div>` +
       `<div class="historico-teams">` +
@@ -1309,7 +1307,6 @@ export function renderSingularHistorico() {
     btn.addEventListener('click', async () => {
       const jid = btn.dataset.jid;
       openConfirm('Apagar Jogo', 'Tens a certeza que queres apagar este registo do histórico?', async () => {
-        const { persistJogosSingulares } = await import('./state.js');
         state.jogosSingulares = state.jogosSingulares.filter((j) => j.id !== jid);
         await persistJogosSingulares();
         renderSingularHistorico();

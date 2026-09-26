@@ -19,6 +19,11 @@ export function escapeHtml(s) {
   }[c]));
 }
 
+/** Aceita só cores hex (#rgb ou #rrggbb); qualquer outro valor volta à cor por defeito. */
+export function safeColor(c) {
+  return /^#[0-9a-f]{3}([0-9a-f]{3})?$/i.test(String(c)) ? c : '#2F7A4F';
+}
+
 export function fmtTimestamp(iso) {
   try {
     const d = new Date(iso);
@@ -42,7 +47,7 @@ export function getTeamDisplay(idx) {
   }
   const t = state.teams[idx] || { name: `Equipa ${idx + 1}`, color: '#2F7A4F' };
   const name = escapeHtml(t.name || `Equipa ${idx + 1}`);
-  const colorBadge = `<span style="display:inline-block; width:10px; height:10px; border-radius:50%; background-color:${escapeHtml(t.color)}; margin-right:6px; box-shadow:0 0 2px rgba(0,0,0,0.3);"></span>`;
+  const colorBadge = `<span style="display:inline-block; width:10px; height:10px; border-radius:50%; background-color:${safeColor(t.color)}; margin-right:6px; box-shadow:0 0 2px rgba(0,0,0,0.3);"></span>`;
   return `<span style="display:inline-flex; align-items:center; white-space:nowrap;">${colorBadge}${name}</span>`;
 }
 
