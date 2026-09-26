@@ -1,5 +1,6 @@
 import { initializeApp } from "firebase/app";
-import { getDatabase, ref, onValue, set } from "firebase/database";
+import { getDatabase, ref, onValue, update } from "firebase/database";
+import { diffSnapshot } from "./sync.js";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -17,6 +18,7 @@ const database = getDatabase(app);
 
 let onStateChangeCallback = null;
 let isFirstLoad = true;
+let lastSynced = null; // último snapshot igual ao que está no Firebase
 
 // Set the callback that will be called whenever the DB updates
 export function onFirebaseStateChange(callback) {
@@ -35,10 +37,20 @@ export function initFirebaseListener() {
   });
 }
 
-// Push the updated state to Firebase
+// Record the snapshot that matches what Firebase currently holds
+export function setSyncedSnapshot(snap) {
+  lastSynced = JSON.parse(JSON.stringify(snap));
+}
+
+// Push only what changed since the last sync, so concurrent edits to
+// different games or sections don't overwrite each other
 export function pushStateToFirebase(newState) {
+  const updates = diffSnapshot(lastSynced, newState);
+  lastSynced = JSON.parse(JSON.stringify(newState));
+  if (!Object.keys(updates).length) return;
+
   const stateRef = ref(database, 'torneio_state');
-  set(stateRef, newState).catch((err) => {
+  update(stateRef, updates).catch((err) => {
     console.error("Firebase error pushing state:", err);
   });
 }

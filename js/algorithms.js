@@ -98,6 +98,88 @@ export function generateSchedule(groupsIndices, numVoltas) {
 }
 
 // ---------------------------------------------------------------------------
+// Volta extra (acrescentada a um calendário já existente)
+// ---------------------------------------------------------------------------
+/**
+ * Gera os jogos de uma nova volta a partir da 1ª volta do calendário atual,
+ * sem tocar nos jogos existentes (os resultados estão guardados pela posição
+ * do jogo em `schedule`, por isso os índices antigos não podem mudar).
+ *
+ * @param {object[]} schedule   - Calendário atual (só liga, sem eliminatórias)
+ * @param {object[]} roundsMeta - Metadados das jornadas atuais
+ * @param {number}   numVoltas  - Número de voltas já existentes
+ * @returns {{ games: object[], rounds: object[] }}
+ */
+export function buildExtraVolta(schedule, roundsMeta, numVoltas) {
+  const roundsPerVolta = roundsMeta.length / numVoltas;
+  const offset = roundsPerVolta * numVoltas;
+  const mirror = numVoltas % 2 === 1; // a nova volta tem índice numVoltas
+
+  const games = schedule
+    .filter((g) => !g.isPlayoff && g.jornada <= roundsPerVolta)
+    .map((g) => ({
+      ...g,
+      jornada: g.jornada + offset,
+      home: mirror ? g.away : g.home,
+      away: mirror ? g.home : g.away,
+    }));
+
+  const rounds = roundsMeta
+    .slice(0, roundsPerVolta)
+    .map((r) => ({ ...r, jornada: r.jornada + offset }));
+
+  return { games, rounds };
+}
+
+// ---------------------------------------------------------------------------
+// Eliminatórias
+// ---------------------------------------------------------------------------
+/**
+ * Calcula os pares de seeds para a 1ª ronda de um bracket de N equipas.
+ * Ordem de bracket padrão: cada seed s numa ronda de tamanho m defronta m-1-s,
+ * e os pares ficam arrumados para que 1 e 2 só se possam cruzar na final.
+ * Exemplo para N=8: [0,7], [3,4], [1,6], [2,5]
+ *
+ * @param {number} n - Número total de equipas (potência de 2)
+ * @returns {[number, number][]} - Pares de índices de seed (0-based)
+ */
+export function buildFirstRoundSeeding(n) {
+  let order = [0];
+  while (order.length < n) {
+    const m = order.length * 2;
+    order = order.flatMap((s) => [s, m - 1 - s]);
+  }
+
+  const pairs = [];
+  for (let i = 0; i < order.length; i += 2) pairs.push([order[i], order[i + 1]]);
+  return pairs;
+}
+
+/**
+ * Devolve o índice da equipa vencedora de um jogo de eliminatória terminado,
+ * usando os penáltis em caso de empate. Devolve null se ainda não há vencedor.
+ */
+export function getPlayoffWinner(game, res) {
+  if (!game || !game.isPlayoff || !res || typeof res !== 'object') return null;
+  if (res.status !== GAME_STATUS.TERMINADO) return null;
+
+  const m = /^(\d+)-(\d+)$/.exec(String(res.score || '').trim());
+  if (!m) return null;
+  const h = parseInt(m[1], 10);
+  const a = parseInt(m[2], 10);
+  if (h > a) return game.home;
+  if (a > h) return game.away;
+
+  const p = /^(\d+)-(\d+)$/.exec(String(res.penalties || '').trim());
+  if (!p) return null;
+  const ph = parseInt(p[1], 10);
+  const pa = parseInt(p[2], 10);
+  if (ph > pa) return game.home;
+  if (pa > ph) return game.away;
+  return null;
+}
+
+// ---------------------------------------------------------------------------
 // Cálculo de classificação (standings) por grupo
 // ---------------------------------------------------------------------------
 export function computeStandings(teamsArray, schedule, results, config) {
@@ -207,6 +289,8 @@ export function resolveHeadToHead(cluster, schedule, results, config) {
   cluster.forEach((c) => { mini[c.idx] = { pts: 0, gm: 0, gs: 0 }; });
 
   schedule.forEach((game, gi) => {
+    if (game.isPlayoff) return;
+
     const resObj = results[gi];
     if (!resObj) return;
     if (typeof resObj === 'object' && resObj.status === GAME_STATUS.AGENDADO) return;

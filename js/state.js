@@ -1,6 +1,7 @@
 import { flashError, flashSaved, flashBackup, showToast, openConfirm, renderAll } from './ui.js';
 import { generateSchedule } from './algorithms.js';
 import { pushStateToFirebase } from './firebase.js';
+import { normalizeResults } from './sync.js';
 
 // ---------------------------------------------------------------------------
 // Constantes
@@ -177,7 +178,7 @@ export function applySnapshot(s) {
   state.roundsMeta = s.roundsMeta || [];
   state.scheduleTeamCount = s.scheduleTeamCount || state.config.numEquipas;
   state.scheduleVoltas = s.scheduleVoltas || state.config.numVoltas;
-  state.results = s.results || {};
+  state.results = normalizeResults(s.results);
   state.players = (s.players || []).map(normalizePlayer).filter(Boolean);
   state.jogosSingulares = s.jogosSingulares || [];
 }
@@ -229,6 +230,15 @@ export async function persistJogosSingulares() {
   await storageSet('jogos-singulares', JSON.stringify(state.jogosSingulares));
   flashSaved();
   await persistBackup();
+}
+
+/** Grava todas as camadas no localStorage (usado após restaurar ou importar um snapshot). */
+async function storeAllLayers() {
+  await storageSet('config-teams', JSON.stringify({ config: state.config, teams: state.teams, squads: state.squads }));
+  await storageSet('schedule', JSON.stringify({ schedule: state.schedule, roundsMeta: state.roundsMeta, scheduleTeamCount: state.scheduleTeamCount, scheduleVoltas: state.scheduleVoltas }));
+  await storageSet('results', JSON.stringify(state.results));
+  await storageSet('players', JSON.stringify(state.players));
+  await storageSet('jogos-singulares', JSON.stringify(state.jogosSingulares));
 }
 
 // ---------------------------------------------------------------------------
@@ -302,7 +312,8 @@ export async function loadState() {
     state.teams = ensureTeamsStructure(ct.teams);
     state.squads = ensureSquadsLength(ct.squads);
 
-    if (sc && sc.schedule && sc.schedule.length) {
+    // Um calendário apagado fica guardado como lista vazia e não deve ser regenerado.
+    if (sc && Array.isArray(sc.schedule)) {
       state.schedule = sc.schedule;
       state.roundsMeta = sc.roundsMeta || [];
       state.scheduleTeamCount = sc.scheduleTeamCount || state.config.numEquipas;
@@ -311,16 +322,12 @@ export async function loadState() {
       applyGeneratedSchedule(state.config.numEquipas, state.config.numVoltas, false);
     }
 
-    state.results = rs || {};
+    state.results = normalizeResults(rs);
     state.players = (pl || []).map(normalizePlayer).filter(Boolean);
     state.jogosSingulares = js || [];
   } else if (validateSnapshot(bk)) {
     applySnapshot(bk);
-    await storageSet('config-teams', JSON.stringify({ config: state.config, teams: state.teams, squads: state.squads }));
-    await storageSet('schedule', JSON.stringify({ schedule: state.schedule, roundsMeta: state.roundsMeta, scheduleTeamCount: state.scheduleTeamCount, scheduleVoltas: state.scheduleVoltas }));
-    await storageSet('results', JSON.stringify(state.results));
-    await storageSet('players', JSON.stringify(state.players));
-    await storageSet('jogos-singulares', JSON.stringify(state.jogosSingulares));
+    await storeAllLayers();
     showToast('Estado restaurado a partir do backup automático.', 'ok');
     flashBackup(bk.exportedAt);
   } else {
@@ -376,9 +383,7 @@ export function importJSON(file) {
 
     openConfirm('Importar torneio', 'Isto vai substituir TODO o estado atual. Continuar?', async () => {
       applySnapshot(snap);
-      await storageSet('config-teams', JSON.stringify({ config: state.config, teams: state.teams, squads: state.squads }));
-      await storageSet('schedule', JSON.stringify({ schedule: state.schedule, roundsMeta: state.roundsMeta, scheduleTeamCount: state.scheduleTeamCount, scheduleVoltas: state.scheduleVoltas }));
-      await storageSet('results', JSON.stringify(state.results));
+      await storeAllLayers();
       await persistBackup();
       renderAll();
       showToast('Torneio importado com sucesso!', 'ok');
