@@ -17,6 +17,9 @@ Deployed to GitHub Pages at `/torneio-ilog/` on every push to `main`.
   changed since the last sync with `update()` (`js/sync.js`): results per game,
   other sections whole (last write wins within a section). Any change to the state shape must bump `SNAPSHOT_VERSION`
   in `js/state.js` and still load data already saved on other devices.
+- When building HTML strings, pass every value that comes from state through
+  `escapeHtml` (and team colours through `safeColor`). The Firebase data is
+  writable by anyone with the public config, so it is untrusted input.
 - The app is used live on phones during matches: check mobile widths and both
   light and dark themes when touching UI.
 - Commit messages follow conventional commits (`feat:`, `fix:`, `refactor:`, ...).
