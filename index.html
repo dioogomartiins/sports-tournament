@@ -26,6 +26,7 @@
             <span class="save-pill" id="savePill">Guardado</span>
             <span class="backup-pill" id="backupPill">Sem backup</span>
             <button class="theme-toggle-btn" id="btnDarkMode" title="Alternar Modo Escuro/Claro">🌙</button>
+            <button class="theme-toggle-btn auth-btn" id="btnConta" title="Entrar com Google">🔑 Entrar</button>
           </div>
         </div>
         <h1 id="tournamentTitle">Futebol ILOG</h1>
@@ -44,7 +45,7 @@
       <button class="tab" data-tab="calendar">📅 Calendário</button>
       <button class="tab" data-tab="results">⚽ Resultados</button>
       <button class="tab" data-tab="stats">📊 Estatísticas</button>
-      <button class="tab" data-tab="config">⚙️ Configuração</button>
+      <button class="tab" data-tab="config" data-requires="admin">⚙️ Configuração</button>
 
       <div class="dropdown">
         <button class="tab dropdown-btn">🛠️ Gestão ▾</button>
@@ -52,7 +53,8 @@
           <button class="tab" data-tab="teams">👥 Equipas</button>
           <button class="tab" data-tab="squads">👕 Plantéis</button>
           <button class="tab" data-tab="players">👤 Jogadores</button>
-          <button class="tab" data-tab="data">💾 Dados</button>
+          <button class="tab" data-tab="data" data-requires="admin">💾 Dados</button>
+          <button class="tab" data-tab="admin" data-requires="admin">👮 Utilizadores</button>
         </div>
       </div>
 
@@ -218,7 +220,7 @@
               <p class="section-sub" style="margin:0;">Regista jogadores e define os seus atributos. Podes atribuir cada
                 jogador a uma equipa do torneio.</p>
             </div>
-            <button class="btn btn-gold" id="btnNewPlayer">➕ Novo Jogador</button>
+            <button class="btn btn-gold" id="btnNewPlayer" data-requires="admin">➕ Novo Jogador</button>
           </div>
 
           <div style="margin-bottom:16px;">
@@ -306,7 +308,7 @@
           <div class="section-title">📅 Calendário</div>
           <p class="section-sub">Gerado automaticamente pelo algoritmo de Berger.</p>
           <div id="calendarList"></div>
-          <div id="calendarActions"
+          <div id="calendarActions" data-requires="admin"
             style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line); text-align: center; display: none;">
             <button class="btn" id="btnAdicionarVolta"
               style="background:var(--paper); border:1px solid var(--line); color:var(--pitch-800);">➕ Adicionar Volta
@@ -348,6 +350,20 @@
       </section>
 
       <!-- DADOS E BACKUPS -->
+      <section id="tab-admin" class="panel">
+        <div class="card">
+          <div class="section-title">👮 Utilizadores</div>
+          <p class="section-sub">Quem entra com Google fica pendente (só vê) até lhe dares um perfil.
+            Utilizadores registam resultados e jogos singulares; admins podem fazer tudo.</p>
+          <div id="usersList"><p class="empty">A carregar…</p></div>
+        </div>
+        <div class="card">
+          <div class="section-title">📜 Registo de Alterações</div>
+          <p class="section-sub">As últimas 200 alterações, com quem as fez.</p>
+          <div id="logList"><p class="empty">A carregar…</p></div>
+        </div>
+      </section>
+
       <section id="tab-data" class="panel">
         <div class="card">
           <div class="section-title">💾 Backup e Restauro</div>
