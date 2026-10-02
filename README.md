@@ -7,9 +7,12 @@ Uma aplicação web moderna concebida para a gestão completa de torneios despor
 * **Sincronização em Tempo Real (Firebase):** Todos os telemóveis e computadores ligados atualizam instantaneamente quando um resultado ou golo é inserido noutro dispositivo. Sem necessidade de recarregar a página!
 * **Base de Dados Global de Jogadores:** Regista jogadores com atributos (Velocidade, Finalização, Passe, Drible, Defesa, Físico) que determinam a sua classificação global (Rating) por estrelas.
 * **Organização e Gestão Centralizada:** Um menu de gestão robusto para criar Equipas, alocar jogadores aos Plantéis e gerir as fichas técnicas de cada atleta.
-* **Jogo Singular & Draft Simulado:** Ideal para quando não há pessoas suficientes para um torneio inteiro. Permite a duas pessoas criarem um "Jogo Singular", escolhendo os jogadores da Base de Dados de forma interativa para equilibrar ratings (Rating da Equipa A vs Equipa B) e registar golos diretamente para o Histórico.
+* **Jogo Singular com Equipas Equilibradas:** Ideal para quando não há pessoas suficientes para um torneio inteiro. Escolhem-se os jogadores presentes da Base de Dados e a app divide-os em duas equipas com o rating total o mais próximo possível (testa todas as divisões até 20 jogadores). O resultado, os marcadores, as assistências e o MVP ficam no Histórico de Singulares.
 * **Algoritmo de Berger:** Geração automática e justa do calendário da Liga (incluso números ímpares de equipas), agrupamento e eliminatórias ("mata-mata").
-* **Estatísticas e Ficha de Jogador:** Acompanha os melhores marcadores somando todos os golos do Torneio e dos Jogos Singulares, pódios interativos, e clica em qualquer jogador para abrires a sua "Ficha" e veres os seus recordes.
+* **Golos, Assistências e MVP:** Em cada golo regista-se o marcador e quem assistiu (os autogolos não têm assistência), e cada jogo terminado tem um MVP. Vale tanto para os jogos do torneio como para os singulares.
+* **Estatísticas e Ficha de Jogador:** O separador 📊 Estatísticas mostra os melhores marcadores, assistentes e MVPs do torneio atual e dos Jogos Singulares. O 🗄️ Histórico junta também os torneios arquivados, e clicar em qualquer jogador abre a sua "Ficha" com os totais de sempre.
+* **Histórico de Torneios:** No fim de um torneio, um admin carrega em **Arquivar e Começar Novo** (Gestão → 💾 Dados). A classificação final, o campeão e as estatísticas dos jogadores ficam guardados no Histórico, e o calendário e os resultados são limpos. Equipas, plantéis, jogadores e jogos singulares mantêm-se.
+* **Partilhar como Imagem:** O botão 📤 na Classificação e em cada resultado terminado gera uma imagem PNG e abre a partilha do telemóvel (WhatsApp, etc.). Onde a partilha não existe, a imagem é descarregada.
 * **Design Premium e Responsivo:** UI/UX super cuidado com tema claro e escuro dinâmico (Dark Mode).
 
 ## 🛠️ Tecnologias Utilizadas
@@ -20,6 +23,20 @@ Esta é uma Single Page Application construída com tecnologias web nativas e se
 * **JavaScript (ES Modules)**
 * **[Vite](https://vitejs.dev/)** (Ferramenta de *Build* e *Dev Server*)
 * **Firebase Realtime Database** (Para sincronização *Serverless* instantânea)
+
+## 🗂️ Estrutura do Código
+
+| Ficheiro | Papel |
+|---|---|
+| `js/state.js` | Estado global e persistência (localStorage + envio para o Firebase). `SNAPSHOT_VERSION` muda sempre que a forma do estado muda. |
+| `js/algorithms.js` | Lógica pura: calendário de Berger, classificação, desempates por confronto direto, ratings, equipas equilibradas, estatísticas de jogadores e arquivo. |
+| `js/sync.js` | Calcula o que mudou desde a última sincronização (`update()` só com as diferenças), normaliza dados antigos e descreve as alterações para o registo. |
+| `js/firebase.js` | Ligação ao Firebase: sincronização em tempo real, login com Google e registo de alterações. |
+| `js/permissions.js` | O que cada perfil pode gravar; espelha `database.rules.json`. |
+| `js/share.js` | Gera as imagens PNG para partilhar. |
+| `js/ui.js` / `js/main.js` | Desenho dos ecrãs / ligação dos eventos. |
+| `database.rules.json` | Regras de segurança do Realtime Database (a proteção real dos dados). |
+| `tests/` | Testes Vitest da lógica pura. |
 
 ## 🚀 Como Correr Localmente (Desenvolvimento)
 
@@ -54,7 +71,9 @@ Para trabalhar nesta aplicação no teu computador e desfrutar do *Hot Reload* d
    ```bash
    npm run dev
    ```
-   Acede ao link indicado no terminal (normalmente `http://localhost:5173`).
+   Abre `http://localhost:5173/torneio-ilog/` (a app é servida no mesmo caminho que no GitHub Pages; a raiz fica em branco).
+
+   > ⚠️ Com o `.env` de produção, qualquer clique altera o torneio real em todos os telemóveis. Para testar, cria um `.env.development.local` com `VITE_FIREBASE_DATABASE_URL` de uma base de dados de testes, ou usa os emuladores do Firebase (ver `.claude/skills/run/SKILL.md`).
 
 5. **Correr os testes:**
    ```bash
@@ -81,8 +100,8 @@ Qualquer pessoa vê o torneio sem conta. Para editar é preciso entrar com Googl
 | Perfil | Pode |
 |---|---|
 | Pendente (acabou de entrar) | Só ver |
-| Utilizador | Registar resultados, estados dos jogos, eliminatórias e jogos singulares |
-| Admin | Tudo: configuração, equipas, plantéis, jogadores, importar, apagar dados e gerir utilizadores |
+| Utilizador | Registar resultados, marcadores, assistências e MVP, estados dos jogos, eliminatórias e jogos singulares |
+| Admin | Tudo: configuração, equipas, plantéis, jogadores, importar, arquivar torneios, apagar dados e gerir utilizadores |
 
 Cada alteração fica no **Registo de Alterações** (Gestão → 👮 Utilizadores, só para admins), com quem a fez e quando.
 
