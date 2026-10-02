@@ -1,6 +1,6 @@
-import { state, persistConfigTeams, loadState, persistSchedule, persistResults, persistBackup, persistPlayers, persistJogosSingulares, persistArquivo, storeAllLayers, notifyPushError, currentTheme, setCurrentTheme, exportJSON, importJSON, applyGeneratedSchedule, applySnapshot, buildSnapshot, defaultTeams, defaultSquads } from './state.js';
-import { closeGameModal, dom, cacheDom, renderAll, refreshComputed, renderScheduleHint, renderSquadList, renderSquadsDropdown, renderCalendar, renderResults, showToast, flashSaved, openConfirm, closeConfirm, openDangerConfirm, switchTab, confirmCallback, openScorerModal, openPlayerProfile, computeStatsSummary, renderPlayersList, openPlayerModal, renderSquadPlayerFromDBDropdown, renderDraftPlayerList, renderDraftTeams, renderSingularHistorico, currentDraft, renderAuth, renderUsers, renderLog, buildPlayerIndex, openPickPlayerModal, squadPickList } from './ui.js';
-import { clamp, numOr, escapeHtml } from './utils.js';
+import { state, persistConfigTeams, loadState, persistSchedule, persistResults, persistBackup, persistPlayers, persistJogosSingulares, persistArquivo, storeAllLayers, notifyPushError, currentTheme, setCurrentTheme, exportJSON, importJSON, applyGeneratedSchedule, applySnapshot, buildSnapshot, defaultTeams, defaultSquads, setStateHooks } from './state.js';
+import { closeGameModal, dom, cacheDom, renderAll, refreshComputed, renderScheduleHint, renderSquadList, renderSquadsDropdown, flashError, flashBackup, renderCalendar, renderResults, showToast, flashSaved, openConfirm, closeConfirm, openDangerConfirm, switchTab, confirmCallback, openScorerModal, openPlayerProfile, computeStatsSummary, renderPlayersList, openPlayerModal, renderSquadPlayerFromDBDropdown, renderDraftPlayerList, renderDraftTeams, renderSingularHistorico, currentDraft, renderAuth, renderUsers, renderLog, openPickPlayerModal, squadPickList } from './ui.js';
+import { clamp, numOr, escapeHtml, buildPlayerIndex } from './utils.js';
 import { shareStandings, shareResult } from './share.js';
 import { animateResultChanges } from './animations.js';
 import { bergerRounds, balancedDraft, buildFirstRoundSeeding, buildExtraVolta, getPlayoffWinner, buildArchiveEntry, countPlayedGames, GAME_STATUS, alignAssists, addGoal, removeGoal, setGameStatus } from './algorithms.js';
@@ -38,10 +38,10 @@ export function onFormatFieldChange() {
 // ---------------------------------------------------------------------------
 // Handlers de equipas e plantéis
 // ---------------------------------------------------------------------------
-export function onTeamPropChange(e) {
-  const idx = parseInt(e.target.dataset.idx, 10);
-  const prop = e.target.dataset.prop;
-  state.teams[idx][prop] = e.target.value.trim();
+function onTeamPropChange(inp) {
+  const idx = parseInt(inp.dataset.idx, 10);
+  const prop = inp.dataset.prop;
+  state.teams[idx][prop] = inp.value.trim();
   persistConfigTeams();
   renderSquadsDropdown();
   renderCalendar();
@@ -76,7 +76,7 @@ export function onAddPlayerFromDB() {
   showToast('Jogador adicionado ao plantel!', 'ok');
 }
 
-export function onSquadListClick(e) {
+function onSquadListClick(e) {
   const btnDel = e.target.closest('.player-del');
   const btnStats = e.target.closest('.player-stats-btn');
 
@@ -108,8 +108,8 @@ function propagatePlayoffWinner(gi) {
   }
 }
 
-export function onStatusBtnClick(e) {
-  const gi = e.target.dataset.gi;
+function onStatusBtnClick(btn) {
+  const gi = btn.dataset.gi;
 
   const res = state.results[gi];
   const current = (res && typeof res === 'object' && res.status) || 'agendado';
@@ -124,8 +124,7 @@ export function onStatusBtnClick(e) {
   refreshComputed();
 }
 
-export function onScoreBtnClick(e) {
-  const btn = e.target;
+function onScoreBtnClick(btn) {
   const gi = btn.dataset.gi;
   const side = btn.dataset.side;
   const action = btn.dataset.action;
@@ -173,9 +172,9 @@ export function onMvpClick(gi) {
   });
 }
 
-export function onResultCommit(e) {
-  const gi = e.target.dataset.gi;
-  const row = e.target.closest('.fixture-input') || e.target.closest('.result-split').parentNode;
+function onResultCommit(inp) {
+  const gi = inp.dataset.gi;
+  const row = inp.closest('.fixture-input') || inp.closest('.result-split').parentNode;
 
   const inps = row.querySelectorAll('.res-box');
   const penInps = row.querySelectorAll('.pen-box');
@@ -715,6 +714,29 @@ export function bindEvents() {
   dom.btnAddPlayerFromDB.addEventListener('click', onAddPlayerFromDB);
   dom.squadList.addEventListener('click', onSquadListClick);
 
+  // Equipas, calendário e resultados são redesenhados com innerHTML: um listener
+  // por contentor em vez de um por elemento a cada render.
+  // (focusout porque o blur não sobe até ao contentor)
+  dom.teamsList.addEventListener('focusout', (e) => {
+    if (e.target.matches('.team-prop')) onTeamPropChange(e.target);
+  });
+  dom.teamsList.addEventListener('change', (e) => {
+    if (e.target.matches('.team-prop[type="color"]')) onTeamPropChange(e.target);
+  });
+  dom.calendarList.addEventListener('click', (e) => {
+    const badge = e.target.closest('.status-badge');
+    if (badge) onStatusBtnClick(badge);
+  });
+  dom.resultsList.addEventListener('click', (e) => {
+    const btn = e.target.closest('.score-btn, .status-badge');
+    if (!btn) return;
+    if (btn.matches('.score-btn')) onScoreBtnClick(btn);
+    else onStatusBtnClick(btn);
+  });
+  dom.resultsList.addEventListener('focusout', (e) => {
+    if (e.target.matches('.res-box, .pen-box')) onResultCommit(e.target);
+  });
+
   // Conta e administração
   dom.btnConta.addEventListener('click', onContaClick);
   dom.usersList.addEventListener('change', onUserRoleChange);
@@ -801,6 +823,7 @@ function renderWhenIdle() {
 }
 
 export async function init() {
+  setStateHooks({ flashError, flashSaved, flashBackup, showToast, openConfirm, renderAll });
   cacheDom();
   bindEvents();
   await loadState();

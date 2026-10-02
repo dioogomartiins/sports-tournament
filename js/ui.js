@@ -1,7 +1,6 @@
 import { state, MAX_TEAMS, normalizePlayer, persistPlayers, persistConfigTeams, persistJogosSingulares, persistArquivo } from './state.js';
-import { getTeamName, getTeamDisplay, escapeHtml, fmtTimestamp, clamp, safeColor } from './utils.js';
+import { getTeamName, getTeamDisplay, escapeHtml, fmtTimestamp, clamp, safeColor, buildPlayerIndex, playerName, prefersReducedMotion } from './utils.js';
 import { computeStandings, GAME_STATUS, getPlayerRating, getTeamTotalRating, tallyPlayerStats, mergePlayerStats, archiveTally, gameGoals, standingsOrder, rankMoves } from './algorithms.js';
-import { onStatusBtnClick, onScoreBtnClick, onResultCommit, onTeamPropChange, onSquadListClick } from './main.js';
 import { ROLES, isKnownRole, roleLabel } from './permissions.js';
 
 // ---------------------------------------------------------------------------
@@ -147,9 +146,8 @@ export function renderTeams() {
 
   dom.teamsList.innerHTML = html.join('');
 
+  // A gravação é ligada no main.js (delegação em dom.teamsList)
   Array.from(dom.teamsList.querySelectorAll('.team-prop')).forEach((inp) => {
-    inp.addEventListener('blur', onTeamPropChange);
-    inp.addEventListener('change', (e) => { if (e.target.type === 'color') onTeamPropChange(e); });
     inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') inp.blur(); });
   });
 }
@@ -291,10 +289,7 @@ export function renderCalendar() {
 
   dom.calendarList.innerHTML = parts.join('');
 
-  Array.from(dom.calendarList.querySelectorAll('.status-badge')).forEach((btn) => {
-    btn.addEventListener('click', onStatusBtnClick);
-  });
-
+  // O clique no estado é tratado no main.js (delegação em dom.calendarList)
   Array.from(dom.calendarList.querySelectorAll('.fixture-open')).forEach((row) => {
     row.addEventListener('click', (e) => {
       if (e.target.closest('.status-badge')) return;
@@ -390,17 +385,9 @@ export function renderResults() {
     btn.addEventListener('click', () => openGameModal(btn.dataset.gi));
   });
 
+  // Gravar resultados, golos e estado é ligado no main.js (delegação em dom.resultsList)
   Array.from(dom.resultsList.querySelectorAll('.res-box, .pen-box')).forEach((inp) => {
-    inp.addEventListener('blur', onResultCommit);
     inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') inp.blur(); });
-  });
-
-  Array.from(dom.resultsList.querySelectorAll('.score-btn')).forEach((btn) => {
-    btn.addEventListener('click', onScoreBtnClick);
-  });
-
-  Array.from(dom.resultsList.querySelectorAll('.status-badge')).forEach((btn) => {
-    btn.addEventListener('click', onStatusBtnClick);
   });
 
   refreshGameModal();
@@ -434,9 +421,6 @@ function slideRows(container, before, duration = 450) {
   });
 }
 
-export function prefersReducedMotion() {
-  return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-}
 /** Seta com os lugares ganhos (verde) ou perdidos (vermelho). */
 function moveBadge(team) {
   const n = standingsMoves.get(String(team));
@@ -537,24 +521,6 @@ function replayStandings() {
 // ---------------------------------------------------------------------------
 // Estatísticas — marcadores
 // ---------------------------------------------------------------------------
-
-/**
- * Constrói um índice pId → { name, team } percorrendo os plantéis uma única vez,
- * evitando a busca O(n²) anterior.
- */
-export function buildPlayerIndex() {
-  const index = {};
-  state.players.forEach((p) => {
-    const tName = p.teamIdx !== null && p.teamIdx !== undefined ? getTeamName(p.teamIdx) : 'Sem Equipa';
-    index[p.id] = { name: p.nome, team: tName };
-  });
-  state.squads.forEach((squad, teamIndex) => {
-    squad.forEach((player) => {
-      index[player.id] = { name: player.name, team: getTeamName(teamIndex) };
-    });
-  });
-  return index;
-}
 
 export function computeScorerStats() {
   const playerIndex = buildPlayerIndex();
@@ -921,16 +887,6 @@ export function squadPickList(teamIdx, excludeId) {
     .map((p) => ({ id: p.id, label: `${p.num} - ${p.name}` }));
 }
 
-/** Nome de um jogador (base de dados, plantéis ou arquivo). */
-export function playerName(pid) {
-  const info = buildPlayerIndex()[pid];
-  if (info) return info.name;
-  for (const e of state.arquivo) {
-    const j = e.jogadores.find((x) => x.pid === pid);
-    if (j) return j.nome;
-  }
-  return 'Jogador Desconhecido';
-}
 
 export function openScorerModal(gi, side, onSelect) {
   const game = state.schedule[gi];

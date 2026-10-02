@@ -1,4 +1,3 @@
-import { flashError, flashSaved, flashBackup, showToast, openConfirm, renderAll } from './ui.js';
 import { generateSchedule } from './algorithms.js';
 import { pushStateToFirebase, getSyncedSnapshot, getCurrentRole } from './firebase.js';
 import { normalizeResults, normalizeArquivo } from './sync.js';
@@ -9,6 +8,23 @@ import { normalizeResults, normalizeArquivo } from './sync.js';
 export const SNAPSHOT_VERSION = 7;
 export const MAX_TEAMS = 32;
 const DEFAULT_COLOR = '#2F7A4F';
+
+// ---------------------------------------------------------------------------
+// Avisos e render da UI — registados pelo main.js no arranque (setStateHooks),
+// para o state.js não importar o ui.js
+// ---------------------------------------------------------------------------
+const ui = {
+  flashError() {},
+  flashSaved() {},
+  flashBackup() {},
+  showToast() {},
+  openConfirm() {},
+  renderAll() {},
+};
+
+export function setStateHooks(hooks) {
+  Object.assign(ui, hooks);
+}
 
 // ---------------------------------------------------------------------------
 // Tema (dark mode)
@@ -94,7 +110,7 @@ const STORAGE_PREFIX = 'torneio_ilog_';
 export function warnNoStorage() {
   if (storageWarned) return;
   storageWarned = true;
-  showToast('O teu navegador bloqueia a gravação — os dados não serão guardados.', 'error');
+  ui.showToast('O teu navegador bloqueia a gravação — os dados não serão guardados.', 'error');
 }
 
 /** Nota: marcado como async para facilitar futura migração para IndexedDB sem quebrar a API. */
@@ -122,7 +138,7 @@ export async function storageSet(key, value) {
     window.localStorage.setItem(STORAGE_PREFIX + key, value);
     return { value };
   } catch (e) {
-    flashError();
+    ui.flashError();
     return null;
   }
 }
@@ -192,7 +208,7 @@ export function applySnapshot(s) {
 export async function persistBackup() {
   const snap = buildSnapshot();
   await storageSet('backup', JSON.stringify(snap));
-  flashBackup(snap.exportedAt);
+  ui.flashBackup(snap.exportedAt);
   const res = pushStateToFirebase(snap);
   if (!res.ok) await rejectLocalChange(res.reason);
 }
@@ -209,7 +225,7 @@ function showSaveError(msg) {
   const now = Date.now();
   if (msg === lastErrorToast.msg && now - lastErrorToast.at < 2000) return;
   lastErrorToast = { msg, at: now };
-  showToast(msg, 'error');
+  ui.showToast(msg, 'error');
 }
 
 /** O Firebase recusou uma gravação já aplicada localmente (o valor do servidor volta sozinho). */
@@ -234,7 +250,7 @@ async function rejectLocalChange(reason) {
   if (!validateSnapshot(synced)) return;
   applySnapshot(synced);
   await storeAllLayers();
-  renderAll();
+  ui.renderAll();
 }
 
 export async function persistConfigTeams() {
@@ -243,7 +259,7 @@ export async function persistConfigTeams() {
     teams: state.teams,
     squads: state.squads,
   }));
-  flashSaved();
+  ui.flashSaved();
   await persistBackup();
 }
 
@@ -254,31 +270,31 @@ export async function persistSchedule() {
     scheduleTeamCount: state.scheduleTeamCount,
     scheduleVoltas: state.scheduleVoltas,
   }));
-  flashSaved();
+  ui.flashSaved();
   await persistBackup();
 }
 
 export async function persistResults() {
   await storageSet('results', JSON.stringify(state.results));
-  flashSaved();
+  ui.flashSaved();
   await persistBackup();
 }
 
 export async function persistPlayers() {
   await storageSet('players', JSON.stringify(state.players));
-  flashSaved();
+  ui.flashSaved();
   await persistBackup();
 }
 
 export async function persistJogosSingulares() {
   await storageSet('jogos-singulares', JSON.stringify(state.jogosSingulares));
-  flashSaved();
+  ui.flashSaved();
   await persistBackup();
 }
 
 export async function persistArquivo() {
   await storageSet('arquivo', JSON.stringify(state.arquivo));
-  flashSaved();
+  ui.flashSaved();
   await persistBackup();
 }
 
@@ -382,8 +398,8 @@ export async function loadState() {
   } else if (validateSnapshot(bk)) {
     applySnapshot(bk);
     await storeAllLayers();
-    showToast('Estado restaurado a partir do backup automático.', 'ok');
-    flashBackup(bk.exportedAt);
+    ui.showToast('Estado restaurado a partir do backup automático.', 'ok');
+    ui.flashBackup(bk.exportedAt);
   } else {
     state.config = defaultConfig();
     state.teams = defaultTeams();
@@ -394,7 +410,7 @@ export async function loadState() {
     applyGeneratedSchedule(state.config.numEquipas, state.config.numVoltas, false);
   }
 
-  if (bk && bk.exportedAt) flashBackup(bk.exportedAt);
+  if (bk && bk.exportedAt) ui.flashBackup(bk.exportedAt);
 }
 
 // ---------------------------------------------------------------------------
@@ -415,7 +431,7 @@ export function exportJSON() {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 
-  showToast('Torneio exportado com sucesso!', 'ok');
+  ui.showToast('Torneio exportado com sucesso!', 'ok');
 }
 
 export function importJSON(file) {
@@ -427,21 +443,21 @@ export function importJSON(file) {
     try {
       snap = JSON.parse(e.target.result);
     } catch {
-      showToast('Ficheiro inválido.', 'error');
+      ui.showToast('Ficheiro inválido.', 'error');
       return;
     }
 
     if (!validateSnapshot(snap)) {
-      showToast('Estrutura inválida.', 'error');
+      ui.showToast('Estrutura inválida.', 'error');
       return;
     }
 
-    openConfirm('Importar torneio', 'Isto vai substituir TODO o estado atual. Continuar?', async () => {
+    ui.openConfirm('Importar torneio', 'Isto vai substituir TODO o estado atual. Continuar?', async () => {
       applySnapshot(snap);
       await storeAllLayers();
       await persistBackup();
-      renderAll();
-      showToast('Torneio importado com sucesso!', 'ok');
+      ui.renderAll();
+      ui.showToast('Torneio importado com sucesso!', 'ok');
     });
   };
 

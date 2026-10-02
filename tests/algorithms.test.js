@@ -1,11 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
-
-// algorithms.js importa state.js/utils.js, que por sua vez carregam a UI e o Firebase.
-// Os testes só precisam da lógica pura, por isso substituímos esses módulos.
-vi.mock('../js/state.js', () => ({ state: { teams: [] } }));
-vi.mock('../js/utils.js', () => ({ getTeamName: (i) => `Equipa ${i + 1}` }));
-
-const {
+import { describe, it, expect } from 'vitest';
+import {
   bergerRounds,
   generateSchedule,
   computeStandings,
@@ -29,7 +23,7 @@ const {
   standingsOrder,
   rankMoves,
   GAME_STATUS,
-} = await import('../js/algorithms.js');
+} from '../js/algorithms.js';
 
 const config = {
   numGrupos: 1,

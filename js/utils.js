@@ -58,3 +58,36 @@ export function getActiveTeamNames() {
   }
   return arr;
 }
+
+/**
+ * Constrói um índice pId → { name, team } percorrendo os plantéis uma única vez,
+ * evitando a busca O(n²) anterior.
+ */
+export function buildPlayerIndex() {
+  const index = {};
+  state.players.forEach((p) => {
+    const tName = p.teamIdx !== null && p.teamIdx !== undefined ? getTeamName(p.teamIdx) : 'Sem Equipa';
+    index[p.id] = { name: p.nome, team: tName };
+  });
+  state.squads.forEach((squad, teamIndex) => {
+    squad.forEach((player) => {
+      index[player.id] = { name: player.name, team: getTeamName(teamIndex) };
+    });
+  });
+  return index;
+}
+
+/** Nome de um jogador (base de dados, plantéis ou arquivo). */
+export function playerName(pid) {
+  const info = buildPlayerIndex()[pid];
+  if (info) return info.name;
+  for (const e of state.arquivo) {
+    const j = e.jogadores.find((x) => x.pid === pid);
+    if (j) return j.nome;
+  }
+  return 'Jogador Desconhecido';
+}
+
+export function prefersReducedMotion() {
+  return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+}

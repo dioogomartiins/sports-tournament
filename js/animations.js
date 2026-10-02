@@ -6,8 +6,7 @@
 // em quem recebeu a alteração do Firebase.
 import { state } from './state.js';
 import { resultEvents } from './algorithms.js';
-import { getTeamName, escapeHtml, safeColor } from './utils.js';
-import { playerName, prefersReducedMotion } from './ui.js';
+import { getTeamName, escapeHtml, safeColor, playerName, prefersReducedMotion } from './utils.js';
 
 const DURATION = 2600; // ms que cada animação ocupa o cartão do jogo
 

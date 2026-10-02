@@ -5,8 +5,8 @@
 // ---------------------------------------------------------------------------
 import { state } from './state.js';
 import { computeStandings } from './algorithms.js';
-import { getTeamName, safeColor } from './utils.js';
-import { showToast, playerName } from './ui.js';
+import { getTeamName, safeColor, playerName } from './utils.js';
+import { showToast } from './ui.js';
 
 const W = 1080;
 const PAD = 64;
