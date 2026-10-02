@@ -34,12 +34,11 @@
       </div>
     </header>
 
-    <div class="toolbar">
-      <!-- MENU MOBILE -->
-      <button class="btn btn-outline" id="btnMobileMenu">☰ Menu</button>
-    </div>
-
-    <nav class="tabs" id="tabs">
+    <nav class="tabs" id="tabs" aria-label="Separadores">
+      <div class="drawer-head">
+        <span class="drawer-title">Mais</span>
+        <button class="drawer-close" id="btnFecharMenu" title="Fechar menu" aria-label="Fechar menu">✕</button>
+      </div>
       <button class="tab active" data-tab="dashboard">🏠 Dashboard</button>
       <button class="tab" data-tab="standings">🏆 Classificação</button>
       <button class="tab" data-tab="calendar">📅 Calendário</button>
@@ -49,7 +48,7 @@
       <button class="tab" data-tab="config" data-requires="admin">⚙️ Configuração</button>
 
       <div class="dropdown">
-        <button class="tab dropdown-btn">🛠️ Gestão ▾</button>
+        <button class="tab dropdown-btn">🛠️ Gestão <span class="dropdown-caret">▾</span></button>
         <div class="dropdown-content">
           <button class="tab" data-tab="teams">👥 Equipas</button>
           <button class="tab" data-tab="squads">👕 Plantéis</button>
@@ -60,6 +59,16 @@
       </div>
 
       <button class="tab" data-tab="singular">⚽ Jogo Singular</button>
+    </nav>
+    <div class="drawer-backdrop" id="drawerBackdrop" aria-hidden="true"></div>
+
+    <!-- PÍLULA DE NAVEGAÇÃO (só telemóvel): os separadores dos jogos e "Mais" para o resto -->
+    <nav class="bottom-nav" aria-label="Navegação principal">
+      <button class="tab" data-tab="dashboard" aria-label="Início"><span class="bn-icon" aria-hidden="true">🏠</span><span class="bn-label">Início</span></button>
+      <button class="tab" data-tab="results" aria-label="Resultados"><span class="bn-icon" aria-hidden="true">⚽</span><span class="bn-label">Resultados</span></button>
+      <button class="tab" data-tab="standings" aria-label="Tabela"><span class="bn-icon" aria-hidden="true">🏆</span><span class="bn-label">Tabela</span></button>
+      <button class="tab" data-tab="calendar" aria-label="Calendário"><span class="bn-icon" aria-hidden="true">📅</span><span class="bn-label">Calendário</span></button>
+      <button class="bn-more" id="btnMobileMenu" aria-label="Mais" aria-controls="tabs" aria-expanded="false"><span class="bn-icon" aria-hidden="true">☰</span><span class="bn-label">Mais</span></button>
     </nav>
 
     <main class="content">

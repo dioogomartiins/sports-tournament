@@ -4,7 +4,8 @@ import { clamp, numOr, escapeHtml } from './utils.js';
 import { shareStandings, shareResult } from './share.js';
 import { animateResultChanges } from './animations.js';
 import { bergerRounds, balancedDraft, buildFirstRoundSeeding, buildExtraVolta, getPlayoffWinner, buildArchiveEntry, countPlayedGames, GAME_STATUS, alignAssists, addGoal, removeGoal, setGameStatus } from './algorithms.js';
-import { initFirebaseListener, onFirebaseStateChange, onFirebasePushError, setSyncedSnapshot, initAuth, signInWithGoogle, signOutUser, getCurrentUser, listenUsers, listenLog, setUserRole } from './firebase.js';
+import { initFirebaseListener, onFirebaseStateChange, onFirebasePushError, setSyncedSnapshot, initAuth, signInWithGoogle, signOutUser, getCurrentUser, getCurrentRole, listenUsers, listenLog, setUserRole } from './firebase.js';
+import { roleLabel } from './permissions.js';
 
 // ---------------------------------------------------------------------------
 // Handlers de configuração
@@ -604,7 +605,10 @@ export function onContaClick() {
     });
     return;
   }
-  openConfirm('Terminar sessão', 'Queres sair da tua conta? Continuas a ver o torneio, mas sem poder editar.', () => {
+  // No telemóvel o botão só mostra 👤, por isso a confirmação diz quem tem a sessão
+  const user = getCurrentUser();
+  const quem = `${escapeHtml(user.displayName || user.email || '')} (${escapeHtml(roleLabel(getCurrentRole()))})`;
+  openConfirm('Terminar sessão', `Tens sessão iniciada como <strong>${quem}</strong>. Queres sair da tua conta? Continuas a ver o torneio, mas sem poder editar.`, () => {
     signOutUser();
   });
 }
@@ -635,15 +639,35 @@ export function onUserRoleChange(e) {
 }
 
 // ---------------------------------------------------------------------------
+// Telemóvel: painel "Mais" (abre de baixo a partir da pílula de navegação)
+// ---------------------------------------------------------------------------
+function bindMenuDrawer() {
+  const drawer = document.getElementById('tabs');
+  const btnMenu = document.getElementById('btnMobileMenu');
+  const btnClose = document.getElementById('btnFecharMenu');
+  const backdrop = document.getElementById('drawerBackdrop');
+  if (!drawer || !btnMenu || !backdrop) return;
+
+  const mobile = window.matchMedia('(max-width: 760px)');
+  const isOpen = () => drawer.classList.contains('menu-open');
+  const setOpen = (open) => drawer.classList.toggle('menu-open', open);
+
+  // switchTab também fecha o painel: o aria-expanded segue a classe
+  new MutationObserver(() => btnMenu.setAttribute('aria-expanded', String(isOpen())))
+    .observe(drawer, { attributes: true, attributeFilter: ['class'] });
+
+  btnMenu.addEventListener('click', () => setOpen(!isOpen()));
+  if (btnClose) btnClose.addEventListener('click', () => setOpen(false));
+  backdrop.addEventListener('click', () => setOpen(false));
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && isOpen()) setOpen(false); });
+  mobile.addEventListener('change', () => setOpen(false));
+}
+
+// ---------------------------------------------------------------------------
 // Binding de eventos e inicialização
 // ---------------------------------------------------------------------------
 export function bindEvents() {
-  const btnMenu = document.getElementById('btnMobileMenu');
-  const tabsContainer = document.getElementById('tabs');
-
-  if (btnMenu && tabsContainer) {
-    btnMenu.addEventListener('click', () => { tabsContainer.classList.toggle('menu-open'); });
-  }
+  bindMenuDrawer();
 
   Array.from(document.querySelectorAll('.tab')).forEach((btn) => {
     btn.addEventListener('click', (e) => {
