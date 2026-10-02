@@ -639,10 +639,10 @@ export function onUserRoleChange(e) {
 }
 
 // ---------------------------------------------------------------------------
-// Menu lateral (telemóvel): botão ☰, swipe da margem esquerda, fundo e Esc
+// Telemóvel: painel "Mais" (abre de baixo) e topo que encolhe ao fazer scroll
 // ---------------------------------------------------------------------------
-const DRAWER_EDGE = 24;   // px a partir da margem esquerda onde o swipe abre o menu
-const DRAG_SLOP = 10;     // px antes de decidir se o gesto é horizontal ou scroll
+const TOPO_ENCOLHE = 80;  // px de scroll a partir dos quais o topo fica compacto
+const TOPO_EXPANDE = 10;  // volta ao tamanho normal só perto do início (evita tremer)
 
 function bindMenuDrawer() {
   const drawer = document.getElementById('tabs');
@@ -655,7 +655,7 @@ function bindMenuDrawer() {
   const isOpen = () => drawer.classList.contains('menu-open');
   const setOpen = (open) => drawer.classList.toggle('menu-open', open);
 
-  // switchTab também fecha o menu: o aria-expanded segue a classe
+  // switchTab também fecha o painel: o aria-expanded segue a classe
   new MutationObserver(() => btnMenu.setAttribute('aria-expanded', String(isOpen())))
     .observe(drawer, { attributes: true, attributeFilter: ['class'] });
 
@@ -665,46 +665,14 @@ function bindMenuDrawer() {
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && isOpen()) setOpen(false); });
   mobile.addEventListener('change', () => setOpen(false));
 
-  // Swipe: da margem esquerda para abrir, para a esquerda (no menu ou no fundo) para fechar.
-  // O menu segue o dedo e no fim abre ou fecha conforme a distância arrastada.
-  let drag = null;
-  document.addEventListener('touchstart', (e) => {
-    if (!mobile.matches || e.touches.length !== 1) return;
-    const t = e.touches[0];
-    const open = isOpen();
-    if (!open && t.clientX > DRAWER_EDGE) return;
-    if (open && !drawer.contains(e.target) && e.target !== backdrop) return;
-    drag = { x0: t.clientX, y0: t.clientY, open, width: drawer.offsetWidth, offset: null };
-  }, { passive: true });
-
-  document.addEventListener('touchmove', (e) => {
-    if (!drag) return;
-    const t = e.touches[0];
-    const dx = t.clientX - drag.x0;
-    const dy = t.clientY - drag.y0;
-    if (drag.offset === null) {
-      if (Math.abs(dy) > DRAG_SLOP && Math.abs(dy) > Math.abs(dx)) { drag = null; return; }
-      if (Math.abs(dx) < DRAG_SLOP) return;
-      drawer.classList.add('dragging');
-    }
-    drag.offset = drag.open ? Math.min(0, dx) : Math.min(0, dx - drag.width);
-    drawer.style.transform = `translateX(${drag.offset}px)`;
-    backdrop.style.opacity = String(1 + drag.offset / drag.width);
-  }, { passive: true });
-
-  const endDrag = () => {
-    if (!drag) return;
-    if (drag.offset !== null) {
-      const shown = 1 + drag.offset / drag.width;   // 0 = fechado, 1 = aberto
-      drawer.classList.remove('dragging');
-      drawer.style.transform = '';
-      backdrop.style.opacity = '';
-      setOpen(drag.open ? shown > 0.7 : shown > 0.3);
-    }
-    drag = null;
-  };
-  document.addEventListener('touchend', endDrag);
-  document.addEventListener('touchcancel', endDrag);
+  const header = document.querySelector('.marquee');
+  if (header) {
+    window.addEventListener('scroll', () => {
+      const y = window.scrollY;
+      if (y > TOPO_ENCOLHE) header.classList.add('compact');
+      else if (y < TOPO_EXPANDE) header.classList.remove('compact');
+    }, { passive: true });
+  }
 }
 
 // ---------------------------------------------------------------------------

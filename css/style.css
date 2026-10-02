@@ -1124,15 +1124,8 @@
     /* =========================================================
        📱 MELHORIAS MOBILE (RESPONSIVE)
     ========================================================= */
-    .marquee-brand {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      min-width: 0;
-    }
-
-    /* Menu lateral: só existe no telemóvel */
-    #btnMobileMenu,
+    /* Barra de baixo e painel "Mais": só existem no telemóvel */
+    .bottom-nav,
     .drawer-head,
     .drawer-backdrop {
       display: none;
@@ -1155,13 +1148,49 @@
         grid-template-columns: 1fr;
       }
 
-      /* Cabeçalho compacto: ☰ à esquerda; atualizar, tema e conta à direita */
+      /* Topo: atualizar, tema e conta; preso em cima e encolhe ao fazer scroll */
       .marquee {
-        padding: 10px 16px 16px;
+        position: sticky;
+        top: 0;
+        z-index: 200;
+        padding: 10px 16px 14px;
+        transition: padding .2s ease;
+      }
+
+      .marquee.compact {
+        padding: 8px 16px;
+      }
+
+      .marquee.compact .marquee-ticker {
+        display: none;
+      }
+
+      /* Compacto: nome do torneio na mesma linha dos botões */
+      .marquee.compact .marquee-content {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .marquee.compact .marquee-top {
+        grid-column: 2;
+        grid-row: 1;
+      }
+
+      .marquee.compact #tournamentTitle {
+        grid-column: 1;
+        grid-row: 1;
+        font-size: 20px;
+        margin: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
       .marquee-top {
         flex-wrap: nowrap;
+        justify-content: flex-end;
       }
 
       .marquee-top .eyebrow,
@@ -1182,11 +1211,6 @@
         font-size: 17px;
       }
 
-      #btnMobileMenu {
-        display: inline-flex;
-        font-size: 20px;
-      }
-
       .auth-btn {
         max-width: none;
       }
@@ -1203,37 +1227,112 @@
         font-size: 12px;
       }
 
-      /* Separadores numa gaveta que entra pela esquerda */
+      /* Barra fixa em baixo, ao alcance do polegar */
+      .content {
+        padding-bottom: calc(76px + env(safe-area-inset-bottom));
+      }
+
+      .bottom-nav {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 250;
+        padding: 4px 4px env(safe-area-inset-bottom);
+        background: var(--card);
+        border-top: 1px solid var(--line);
+        box-shadow: 0 -4px 16px rgba(0, 0, 0, .08);
+      }
+
+      .bottom-nav .tab,
+      .bottom-nav .bn-more {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        min-width: 0;
+        padding: 6px 2px 8px;
+        border: none;
+        border-top: 3px solid transparent;
+        background: none;
+        color: var(--ink-soft);
+        font-size: 11px;
+        font-weight: 600;
+      }
+
+      .bn-icon {
+        font-size: 20px;
+        line-height: 1.1;
+      }
+
+      .bn-label {
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .bottom-nav .tab.active {
+        color: var(--pitch-800);
+        border-top-color: var(--gold);
+        background: none;
+      }
+
+      [data-theme="dark"] .bottom-nav .tab.active {
+        color: var(--gold);
+      }
+
+      /* "Mais" fica marcado quando o separador aberto está no painel */
+      body:has(.tabs .tab.active:not([data-tab="dashboard"]):not([data-tab="results"]):not([data-tab="standings"]):not([data-tab="calendar"])) .bn-more,
+      .bn-more[aria-expanded="true"] {
+        color: var(--pitch-800);
+        border-top-color: var(--gold);
+      }
+
+      [data-theme="dark"] body:has(.tabs .tab.active:not([data-tab="dashboard"]):not([data-tab="results"]):not([data-tab="standings"]):not([data-tab="calendar"])) .bn-more,
+      [data-theme="dark"] .bn-more[aria-expanded="true"] {
+        color: var(--gold);
+      }
+
+      .toast-root {
+        bottom: calc(84px + env(safe-area-inset-bottom));
+      }
+
+      /* Painel "Mais": sobe de baixo com os restantes separadores */
       .tabs {
         position: fixed;
-        top: 0;
-        bottom: 0;
         left: 0;
+        right: 0;
+        bottom: 0;
         z-index: 300;
-        width: min(82vw, 300px);
+        max-height: 80vh;
         flex-direction: column;
         flex-wrap: nowrap;
         gap: 0;
-        padding: 0 0 calc(16px + env(safe-area-inset-bottom));
+        padding: 0 0 calc(12px + env(safe-area-inset-bottom));
         overflow-y: auto;
         overscroll-behavior: contain;
-        border-bottom: none;
-        border-right: 1px solid var(--line);
+        border: none;
+        border-radius: var(--radius) var(--radius) 0 0;
         box-shadow: var(--shadow-md);
-        transform: translateX(-100%);
+        transform: translateY(100%);
         visibility: hidden;
         transition: transform .25s ease, visibility 0s linear .25s;
       }
 
-      .tabs.menu-open,
-      .tabs.dragging {
+      .tabs.menu-open {
         transform: none;
         visibility: visible;
         transition: transform .25s ease;
       }
 
-      .tabs.dragging {
-        transition: none;
+      .tabs > .tab[data-tab="dashboard"],
+      .tabs > .tab[data-tab="results"],
+      .tabs > .tab[data-tab="standings"],
+      .tabs > .tab[data-tab="calendar"] {
+        display: none;
       }
 
       .drawer-head {
@@ -1243,7 +1342,7 @@
         position: sticky;
         top: 0;
         z-index: 1;
-        padding: calc(14px + env(safe-area-inset-top)) 12px 14px 18px;
+        padding: 12px 12px 12px 18px;
         background: linear-gradient(180deg, var(--pitch-800), var(--pitch-900));
         color: #fff;
       }
@@ -1281,10 +1380,6 @@
       .tabs.menu-open + .drawer-backdrop {
         opacity: 1;
         pointer-events: auto;
-      }
-
-      .tabs.dragging + .drawer-backdrop {
-        transition: none;
       }
 
       body:has(.tabs.menu-open) {
