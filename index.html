@@ -166,7 +166,8 @@
       <section id="tab-teams" class="panel">
         <div class="card">
           <div class="section-title">👥 Equipas (Cores)</div>
-          <p class="section-sub">Muda os nomes e escolhe a cor principal da equipa livremente.</p>
+          <p class="section-sub" data-requires="admin">Muda os nomes e escolhe a cor principal da equipa livremente.</p>
+          <p class="section-sub readonly-note" data-hide-for="admin">🔒 Só um admin pode alterar nomes e cores das equipas.</p>
           <div class="teams-grid" id="teamsList"></div>
         </div>
       </section>
@@ -175,8 +176,9 @@
       <section id="tab-squads" class="panel">
         <div class="card">
           <div class="section-title">👕 Gestão de Plantéis</div>
-          <p class="section-sub">Seleciona uma equipa e associa jogadores da base de dados para acompanhar a tabela de
+          <p class="section-sub" data-requires="admin">Seleciona uma equipa e associa jogadores da base de dados para acompanhar a tabela de
             melhores marcadores.</p>
+          <p class="section-sub readonly-note" data-hide-for="admin">🔒 Escolhe uma equipa para ver o plantel. Só um admin pode alterar os plantéis.</p>
 
           <div class="form-grid" style="margin-bottom: 20px;">
             <div class="field">
@@ -187,6 +189,7 @@
 
           <div
             style="background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 16px;">
+            <div data-requires="admin">
             <div class="form-grid" style="align-items: end; margin-bottom: 16px;">
               <div class="field" style="grid-column: span 1; max-width: 80px;">
                 <label for="squadPlayerNum">Nº</label>
@@ -205,6 +208,7 @@
             <p class="field-note" style="margin-bottom:12px;">Se um jogador ainda não existe, cria-o primeiro na aba
               <strong>👤 Jogadores</strong>.
             </p>
+            </div>
 
             <div id="squadList"></div>
           </div>
@@ -218,8 +222,9 @@
             style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:20px;">
             <div>
               <div class="section-title" style="margin-bottom:4px;">👤 Base de Dados de Jogadores</div>
-              <p class="section-sub" style="margin:0;">Regista jogadores e define os seus atributos. Podes atribuir cada
+              <p class="section-sub" style="margin:0;" data-requires="admin">Regista jogadores e define os seus atributos. Podes atribuir cada
                 jogador a uma equipa do torneio.</p>
+              <p class="section-sub readonly-note" style="margin:0;" data-hide-for="admin">🔒 Só um admin pode criar, editar ou apagar jogadores.</p>
             </div>
             <button class="btn btn-gold" id="btnNewPlayer" data-requires="admin">➕ Novo Jogador</button>
           </div>

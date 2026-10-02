@@ -1752,6 +1752,44 @@
       display: none !important;
     }
 
+    body[data-role="admin"] [data-hide-for="admin"] {
+      display: none !important;
+    }
+
+    .readonly-note {
+      color: var(--ink-soft);
+    }
+
+    /* Quem não é admin só vê as equipas do calendário atual */
+    body:not([data-role="admin"]) .team-row-inactive {
+      display: none;
+    }
+
+    @media (max-width: 600px) {
+      .teams-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .team-row .input {
+      min-width: 0;
+    }
+
+    [data-theme="dark"] .player-attr-val {
+      color: var(--pitch-500);
+    }
+
+    [data-theme="dark"] .player-stats-btn {
+      color: var(--ink) !important;
+    }
+
+    .team-row .input:disabled,
+    .team-color-picker:disabled {
+      opacity: 1;
+      cursor: default;
+      background: transparent;
+    }
+
     .auth-btn {
       max-width: 160px;
       overflow: hidden;

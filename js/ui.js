@@ -120,8 +120,14 @@ export function renderScheduleHint() {
 // ---------------------------------------------------------------------------
 // Render — equipas
 // ---------------------------------------------------------------------------
+/** O perfil atual é admin? (o mesmo que o CSS usa para esconder controlos) */
+function isAdminView() {
+  return document.body.dataset.role === 'admin';
+}
+
 export function renderTeams() {
   const html = [];
+  const ro = isAdminView() ? '' : ' disabled';
   for (let i = 0; i < MAX_TEAMS; i++) {
     const active = i < state.scheduleTeamCount;
     const t = state.teams[i] || { name: '', color: '#2F7A4F' };
@@ -132,8 +138,8 @@ export function renderTeams() {
     html.push(
       `<div class="team-row${active ? '' : ' team-row-inactive'}">` +
       `<span class="team-num">${i + 1}</span>` +
-      `<input type="color" class="team-color-picker team-prop" data-prop="color" data-idx="${i}" value="${safeColor(t.color)}" title="Cor da Equipa">` +
-      `<input type="text" class="input team-prop" data-prop="name" data-idx="${i}" value="${escapeHtml(t.name)}" placeholder="Equipa ${i + 1}">` +
+      `<input type="color" class="team-color-picker team-prop" data-prop="color" data-idx="${i}" value="${safeColor(t.color)}" title="Cor da Equipa"${ro}>` +
+      `<input type="text" class="input team-prop" data-prop="name" data-idx="${i}" value="${escapeHtml(t.name)}" placeholder="Equipa ${i + 1}"${ro}>` +
       groupTag +
       (active ? '' : '<span class="team-tag">fora do calendário atual</span>') +
       '</div>'
@@ -176,7 +182,7 @@ export function renderSquadList() {
 
   const squad = state.squads[tIdx] || [];
   if (!squad.length) {
-    dom.squadList.innerHTML = '<p class="empty" style="padding-top:20px;">Sem jogadores. Adiciona usando o dropdown acima!</p>';
+    dom.squadList.innerHTML = `<p class="empty" style="padding-top:20px;">${isAdminView() ? 'Sem jogadores. Adiciona usando o dropdown acima!' : 'Sem jogadores neste plantel.'}</p>`;
     return;
   }
 
@@ -190,7 +196,7 @@ export function renderSquadList() {
       `<div class="player-info"><span class="player-num">${escapeHtml(p.num)}</span><span style="font-weight:600;">${escapeHtml(p.name)}</span>${ratingStr}</div>` +
       `<div style="display:flex; gap:6px;">` +
       `<button class="btn btn-ghost player-stats-btn" data-idx="${tIdx}" data-pid="${escapeHtml(p.id)}" style="color:var(--pitch-800); background:var(--paper); border:1px solid var(--line); padding:4px 8px; font-size:12px;">📊 Ficha</button>` +
-      `<button class="player-del" data-idx="${tIdx}" data-pid="${escapeHtml(p.id)}" title="Remover jogador">&times;</button>` +
+      `<button class="player-del" data-requires="admin" data-idx="${tIdx}" data-pid="${escapeHtml(p.id)}" title="Remover jogador">&times;</button>` +
       `</div></div>`
     );
   }).join('');
@@ -1022,7 +1028,7 @@ export function renderPlayersList() {
   const players = state.players.filter((p) => !search || p.nome.toLowerCase().includes(search));
 
   if (!players.length) {
-    dom.playersList.innerHTML = `<p class="empty">${search ? 'Nenhum jogador encontrado.' : 'Ainda não há jogadores. Clica em "+ Novo Jogador" para começar!'}</p>`;
+    dom.playersList.innerHTML = `<p class="empty">${search ? 'Nenhum jogador encontrado.' : (isAdminView() ? 'Ainda não há jogadores. Clica em "+ Novo Jogador" para começar!' : 'Ainda não há jogadores.')}</p>`;
     return;
   }
 
@@ -1050,8 +1056,8 @@ export function renderPlayersList() {
       `<div class="player-attrs-mini">${attrs}</div>` +
       `<div class="player-db-actions">` +
       `<button class="btn btn-ghost" style="font-size:12px; padding:4px 10px; border:1px solid var(--line);" data-action="view-profile" data-pid="${escapeHtml(p.id)}">📊 Ficha</button>` +
-      `<button class="btn btn-ghost" style="font-size:12px; padding:4px 10px; border:1px solid var(--line);" data-action="edit-player" data-pid="${escapeHtml(p.id)}">✏️ Editar</button>` +
-      `<button class="btn btn-ghost" style="font-size:12px; padding:4px 10px; border:1px solid var(--danger); color:var(--danger);" data-action="del-player" data-pid="${escapeHtml(p.id)}">🗑️</button>` +
+      `<button class="btn btn-ghost" style="font-size:12px; padding:4px 10px; border:1px solid var(--line);" data-requires="admin" data-action="edit-player" data-pid="${escapeHtml(p.id)}">✏️ Editar</button>` +
+      `<button class="btn btn-ghost" style="font-size:12px; padding:4px 10px; border:1px solid var(--danger); color:var(--danger);" data-requires="admin" data-action="del-player" data-pid="${escapeHtml(p.id)}">🗑️</button>` +
       `</div>` +
       `</div>`
     );
@@ -1419,6 +1425,11 @@ export function renderSingularHistorico() {
 /** Atualiza o botão de conta e o perfil usado pelo CSS para esconder controlos. */
 export function renderAuth(user, role) {
   document.body.dataset.role = (user && isKnownRole(role)) ? role : 'viewer';
+  if (dom.teamsList) {
+    dom.teamsList.querySelectorAll('.team-prop').forEach((inp) => { inp.disabled = !isAdminView(); });
+  }
+  // Textos de lista vazia dependem do perfil
+  if (state.config) { renderSquadList(); renderPlayersList(); }
 
   if (dom.btnConta) {
     if (user) {
