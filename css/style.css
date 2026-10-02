@@ -1227,73 +1227,79 @@
         font-size: 12px;
       }
 
-      /* Barra fixa em baixo, ao alcance do polegar */
+      /* Pílula flutuante em baixo, ao alcance do polegar */
       .content {
-        padding-bottom: calc(76px + env(safe-area-inset-bottom));
+        padding-bottom: calc(88px + env(safe-area-inset-bottom));
       }
 
       .bottom-nav {
-        display: grid;
-        grid-template-columns: repeat(5, 1fr);
+        display: flex;
+        align-items: center;
+        gap: 4px;
         position: fixed;
-        left: 0;
-        right: 0;
-        bottom: 0;
+        left: 50%;
+        bottom: calc(12px + env(safe-area-inset-bottom));
+        transform: translateX(-50%);
         z-index: 250;
-        padding: 4px 4px env(safe-area-inset-bottom);
+        max-width: calc(100% - 24px);
+        padding: 6px;
+        border-radius: 999px;
         background: var(--card);
-        border-top: 1px solid var(--line);
-        box-shadow: 0 -4px 16px rgba(0, 0, 0, .08);
+        border: 1px solid var(--line);
+        box-shadow: 0 8px 28px rgba(0, 0, 0, .18);
       }
 
       .bottom-nav .tab,
       .bottom-nav .bn-more {
-        display: flex;
-        flex-direction: column;
+        display: inline-flex;
         align-items: center;
-        gap: 2px;
-        min-width: 0;
-        padding: 6px 2px 8px;
+        gap: 6px;
+        flex: 0 0 auto;
+        min-width: 48px;
+        height: 48px;
+        justify-content: center;
+        padding: 0 12px;
         border: none;
-        border-top: 3px solid transparent;
+        border-radius: 999px;
         background: none;
         color: var(--ink-soft);
-        font-size: 11px;
-        font-weight: 600;
+        font-size: 14px;
+        font-weight: 700;
+        transition: background .2s ease, color .2s ease;
       }
 
       .bn-icon {
-        font-size: 20px;
-        line-height: 1.1;
+        font-size: 21px;
+        line-height: 1;
       }
 
+      /* Só o separador ativo mostra o nome */
       .bn-label {
-        max-width: 100%;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        display: none;
         white-space: nowrap;
       }
 
       .bottom-nav .tab.active {
-        color: var(--pitch-800);
-        border-top-color: var(--gold);
-        background: none;
+        background: var(--pitch-900);
+        color: #fff;
+        padding: 0 16px 0 14px;
+      }
+
+      .bottom-nav .tab.active .bn-label {
+        display: inline;
       }
 
       [data-theme="dark"] .bottom-nav .tab.active {
-        color: var(--gold);
+        background: var(--gold);
+        color: var(--pitch-900);
       }
 
       /* "Mais" fica marcado quando o separador aberto está no painel */
       body:has(.tabs .tab.active:not([data-tab="dashboard"]):not([data-tab="results"]):not([data-tab="standings"]):not([data-tab="calendar"])) .bn-more,
       .bn-more[aria-expanded="true"] {
-        color: var(--pitch-800);
-        border-top-color: var(--gold);
-      }
-
-      [data-theme="dark"] body:has(.tabs .tab.active:not([data-tab="dashboard"]):not([data-tab="results"]):not([data-tab="standings"]):not([data-tab="calendar"])) .bn-more,
-      [data-theme="dark"] .bn-more[aria-expanded="true"] {
-        color: var(--gold);
+        background: var(--paper);
+        color: var(--ink);
+        box-shadow: inset 0 0 0 2px var(--gold);
       }
 
       .toast-root {
