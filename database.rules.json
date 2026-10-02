@@ -1,0 +1,67 @@
+{
+  "rules": {
+    "torneio_state": {
+      ".read": true,
+      "results": {
+        ".write": "auth != null && (root.child('utilizadores').child(auth.uid).child('role').val() === 'admin' || root.child('utilizadores').child(auth.uid).child('role').val() === 'user')"
+      },
+      "schedule": {
+        ".write": "auth != null && (root.child('utilizadores').child(auth.uid).child('role').val() === 'admin' || root.child('utilizadores').child(auth.uid).child('role').val() === 'user')"
+      },
+      "jogosSingulares": {
+        ".write": "auth != null && (root.child('utilizadores').child(auth.uid).child('role').val() === 'admin' || root.child('utilizadores').child(auth.uid).child('role').val() === 'user')"
+      },
+      "exportedAt": {
+        ".write": "auth != null && (root.child('utilizadores').child(auth.uid).child('role').val() === 'admin' || root.child('utilizadores').child(auth.uid).child('role').val() === 'user')"
+      },
+      "version": {
+        ".write": "auth != null && (root.child('utilizadores').child(auth.uid).child('role').val() === 'admin' || root.child('utilizadores').child(auth.uid).child('role').val() === 'user')"
+      },
+      "$secao": {
+        ".write": "auth != null && root.child('utilizadores').child(auth.uid).child('role').val() === 'admin'"
+      }
+    },
+    "utilizadores": {
+      ".read": "auth != null && root.child('utilizadores').child(auth.uid).child('role').val() === 'admin'",
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        "nome": {
+          ".write": "auth != null && auth.uid === $uid",
+          ".validate": "newData.isString() && newData.val().length <= 100"
+        },
+        "email": {
+          ".write": "auth != null && auth.uid === $uid",
+          ".validate": "newData.isString() && newData.val() === auth.token.email"
+        },
+        "foto": {
+          ".write": "auth != null && auth.uid === $uid",
+          ".validate": "newData.isString() && newData.val().length <= 500"
+        },
+        "ultimoAcesso": {
+          ".write": "auth != null && auth.uid === $uid",
+          ".validate": "newData.val() === now"
+        },
+        "role": {
+          ".write": "auth != null && root.child('utilizadores').child(auth.uid).child('role').val() === 'admin'",
+          ".validate": "newData.val() === 'admin' || newData.val() === 'user'"
+        },
+        "$outro": {
+          ".validate": false
+        }
+      }
+    },
+    "torneio_log": {
+      ".read": "auth != null && root.child('utilizadores').child(auth.uid).child('role').val() === 'admin'",
+      ".indexOn": ["quando"],
+      "$entrada": {
+        ".write": "auth != null && !data.exists() && (root.child('utilizadores').child(auth.uid).child('role').val() === 'admin' || root.child('utilizadores').child(auth.uid).child('role').val() === 'user')",
+        ".validate": "newData.hasChildren(['uid', 'nome', 'acao', 'quando']) && newData.child('uid').val() === auth.uid && newData.child('quando').val() === now",
+        "uid": { ".validate": "newData.isString()" },
+        "nome": { ".validate": "newData.isString() && newData.val().length <= 100" },
+        "acao": { ".validate": "newData.isString() && newData.val().length <= 500" },
+        "quando": { ".validate": "newData.isNumber()" },
+        "$outro": { ".validate": false }
+      }
+    }
+  }
+}

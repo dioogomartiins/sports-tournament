@@ -1,6 +1,6 @@
 import { flashError, flashSaved, flashBackup, showToast, openConfirm, renderAll } from './ui.js';
 import { generateSchedule } from './algorithms.js';
-import { pushStateToFirebase } from './firebase.js';
+import { pushStateToFirebase, getSyncedSnapshot, getCurrentRole } from './firebase.js';
 import { normalizeResults } from './sync.js';
 
 // ---------------------------------------------------------------------------
@@ -190,7 +190,30 @@ export async function persistBackup() {
   const snap = buildSnapshot();
   await storageSet('backup', JSON.stringify(snap));
   flashBackup(snap.exportedAt);
-  pushStateToFirebase(snap);
+  const res = pushStateToFirebase(snap);
+  if (!res.ok) await rejectLocalChange(res.reason);
+}
+
+const REJECT_MESSAGES = {
+  'sem-sync': 'Ainda a ligar à base de dados. Tenta de novo daqui a pouco.',
+  'sem-sessao': 'Entra com a tua conta Google para fazer alterações.',
+};
+
+/** Desfaz uma alteração local que não pode ser gravada no Firebase. */
+async function rejectLocalChange(reason) {
+  let msg = REJECT_MESSAGES[reason];
+  if (!msg) {
+    msg = getCurrentRole() === 'user'
+      ? 'Só um admin pode fazer esta alteração.'
+      : 'A tua conta ainda não foi aprovada por um admin.';
+  }
+  showToast(msg, 'error');
+
+  const synced = getSyncedSnapshot();
+  if (!validateSnapshot(synced)) return;
+  applySnapshot(synced);
+  await storeAllLayers();
+  renderAll();
 }
 
 export async function persistConfigTeams() {

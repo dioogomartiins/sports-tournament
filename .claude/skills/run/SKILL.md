@@ -6,7 +6,7 @@ description: Start the Torneio ILOG dev server safely and open the app, without 
 # Running Torneio ILOG
 
 Every action in the app (saving a result, adding a player, generating a schedule)
-overwrites the whole `torneio_state` node in Firebase. If the dev server uses the
+writes to the `torneio_state` node in Firebase. If the dev server uses the
 production database, a test click changes the real tournament on everyone's phone.
 
 ## 1. Point the app at a test database
@@ -22,6 +22,12 @@ VITE_FIREBASE_DATABASE_URL=https://<test-database>.firebasedatabase.app
 - If there is no `.env` at all (fresh cloud sessions), copy `.env.example` to
   `.env.development.local` and ask the user for test Firebase values. Do not
   guess or reuse production values.
+- Or run fully offline with the Firebase emulators (`firebase emulators:start
+  --only database,auth --project demo-torneio`) and set
+  `VITE_USE_EMULATORS=true` plus `VITE_FIREBASE_PROJECT_ID=demo-torneio` and
+  `VITE_FIREBASE_DATABASE_URL=https://demo-torneio.firebaseio.com`. Load
+  `database.rules.json` into the emulator to test roles; editing needs a
+  signed-in user with `utilizadores/<uid>/role` set.
 - If the user explicitly says to use the production database, say once that
   any change will be visible to everyone, then continue.
 

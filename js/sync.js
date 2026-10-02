@@ -60,3 +60,60 @@ export function normalizeResults(results) {
   });
   return out;
 }
+
+const SECTION_LABELS = {
+  config: 'Configuração alterada',
+  teams: 'Equipas alteradas',
+  squads: 'Plantéis alterados',
+  schedule: 'Calendário alterado',
+  roundsMeta: null,
+  scheduleTeamCount: null,
+  scheduleVoltas: null,
+  players: 'Base de dados de jogadores alterada',
+  jogosSingulares: 'Jogos singulares alterados',
+  results: 'Resultados alterados',
+  exportedAt: null,
+  version: null,
+};
+
+function teamLabel(snap, idx) {
+  if (typeof idx === 'string') return idx;
+  const t = snap.teams && snap.teams[idx];
+  return t && t.name ? t.name : `Equipa ${Number(idx) + 1}`;
+}
+
+/**
+ * Descreve em texto as alterações de um `update()`, para o registo de
+ * alterações (quem mudou o quê).
+ *
+ * @param {object} updates - Mapa de caminhos devolvido por diffSnapshot
+ * @param {object} snap    - Snapshot depois da alteração
+ * @returns {string} Descrição, ou '' se só mudaram metadados
+ */
+export function describeUpdates(updates, snap) {
+  const parts = [];
+  Object.keys(updates).forEach((path) => {
+    const [section, gi] = path.split('/');
+    if (section === 'results' && gi !== undefined) {
+      const game = (snap.schedule || [])[gi];
+      const jogo = game
+        ? `${teamLabel(snap, game.home)} vs ${teamLabel(snap, game.away)}`
+        : `jogo ${Number(gi) + 1}`;
+      const r = updates[path];
+      if (r === null || r === undefined) {
+        parts.push(`Resultado apagado: ${jogo}`);
+      } else {
+        const score = typeof r === 'object' ? r.score : r;
+        const pen = r && r.penalties ? ` (g.p. ${r.penalties})` : '';
+        const status = r && r.status ? `, ${r.status}` : '';
+        parts.push(`Resultado ${jogo}: ${score}${pen}${status}`);
+      }
+      return;
+    }
+    const label = Object.prototype.hasOwnProperty.call(SECTION_LABELS, section)
+      ? SECTION_LABELS[section]
+      : `${section} alterado`;
+    if (label && !parts.includes(label)) parts.push(label);
+  });
+  return parts.join('; ').slice(0, 500);
+}

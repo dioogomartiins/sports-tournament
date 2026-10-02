@@ -42,7 +42,6 @@ Para trabalhar nesta aplicação no teu computador e desfrutar do *Hot Reload* d
    VITE_FIREBASE_MESSAGING_SENDER_ID=id
    VITE_FIREBASE_APP_ID=appid
    VITE_FIREBASE_MEASUREMENT_ID=medicao
-   VITE_DELETE_SECRET=palavra-passe-da-zona-de-perigo
    ```
 
 3. **Instala as dependências:**
@@ -73,4 +72,25 @@ A aplicação é publicada automaticamente no **GitHub Pages** a cada push para 
 
 O workflow cria o `.env` a partir dos **Repository Secrets** (Settings → Secrets and variables → Actions). Tem de existir um secret com o mesmo nome para cada variável do `.env.example`; se faltarem, o deploy falha com um erro explícito.
 
-> Nota: as variáveis `VITE_*` ficam visíveis no JavaScript publicado, por isso nenhuma é verdadeiramente secreta. A proteção dos dados deve vir das regras de segurança do Firebase Realtime Database.
+> Nota: as variáveis `VITE_*` ficam visíveis no JavaScript publicado, por isso nenhuma é verdadeiramente secreta. A proteção dos dados vem das regras de segurança do Firebase Realtime Database (`database.rules.json`).
+
+## 🔐 Contas e Perfis
+
+Qualquer pessoa vê o torneio sem conta. Para editar é preciso entrar com Google (botão 🔑 Entrar) e ter um perfil:
+
+| Perfil | Pode |
+|---|---|
+| Pendente (acabou de entrar) | Só ver |
+| Utilizador | Registar resultados, estados dos jogos, eliminatórias e jogos singulares |
+| Admin | Tudo: configuração, equipas, plantéis, jogadores, importar, apagar dados e gerir utilizadores |
+
+Cada alteração fica no **Registo de Alterações** (Gestão → 👮 Utilizadores, só para admins), com quem a fez e quando.
+
+### Configuração inicial no Firebase (uma vez)
+
+1. **Authentication → Sign-in method:** ativar **Google**.
+2. **Authentication → Settings → Authorized domains:** adicionar `dioogomartiins.github.io`.
+3. **Realtime Database → Rules:** colar o conteúdo de `database.rules.json` e publicar.
+4. Abrir o site, entrar com Google, e depois em **Realtime Database → Data** criar `utilizadores/<o teu uid>/role` com o valor `"admin"` (o uid aparece em Authentication → Users). A partir daí, os outros perfis atribuem-se na própria app.
+
+Sempre que `database.rules.json` mudar, é preciso voltar a publicá-lo na consola (ou com `firebase deploy --only database`).

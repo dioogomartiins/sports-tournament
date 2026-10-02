@@ -1,8 +1,8 @@
 import { state, persistConfigTeams, loadState, persistSchedule, persistResults, persistBackup, persistPlayers, persistJogosSingulares, currentTheme, setCurrentTheme, exportJSON, importJSON, applyGeneratedSchedule, applySnapshot, buildSnapshot, defaultTeams, defaultSquads } from './state.js';
-import { dom, cacheDom, renderAll, refreshComputed, renderScheduleHint, renderSquadList, renderSquadsDropdown, renderCalendar, renderResults, showToast, flashSaved, openConfirm, closeConfirm, openDangerConfirm, switchTab, confirmCallback, openScorerModal, openPlayerProfile, computeStatsSummary, renderPlayersList, openPlayerModal, renderSquadPlayerFromDBDropdown, renderDraftPlayerList, renderDraftTeams, renderSingularHistorico, currentDraft } from './ui.js';
+import { dom, cacheDom, renderAll, refreshComputed, renderScheduleHint, renderSquadList, renderSquadsDropdown, renderCalendar, renderResults, showToast, flashSaved, openConfirm, closeConfirm, openDangerConfirm, switchTab, confirmCallback, openScorerModal, openPlayerProfile, computeStatsSummary, renderPlayersList, openPlayerModal, renderSquadPlayerFromDBDropdown, renderDraftPlayerList, renderDraftTeams, renderSingularHistorico, currentDraft, renderAuth, renderUsers, renderLog } from './ui.js';
 import { clamp, numOr } from './utils.js';
 import { bergerRounds, snakeDraft, buildFirstRoundSeeding, buildExtraVolta, getPlayoffWinner } from './algorithms.js';
-import { initFirebaseListener, onFirebaseStateChange, setSyncedSnapshot } from './firebase.js';
+import { initFirebaseListener, onFirebaseStateChange, setSyncedSnapshot, initAuth, signInWithGoogle, signOutUser, getCurrentUser, listenUsers, listenLog, setUserRole } from './firebase.js';
 
 // ---------------------------------------------------------------------------
 // Handlers de configuração
@@ -538,6 +538,51 @@ export async function onGuardarJogo() {
   document.querySelectorAll('.singular-subtab').forEach((b) => b.classList.toggle('active', b.dataset.subtab === 'historico'));
   document.querySelectorAll('.singular-panel').forEach((p) => p.classList.toggle('active', p.id === 'singular-historico'));
 }
+
+// ---------------------------------------------------------------------------
+// Sessão (Google) e administração
+// ---------------------------------------------------------------------------
+let stopAdminListeners = null;
+
+export function onContaClick() {
+  if (!getCurrentUser()) {
+    signInWithGoogle().catch((err) => {
+      if (err && err.code === 'auth/popup-closed-by-user') return;
+      console.error('Erro ao entrar:', err);
+      showToast('Não foi possível entrar com Google.', 'error');
+    });
+    return;
+  }
+  openConfirm('Terminar sessão', 'Queres sair da tua conta? Continuas a ver o torneio, mas sem poder editar.', () => {
+    signOutUser();
+  });
+}
+
+function onAuthChange({ user, role }) {
+  renderAuth(user, role);
+
+  const isAdmin = !!user && role === 'admin';
+  if (isAdmin && !stopAdminListeners) {
+    const stopUsers = listenUsers((users) => renderUsers(users, user.uid));
+    const stopLog = listenLog(renderLog);
+    stopAdminListeners = () => { stopUsers(); stopLog(); };
+  } else if (!isAdmin && stopAdminListeners) {
+    stopAdminListeners();
+    stopAdminListeners = null;
+  }
+}
+
+export function onUserRoleChange(e) {
+  const sel = e.target.closest('select[data-uid]');
+  if (!sel) return;
+  setUserRole(sel.dataset.uid, sel.value || null, sel.dataset.nome)
+    .then(() => showToast('Perfil atualizado.', 'ok'))
+    .catch((err) => {
+      console.error('Erro ao mudar perfil:', err);
+      showToast('Não foi possível mudar o perfil.', 'error');
+    });
+}
+
 // ---------------------------------------------------------------------------
 // Binding de eventos e inicialização
 // ---------------------------------------------------------------------------
@@ -593,6 +638,10 @@ export function bindEvents() {
   dom.btnAddPlayerFromDB.addEventListener('click', onAddPlayerFromDB);
   dom.squadList.addEventListener('click', onSquadListClick);
 
+  // Conta e administração
+  dom.btnConta.addEventListener('click', onContaClick);
+  dom.usersList.addEventListener('change', onUserRoleChange);
+
   // Exportar / Importar
   dom.btnExportar.addEventListener('click', exportJSON);
   dom.btnImportar.addEventListener('click', () => { dom.inputImportar.value = ''; dom.inputImportar.click(); });
@@ -645,6 +694,9 @@ export async function init() {
   cacheDom();
   bindEvents();
   await loadState();
+
+  renderAuth(null, null);
+  initAuth(onAuthChange);
 
   initFirebaseListener();
   onFirebaseStateChange((data) => {

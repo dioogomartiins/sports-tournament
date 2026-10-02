@@ -17,6 +17,10 @@ Deployed to GitHub Pages at `/torneio-ilog/` on every push to `main`.
   changed since the last sync with `update()` (`js/sync.js`): results per game,
   other sections whole (last write wins within a section). Any change to the state shape must bump `SNAPSHOT_VERSION`
   in `js/state.js` and still load data already saved on other devices.
+- Who may write what is enforced by `database.rules.json` (Google sign-in;
+  roles in `utilizadores/<uid>/role`: `admin` or `user`, none = read-only).
+  `js/permissions.js` mirrors those rules client-side; change both together.
+  Every save also appends an entry to `torneio_log` (who changed what).
 - When building HTML strings, pass every value that comes from state through
   `escapeHtml` (and team colours through `safeColor`). The Firebase data is
   writable by anyone with the public config, so it is untrusted input.
