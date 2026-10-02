@@ -16,6 +16,8 @@ Este guia explica como usar a app no dia a dia: quem pode fazer o quê, como mon
 
 ## Contas e perfis
 
+![Perfis e permissões](assets/illustrations/08-perfis-e-permissoes.jpg)
+
 Qualquer pessoa com o link vê o torneio, sem conta. Para alterar alguma coisa é preciso carregar em **🔑 Entrar**, entrar com Google, e ter um perfil atribuído por um admin.
 
 | Perfil | Pode |
@@ -60,6 +62,8 @@ Gerar um calendário novo apaga os resultados já introduzidos (a app pede confi
 
 ## Durante os jogos
 
+![Durante os jogos](assets/illustrations/09-durante-os-jogos.jpg)
+
 No separador **⚽ Resultados**, cada jogo tem:
 
 - **Estado**: carregar no botão alterna entre *Agendado → A decorrer → Terminado*. Jogos agendados não contam para a classificação.
@@ -78,6 +82,8 @@ Com eliminatórias ativas na configuração, o botão **🏆 Gerar Eliminatória
 Num jogo de eliminatória terminado empatado aparecem as caixas de **Penáltis**. O vencedor passa automaticamente para o jogo seguinte do bracket.
 
 ## Terminar e arquivar
+
+![Terminar e arquivar](assets/illustrations/10-terminar-e-arquivar.jpg)
 
 Quando o torneio acaba, um admin vai a **Gestão → 💾 Dados → 🗄️ Arquivar e Começar Novo**. A app:
 
@@ -99,6 +105,8 @@ Para quando não há gente para um torneio:
 Os golos, assistências e MVPs dos jogos singulares contam para as estatísticas e para a ficha de cada jogador.
 
 ## Estatísticas, ficha de jogador e partilha
+
+![Golos, assistências e MVP](assets/illustrations/11-golos-assistencias-mvp.jpg)
 
 - **📊 Estatísticas**: tabela de marcadores, assistências e MVPs do torneio atual e dos jogos singulares.
 - **🗄️ Histórico**: lista dos torneios arquivados e uma tabela de sempre (torneios arquivados, torneio atual e jogos singulares).

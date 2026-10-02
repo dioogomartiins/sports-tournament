@@ -6,6 +6,8 @@ Aplicação web para organizar torneios de futebol entre amigos: equipas, plant�
 
 ## ✨ O que faz
 
+![Do calendário ao campeão](docs/assets/illustrations/01-do-calendario-ao-campeao.jpg)
+
 - **Calendário automático** pelo Algoritmo de Berger, com 1 a 8 grupos, várias voltas e volta extra.
 - **Resultados ao vivo**: estado do jogo (agendado, a decorrer, terminado), marcadores, assistências e MVP.
 - **Classificação** com pontos configuráveis, bónus por goleada e desempate por confronto direto.

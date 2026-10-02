@@ -76,6 +76,8 @@ Cada dispositivo guarda também uma cópia no localStorage, para mostrar o torne
 
 ## Sincronização
 
+![Sincronização jogo a jogo](assets/illustrations/12-sincronizacao-jogo-a-jogo.jpg)
+
 1. Ao abrir, `firebase.js` escuta `torneio_state` com `onValue`. Cada vez que chega um valor, `applySnapshot` substitui o estado local e esse snapshot passa a ser o "último sincronizado".
 2. Cada ação grava a sua secção no localStorage e chama `pushStateToFirebase` com o snapshot completo.
 3. `diffSnapshot` compara com o último sincronizado e produz um `update()` só com o que mudou:
@@ -86,6 +88,8 @@ Cada dispositivo guarda também uma cópia no localStorage, para mostrar o torne
 O Firebase apaga listas vazias e transforma arrays em objetos com chaves numéricas. `normalizeResults` e `normalizeArquivo` repõem a forma esperada ao carregar.
 
 ## Permissões
+
+![As regras do Firebase são a proteção](assets/illustrations/13-regras-sao-a-protecao.jpg)
 
 As regras do Firebase são a proteção real; o cliente só esconde botões e avisa antes de enviar.
 
