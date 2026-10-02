@@ -37,6 +37,8 @@ Deployed to GitHub Pages at `/torneio-ilog/` on every push to `main`.
   Update the matching page in the same PR when behaviour, rules or the state
   shape change.
 - Commit messages follow conventional commits (`feat:`, `fix:`, `refactor:`, ...).
+- Documentation illustrations use the `ian-xiaohei-illustrations` skill (same
+  style as the CarCity docs); the shot list and prompts live in issue #10.
 
 ## Checks
 
