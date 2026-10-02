@@ -421,7 +421,7 @@ function rowPositions(container) {
 }
 
 /** Faz as equipas que mudaram de lugar deslizar da posição antiga para a nova. */
-function slideRows(container, before) {
+function slideRows(container, before, duration = 450) {
   if (!before.size || prefersReducedMotion()) return;
   container.querySelectorAll('tr[data-team]').forEach((r) => {
     const old = before.get(r.dataset.team);
@@ -429,7 +429,7 @@ function slideRows(container, before) {
     if (old === undefined || !now || Math.abs(old - now) < 1 || !r.animate) return;
     r.animate(
       [{ transform: `translateY(${old - now}px)`, background: 'rgba(203,161,53,.22)' }, { transform: 'none' }],
-      { duration: 450, easing: 'cubic-bezier(.2,.8,.2,1)' },
+      { duration, easing: 'cubic-bezier(.2,.8,.2,1)' },
     );
   });
 }
@@ -474,9 +474,35 @@ export function renderStandingsWrapper(groupsData) {
     );
   });
 
+  clearTimeout(standingsReplayTimer);
   const before = rowPositions(dom.standingsWrapper);
   dom.standingsWrapper.innerHTML = html.join('');
   slideRows(dom.standingsWrapper, before);
+  // Só conta como "vista" se a tabela estiver no ecrã
+  if (dom.standingsWrapper.offsetParent) seenStandingsHtml = dom.standingsWrapper.innerHTML;
+}
+
+// A classificação é atualizada mesmo escondida. Para se ver quem subiu ou
+// desceu, guarda-se a tabela tal como foi vista da última vez e, ao voltar ao
+// separador, mostra-se essa versão por um instante antes de animar para a atual.
+let seenStandingsHtml = null;
+let standingsReplayTimer = null;
+const STANDINGS_HOLD = 600; // ms com a classificação anterior à vista
+
+function replayStandings() {
+  const wrapper = dom.standingsWrapper;
+  if (!wrapper) return;
+  clearTimeout(standingsReplayTimer);
+  const current = wrapper.innerHTML;
+  const previous = seenStandingsHtml;
+  seenStandingsHtml = current;
+  if (previous === null || previous === current || prefersReducedMotion()) return;
+  wrapper.innerHTML = previous;
+  standingsReplayTimer = setTimeout(() => {
+    const before = rowPositions(wrapper);
+    wrapper.innerHTML = current;
+    slideRows(wrapper, before, 800);
+  }, STANDINGS_HOLD);
 }
 
 // ---------------------------------------------------------------------------
@@ -1033,6 +1059,7 @@ export function switchTab(name) {
   });
   dom.panels.forEach((p) => { p.classList.toggle('active', p.id === `tab-${name}`); });
   if (tabsContainer) tabsContainer.classList.remove('menu-open');
+  if (name === 'standings') replayStandings();
 }
 
 // ---------------------------------------------------------------------------
