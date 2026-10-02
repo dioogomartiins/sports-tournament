@@ -1,9 +1,10 @@
-import { state, persistConfigTeams, loadState, persistSchedule, persistResults, persistBackup, persistPlayers, persistJogosSingulares, persistArquivo, currentTheme, setCurrentTheme, exportJSON, importJSON, applyGeneratedSchedule, applySnapshot, buildSnapshot, defaultTeams, defaultSquads } from './state.js';
-import { dom, cacheDom, renderAll, refreshComputed, renderScheduleHint, renderSquadList, renderSquadsDropdown, renderCalendar, renderResults, showToast, flashSaved, openConfirm, closeConfirm, openDangerConfirm, switchTab, confirmCallback, openScorerModal, openPlayerProfile, computeStatsSummary, renderPlayersList, openPlayerModal, renderSquadPlayerFromDBDropdown, renderDraftPlayerList, renderDraftTeams, renderSingularHistorico, currentDraft, renderAuth, renderUsers, renderLog, buildPlayerIndex, openPickPlayerModal, squadPickList } from './ui.js';
+import { state, persistConfigTeams, loadState, persistSchedule, persistResults, persistBackup, persistPlayers, persistJogosSingulares, persistArquivo, storeAllLayers, notifyPushError, currentTheme, setCurrentTheme, exportJSON, importJSON, applyGeneratedSchedule, applySnapshot, buildSnapshot, defaultTeams, defaultSquads } from './state.js';
+import { closeGameModal, dom, cacheDom, renderAll, refreshComputed, renderScheduleHint, renderSquadList, renderSquadsDropdown, renderCalendar, renderResults, showToast, flashSaved, openConfirm, closeConfirm, openDangerConfirm, switchTab, confirmCallback, openScorerModal, openPlayerProfile, computeStatsSummary, renderPlayersList, openPlayerModal, renderSquadPlayerFromDBDropdown, renderDraftPlayerList, renderDraftTeams, renderSingularHistorico, currentDraft, renderAuth, renderUsers, renderLog, buildPlayerIndex, openPickPlayerModal, squadPickList } from './ui.js';
 import { clamp, numOr, escapeHtml } from './utils.js';
-import { shareStandings } from './share.js';
-import { bergerRounds, balancedDraft, buildFirstRoundSeeding, buildExtraVolta, getPlayoffWinner, buildArchiveEntry, countPlayedGames } from './algorithms.js';
-import { initFirebaseListener, onFirebaseStateChange, setSyncedSnapshot, initAuth, signInWithGoogle, signOutUser, getCurrentUser, listenUsers, listenLog, setUserRole } from './firebase.js';
+import { shareStandings, shareResult } from './share.js';
+import { animateResultChanges } from './animations.js';
+import { bergerRounds, balancedDraft, buildFirstRoundSeeding, buildExtraVolta, getPlayoffWinner, buildArchiveEntry, countPlayedGames, GAME_STATUS, alignAssists, addGoal, removeGoal, setGameStatus } from './algorithms.js';
+import { initFirebaseListener, onFirebaseStateChange, onFirebasePushError, setSyncedSnapshot, initAuth, signInWithGoogle, signOutUser, getCurrentUser, listenUsers, listenLog, setUserRole } from './firebase.js';
 
 // ---------------------------------------------------------------------------
 // Handlers de configuração
@@ -109,16 +110,14 @@ function propagatePlayoffWinner(gi) {
 export function onStatusBtnClick(e) {
   const gi = e.target.dataset.gi;
 
-  if (!state.results[gi] || typeof state.results[gi] === 'string') {
-    state.results[gi] = { score: '0-0', scorers: { home: [], away: [] }, status: 'agendado' };
-  }
-
-  const current = state.results[gi].status || 'agendado';
+  const res = state.results[gi];
+  const current = (res && typeof res === 'object' && res.status) || 'agendado';
   const cycle = { agendado: 'decorrer', decorrer: 'terminado', terminado: 'agendado' };
-  state.results[gi].status = cycle[current] ?? 'agendado';
+  state.results[gi] = setGameStatus(res, cycle[current] ?? 'agendado');
   propagatePlayoffWinner(gi);
 
-  persistResults();
+  // Anima depois de gravar: se a gravação for recusada o estado já voltou atrás
+  persistResults().then(() => animateResultChanges());
   renderResults();
   renderCalendar();
   refreshComputed();
@@ -129,63 +128,32 @@ export function onScoreBtnClick(e) {
   const gi = btn.dataset.gi;
   const side = btn.dataset.side;
   const action = btn.dataset.action;
-  const row = btn.closest('.result-split');
 
-  const input = row.querySelector(`input[data-side="${side}"]`);
-  const otherInput = row.querySelector(`input[data-side="${side === 'home' ? 'away' : 'home'}"]`);
-
-  if (otherInput.value === '') otherInput.value = 0;
-
-  let currentVal = parseInt(input.value, 10);
-  if (isNaN(currentVal)) currentVal = 0;
+  // O resultado é sempre calculado a partir do estado no momento de gravar:
+  // entre o clique e a escolha do marcador pode chegar um golo de outro telemóvel.
+  const commitGoal = (next) => {
+    if (next === state.results[gi]) return;
+    state.results[gi] = next;
+    propagatePlayoffWinner(gi);
+    persistResults().then(() => animateResultChanges());
+    renderResults();
+    renderCalendar();
+    refreshComputed();
+  };
 
   if (action === 'add') {
     openScorerModal(gi, side, (pid) => {
       const game = state.schedule[gi];
+      if (!game) return;
       const teamIdx = side === 'home' ? game.home : game.away;
-
-      const registerGoal = (aid) => {
-        input.value = currentVal + 1;
-
-        if (!state.results[gi] || typeof state.results[gi] === 'string') {
-          state.results[gi] = { score: '0-0', scorers: { home: [], away: [] }, status: 'decorrer' };
-        } else if (state.results[gi].status === 'agendado') {
-          state.results[gi].status = 'decorrer';
-        }
-
-        const res = state.results[gi];
-        res.scorers = res.scorers || {};
-        res.scorers[side] = res.scorers[side] || [];
-        res.assists = res.assists || {};
-        res.assists[side] = alignAssists(res.scorers[side], res.assists[side]);
-        res.scorers[side].push(pid);
-        res.assists[side].push(aid);
-
-        const h = side === 'home' ? input.value : (row.querySelector('input[data-side="home"]').value || 0);
-        const a = side === 'away' ? input.value : (row.querySelector('input[data-side="away"]').value || 0);
-        state.results[gi].score = `${h}-${a}`;
-
-        onResultCommit({ target: input });
-      };
+      const registerGoal = (aid) => commitGoal(addGoal(state.results[gi], side, pid, aid));
 
       // Autogolo não tem assistência
       if (pid === 'auto') registerGoal('');
       else openPickPlayerModal('Assistência', squadPickList(teamIdx, pid), 'Sem assistência', registerGoal);
     });
   } else if (action === 'sub') {
-    if (currentVal <= 0) {
-      input.value = 0;
-    } else {
-      input.value = currentVal - 1;
-      const res = state.results[gi];
-      if (res?.scorers?.[side]?.length > 0) {
-        res.assists = res.assists || {};
-        res.assists[side] = alignAssists(res.scorers[side], res.assists[side]);
-        res.scorers[side].pop();
-        res.assists[side].pop();
-      }
-    }
-    onResultCommit({ target: input });
+    commitGoal(removeGoal(state.results[gi], side));
   }
 }
 
@@ -256,7 +224,7 @@ export function onResultCommit(e) {
     return;
   }
 
-  persistResults();
+  persistResults().then(() => animateResultChanges());
   renderResults();
   refreshComputed();
 }
@@ -342,10 +310,19 @@ export function onArquivar() {
     return;
   }
 
+  const porJogar = state.schedule.filter((g, gi) => {
+    const r = state.results[gi];
+    return !(r && typeof r === 'object' ? r.status === GAME_STATUS.TERMINADO : typeof r === 'string');
+  }).length;
+  const aviso = porJogar
+    ? `<br><br>⚠️ Ainda há <strong>${porJogar} jogo${porJogar !== 1 ? 's' : ''} por terminar</strong>: ` +
+      'o campeão guardado será quem lidera agora (ou nenhum, se a final não terminou).'
+    : '';
+
   openConfirm(
     'Arquivar Torneio',
     `<strong>${escapeHtml(state.config.nome)}</strong> vai para o Histórico com a classificação e as estatísticas atuais. ` +
-    'O calendário e os resultados são limpos para começares um torneio novo. Continuar?',
+    'O calendário e os resultados são limpos para começares um torneio novo. Continuar?' + aviso,
     async () => {
       const index = buildPlayerIndex();
       const names = {};
@@ -558,13 +535,6 @@ export function onFazerDraft() {
   renderDraftTeams(nomeA, nomeB, equipaA, equipaB);
 }
 
-/** Lista de assistências com o mesmo tamanho que a de marcadores ('' = sem assistência). */
-function alignAssists(scorers, assists) {
-  const out = (assists || []).slice(0, (scorers || []).length);
-  while (out.length < (scorers || []).length) out.push('');
-  return out;
-}
-
 export async function onGuardarJogo() {
   const nomeA = dom.draftLabelA ? dom.draftLabelA.textContent : 'Equipa A';
   const nomeB = dom.draftLabelB ? dom.draftLabelB.textContent : 'Equipa B';
@@ -743,6 +713,19 @@ export function bindEvents() {
   dom.cfgMataMata.addEventListener('change', onConfigFieldChange);
   dom.cfgNumPlayoffTeams.addEventListener('change', onConfigFieldChange);
 
+  // Janela do jogo
+  const gameOverlay = document.getElementById('gameOverlay');
+  document.getElementById('gameModalClose').addEventListener('click', closeGameModal);
+  document.getElementById('gameModalContent').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-action]');
+    const head = document.querySelector('#gameModalContent [data-game]');
+    if (!btn || !head) return;
+    if (btn.dataset.action === 'mvp') onMvpClick(head.dataset.game);
+    else if (btn.dataset.action === 'share') shareResult(head.dataset.game);
+  });
+  gameOverlay.addEventListener('click', (e) => { if (e.target === gameOverlay) closeGameModal(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !gameOverlay.hidden) closeGameModal(); });
+
   // Modal
   dom.modalCancel.addEventListener('click', closeConfirm);
   dom.modalConfirm.addEventListener('click', () => {
@@ -773,6 +756,26 @@ export function bindEvents() {
   if (dom.btnGuardarJogo) dom.btnGuardarJogo.addEventListener('click', onGuardarJogo);
 }
 
+// ---------------------------------------------------------------------------
+// Atualizações vindas do Firebase
+// ---------------------------------------------------------------------------
+let renderPending = false;
+
+/** Há um campo de texto ou número com foco (alguém a escrever)? */
+function isEditingField() {
+  const el = document.activeElement;
+  if (!el || el.closest('.modal-overlay')) return false;
+  if (el.tagName === 'TEXTAREA') return true;
+  return el.tagName === 'INPUT' && !['checkbox', 'radio', 'button', 'file'].includes(el.type);
+}
+
+/** Redesenha já, ou quando a pessoa sair do campo onde está a escrever. */
+function renderWhenIdle() {
+  if (isEditingField()) { renderPending = true; return; }
+  renderPending = false;
+  renderAll();
+}
+
 export async function init() {
   cacheDom();
   bindEvents();
@@ -782,13 +785,24 @@ export async function init() {
   initAuth(onAuthChange);
 
   initFirebaseListener();
-  onFirebaseStateChange((data) => {
+  onFirebasePushError(notifyPushError);
+  onFirebaseStateChange((data, isFirstLoad) => {
     if (data) {
       applySnapshot(data);
       setSyncedSnapshot(buildSnapshot());
-      renderAll();
-      //showToast('Dados atualizados da nuvem', 'ok');
+      storeAllLayers();
+      renderWhenIdle();
+      // Na primeira leitura só regista o estado: não anima o que mudou com a app fechada
+      animateResultChanges({ silent: isFirstLoad });
     }
+  });
+
+  // Quem está a escrever num campo grava ao sair dele; só depois se redesenha
+  document.addEventListener('focusout', () => {
+    if (!renderPending) return;
+    setTimeout(() => {
+      if (renderPending && !isEditingField()) { renderPending = false; renderAll(); }
+    }, 0);
   });
 
   renderAll();

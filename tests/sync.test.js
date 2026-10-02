@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { diffSnapshot, normalizeResults, normalizeArquivo, describeUpdates } from '../js/sync.js';
+import { diffSnapshot, normalizeResults, normalizeArquivo, describeUpdates, onlyMetadata } from '../js/sync.js';
 
 describe('diffSnapshot', () => {
   const base = {
@@ -19,7 +19,19 @@ describe('diffSnapshot', () => {
 
   it('apaga resultados removidos e secções esvaziadas', () => {
     const next = { ...base, schedule: [], results: { 0: base.results[0] } };
-    expect(diffSnapshot(base, next)).toEqual({ schedule: [], 'results/1': null });
+    expect(diffSnapshot(base, next)).toEqual({ 'schedule/0': null, 'results/1': null });
+  });
+
+  it('grava o calendário campo a campo (passar o vencedor de uma eliminatória)', () => {
+    const prev = { schedule: [{ home: 0, away: 1 }, { home: 'Vencedor M1', away: 2, isPlayoff: true }] };
+    const next = { schedule: [{ home: 0, away: 1 }, { home: 0, away: 2, isPlayoff: true }] };
+    expect(diffSnapshot(prev, next)).toEqual({ 'schedule/1/home': 0 });
+  });
+
+  it('jogos novos no calendário vão inteiros', () => {
+    const prev = { schedule: [{ home: 0, away: 1 }] };
+    const next = { schedule: [{ home: 0, away: 1 }, { home: 1, away: 0 }] };
+    expect(diffSnapshot(prev, next)).toEqual({ 'schedule/1': { home: 1, away: 0 } });
   });
 
   it('não envia nada quando nada mudou', () => {
@@ -44,6 +56,14 @@ describe('normalizeResults', () => {
   it('aceita resultados antigos em texto e ausência de resultados', () => {
     expect(normalizeResults({ 0: '2-1' })).toEqual({ 0: '2-1' });
     expect(normalizeResults(undefined)).toEqual({});
+  });
+});
+
+describe('onlyMetadata', () => {
+  it('só data de exportação e versão não contam como alteração', () => {
+    expect(onlyMetadata({ exportedAt: 'x', version: 7 })).toBe(true);
+    expect(onlyMetadata({})).toBe(true);
+    expect(onlyMetadata({ exportedAt: 'x', 'results/0': null })).toBe(false);
   });
 });
 
@@ -78,6 +98,10 @@ describe('describeUpdates', () => {
 
   it('jogo sem calendário usa o número', () => {
     expect(describeUpdates({ 'results/7': { score: '0-0' } }, snap)).toBe('Resultado jogo 8: 0-0');
+  });
+
+  it('alterações campo a campo do calendário aparecem uma vez', () => {
+    expect(describeUpdates({ 'schedule/3/home': 0, 'schedule/3/away': 1 }, snap)).toBe('Calendário alterado');
   });
 });
 

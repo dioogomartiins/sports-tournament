@@ -15,6 +15,11 @@ const {
   buildExtraVolta,
   buildFirstRoundSeeding,
   getPlayoffWinner,
+  addGoal,
+  removeGoal,
+  setGameStatus,
+  gameGoals,
+  resultEvents,
   balancedDraft,
   tallyPlayerStats,
   mergePlayerStats,
@@ -263,6 +268,17 @@ describe('estatísticas de jogadores', () => {
     expect(t.a.recorde).toBe(2);
   });
 
+  it('ids como __proto__ não poluem o protótipo de Object', () => {
+    const t = tallyPlayerStats(
+      { 0: { scorers: { home: ['__proto__', 'constructor'] }, assists: { home: ['__proto__', ''] }, mvp: '__proto__' } },
+      [],
+    );
+    expect(t['__proto__']).toEqual({ golos: 1, assistencias: 1, mvp: 1, jogosAMarcar: 1, recorde: 1 });
+    expect(t.constructor.golos).toBe(1);
+    expect({}.golos).toBeUndefined();
+    expect(Object.golos).toBeUndefined();
+  });
+
   it('junta contagens somando e mantendo o recorde máximo', () => {
     const a = { x: { golos: 2, assistencias: 1, mvp: 0, jogosAMarcar: 1, recorde: 2 } };
     const b = { x: { golos: 1, assistencias: 0, mvp: 1, jogosAMarcar: 1, recorde: 1 }, y: { golos: 1, assistencias: 0, mvp: 0, jogosAMarcar: 1, recorde: 1 } };
@@ -313,5 +329,89 @@ describe('arquivo de torneios', () => {
     expect(entry.jogadores[0]).toEqual({ pid: 'ana', nome: 'Ana', golos: 2, assistencias: 0, mvp: 1, jogosAMarcar: 1, recorde: 2 });
     expect(entry.jogadores.find((j) => j.pid === 'ze').nome).toBe('Jogador Desconhecido');
     expect(archiveTally(entry).rui).toEqual({ golos: 1, assistencias: 1, mvp: 0, jogosAMarcar: 1, recorde: 1 });
+  });
+});
+
+describe('golos de um jogo', () => {
+  it('soma ao resultado guardado e não ao que estava no ecrã', () => {
+    // Outro telemóvel já registou o 1-0; este regista um golo do visitante
+    const guardado = { score: '1-0', status: 'decorrer', scorers: { home: ['ana'], away: [] }, assists: { home: [''], away: [] } };
+    const novo = addGoal(guardado, 'away', 'rui', 'ze');
+    expect(novo.score).toBe('1-1');
+    expect(novo.scorers).toEqual({ home: ['ana'], away: ['rui'] });
+    expect(novo.assists).toEqual({ home: [''], away: ['ze'] });
+    expect(guardado.score).toBe('1-0');
+  });
+
+  it('primeiro golo cria o resultado e põe o jogo a decorrer', () => {
+    expect(addGoal(undefined, 'home', 'auto', '')).toEqual({
+      score: '1-0', status: 'decorrer', scorers: { home: ['auto'], away: [] }, assists: { home: [''] },
+    });
+    expect(addGoal({ score: '0-0', status: 'agendado', scorers: { home: [], away: [] } }, 'home', 'a', '').status).toBe('decorrer');
+  });
+
+  it('resultados antigos só com texto mantêm o marcador', () => {
+    expect(addGoal('2-1', 'home', 'a', '').score).toBe('3-1');
+    expect(removeGoal('2-1', 'away')).toMatchObject({ score: '2-0', status: 'terminado' });
+  });
+
+  it('tirar golo remove o último marcador e a assistência', () => {
+    const r = { score: '2-0', status: 'terminado', scorers: { home: ['a', 'b'], away: [] }, assists: { home: ['c'] } };
+    const novo = removeGoal(r, 'home');
+    expect(novo.score).toBe('1-0');
+    expect(novo.scorers.home).toEqual(['a']);
+    expect(novo.assists.home).toEqual(['c']);
+    expect(novo.status).toBe('terminado');
+  });
+
+  it('com 0 golos ou sem resultado não muda nada', () => {
+    const r = { score: '0-1', scorers: { home: [], away: ['x'] } };
+    expect(removeGoal(r, 'home')).toBe(r);
+    expect(removeGoal(undefined, 'home')).toBeUndefined();
+  });
+});
+
+describe('estado e golos de um jogo', () => {
+  it('muda o estado e converte resultados antigos em texto', () => {
+    expect(setGameStatus(undefined, 'decorrer')).toMatchObject({ score: '0-0', status: 'decorrer' });
+    expect(setGameStatus('2-1', 'terminado')).toMatchObject({ score: '2-1', status: 'terminado' });
+  });
+
+  it('golos de cada equipa pela ordem, com assistências', () => {
+    const r = { score: '2-1', scorers: { home: ['a', 'b'], away: ['c'] }, assists: { home: ['', 'x'] } };
+    expect(gameGoals(r)).toEqual({
+      home: [{ pid: 'a', aid: '' }, { pid: 'b', aid: 'x' }],
+      away: [{ pid: 'c', aid: '' }],
+    });
+    expect(gameGoals('1-0')).toEqual({ home: [], away: [] });
+  });
+});
+
+describe('eventos para animações', () => {
+  const base = { 0: { score: '1-0', status: 'decorrer', scorers: { home: ['a'], away: [] } } };
+
+  it('golo com marcador e assistência', () => {
+    const next = { 0: { score: '1-1', status: 'decorrer', scorers: { home: ['a'], away: ['b'] }, assists: { away: ['c'] } } };
+    expect(resultEvents(base, next)).toEqual([{ type: 'golo', gi: '0', side: 'away', pid: 'b', aid: 'c' }]);
+  });
+
+  it('golo anulado', () => {
+    const next = { 0: { score: '0-0', status: 'decorrer', scorers: { home: [], away: [] } } };
+    expect(resultEvents(base, next)).toEqual([{ type: 'anulado', gi: '0', side: 'home', pid: 'a' }]);
+  });
+
+  it('jogo começou e jogo terminou', () => {
+    expect(resultEvents({}, { 1: { score: '0-0', status: 'decorrer' } })).toEqual([{ type: 'inicio', gi: '1' }]);
+    expect(resultEvents(base, { 0: { ...base[0], status: 'terminado' } })).toEqual([{ type: 'fim', gi: '0' }]);
+  });
+
+  it('primeiro golo num jogo agendado só anima o golo', () => {
+    const next = { 1: { score: '1-0', status: 'decorrer', scorers: { home: ['z'] } } };
+    expect(resultEvents({ 1: { score: '0-0', status: 'agendado' } }, next).map((e) => e.type)).toEqual(['golo']);
+  });
+
+  it('resultado escrito já terminado só anima o fim; sem mudanças não anima', () => {
+    expect(resultEvents({}, { 2: { score: '3-1', status: 'terminado' } })).toEqual([{ type: 'fim', gi: '2' }]);
+    expect(resultEvents(base, JSON.parse(JSON.stringify(base)))).toEqual([]);
   });
 });

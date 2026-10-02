@@ -1,7 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getDatabase, connectDatabaseEmulator, ref, onValue, update, push, query, orderByChild, limitToLast, serverTimestamp } from "firebase/database";
 import { getAuth, connectAuthEmulator, GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
-import { diffSnapshot, describeUpdates } from "./sync.js";
+import { diffSnapshot, describeUpdates, onlyMetadata } from "./sync.js";
 import { blockedPaths, roleLabel } from "./permissions.js";
 
 const firebaseConfig = {
@@ -28,6 +28,7 @@ if (import.meta.env.VITE_USE_EMULATORS === 'true') {
 const LOG_LIMIT = 200;
 
 let onStateChangeCallback = null;
+let onPushErrorCallback = null;
 let isFirstLoad = true;
 let lastSynced = null; // último snapshot igual ao que está no Firebase
 
@@ -50,6 +51,11 @@ export function initFirebaseListener() {
   });
 }
 
+// Called when Firebase rejects a save that was already applied locally
+export function onFirebasePushError(callback) {
+  onPushErrorCallback = callback;
+}
+
 // Record the snapshot that matches what Firebase currently holds
 export function setSyncedSnapshot(snap) {
   lastSynced = JSON.parse(JSON.stringify(snap));
@@ -69,7 +75,8 @@ export function pushStateToFirebase(newState) {
   if (!lastSynced) return { ok: false, reason: 'sem-sync' };
 
   const updates = diffSnapshot(lastSynced, newState);
-  if (!Object.keys(updates).length) return { ok: true };
+  // Só mudou a data de exportação: nada a gravar
+  if (onlyMetadata(updates)) return { ok: true };
 
   if (!currentUser) return { ok: false, reason: 'sem-sessao' };
   if (blockedPaths(currentRole, updates).length) return { ok: false, reason: 'sem-permissao' };
@@ -78,11 +85,16 @@ export function pushStateToFirebase(newState) {
 
   const rootUpdates = {};
   Object.keys(updates).forEach((p) => { rootUpdates[`torneio_state/${p}`] = updates[p]; });
-  const acao = describeUpdates(updates, newState);
-  if (acao) Object.assign(rootUpdates, logEntry(acao));
+  // As regras exigem que cada gravação aponte (logRef) para uma entrada nova
+  // do registo de alterações, escrita no mesmo update()
+  const log = logEntry(describeUpdates(updates, newState) || 'Alterações ao torneio');
+  Object.assign(rootUpdates, log);
+  rootUpdates['torneio_state/logRef'] = Object.keys(log)[0].split('/')[1];
 
   update(ref(database), rootUpdates).catch((err) => {
     console.error("Firebase error pushing state:", err);
+    // O Firebase repõe sozinho o valor do servidor (onValue); só falta avisar
+    if (onPushErrorCallback) onPushErrorCallback(err);
   });
   return { ok: true };
 }

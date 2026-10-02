@@ -480,14 +480,15 @@ function emptyPlayerTally() {
  * @returns {Object<string, {golos:number, assistencias:number, mvp:number, jogosAMarcar:number, recorde:number}>}
  */
 export function tallyPlayerStats(results, jogosSingulares) {
-  const out = {};
+  // Sem protótipo: os ids vêm do Firebase e podem ser '__proto__' ou 'constructor'
+  const out = Object.create(null);
   const get = (pid) => {
     if (!out[pid]) out[pid] = emptyPlayerTally();
     return out[pid];
   };
 
   function addGame(scorers, assists, mvp) {
-    const golosNoJogo = {};
+    const golosNoJogo = Object.create(null);
     scorers.forEach((pid) => {
       if (!pid || pid === 'auto') return;
       get(pid).golos++;
@@ -529,7 +530,7 @@ export function tallyPlayerStats(results, jogosSingulares) {
 
 /** Junta várias contagens de tallyPlayerStats (recorde fica o máximo). */
 export function mergePlayerStats(...tallies) {
-  const out = {};
+  const out = Object.create(null);
   tallies.forEach((tally) => {
     Object.keys(tally || {}).forEach((pid) => {
       const t = tally[pid];
@@ -617,7 +618,7 @@ export function buildArchiveEntry(snap, playerNames, id, dataIso) {
 
 /** Estatísticas de jogador guardadas num registo do arquivo, no formato de tallyPlayerStats. */
 export function archiveTally(entry) {
-  const out = {};
+  const out = Object.create(null);
   (entry.jogadores || []).forEach((j) => {
     out[j.pid] = {
       golos: j.golos || 0, assistencias: j.assistencias || 0, mvp: j.mvp || 0,
@@ -625,4 +626,147 @@ export function archiveTally(entry) {
     };
   });
   return out;
+}
+
+// ---------------------------------------------------------------------------
+// Golos de um jogo do torneio
+// ---------------------------------------------------------------------------
+
+/** Lista de assistências com o mesmo tamanho que a de marcadores ('' = sem assistência). */
+export function alignAssists(scorers, assists) {
+  const out = (assists || []).slice(0, (scorers || []).length);
+  while (out.length < (scorers || []).length) out.push('');
+  return out;
+}
+
+/** Cópia do resultado de um jogo como objeto (resultados antigos podem ser só '2-1'). */
+function resultObject(res) {
+  if (res && typeof res === 'object') {
+    const out = JSON.parse(JSON.stringify(res));
+    out.scorers = { home: [], away: [], ...(out.scorers || {}) };
+    return out;
+  }
+  return { score: typeof res === 'string' ? res : '0-0', scorers: { home: [], away: [] } };
+}
+
+function scoreParts(score) {
+  const m = /^(\d+)-(\d+)$/.exec(String(score || '').trim());
+  return m ? { home: Number(m[1]), away: Number(m[2]) } : { home: 0, away: 0 };
+}
+
+/**
+ * Regista um golo a partir do resultado guardado (e não do que está no ecrã),
+ * para não perder golos registados entretanto noutro telemóvel.
+ *
+ * @param {object|string|undefined} res - Resultado atual do jogo
+ * @param {'home'|'away'} side
+ * @param {string} pid - Marcador ('auto' = autogolo)
+ * @param {string} aid - Assistência ('' = sem assistência)
+ * @returns {object} Novo resultado
+ */
+export function addGoal(res, side, pid, aid) {
+  const out = resultObject(res);
+  if (!out.status || out.status === GAME_STATUS.AGENDADO) out.status = GAME_STATUS.DECORRER;
+  const s = scoreParts(out.score);
+  s[side]++;
+  out.score = `${s.home}-${s.away}`;
+  out.assists = { ...(out.assists || {}) };
+  out.assists[side] = alignAssists(out.scorers[side], out.assists[side]);
+  out.scorers[side].push(pid);
+  out.assists[side].push(aid || '');
+  return out;
+}
+
+/**
+ * Tira o último golo de uma equipa. Sem resultado ou com 0 golos devolve o
+ * resultado tal como está.
+ */
+export function removeGoal(res, side) {
+  if (res === null || res === undefined) return res;
+  const s = scoreParts(typeof res === 'object' ? res.score : res);
+  if (s[side] <= 0) return res;
+  const out = resultObject(res);
+  if (!out.status) out.status = GAME_STATUS.TERMINADO;
+  s[side]--;
+  out.score = `${s.home}-${s.away}`;
+  if (out.scorers[side].length > 0) {
+    out.assists = { ...(out.assists || {}) };
+    out.assists[side] = alignAssists(out.scorers[side], out.assists[side]);
+    out.scorers[side].pop();
+    out.assists[side].pop();
+  }
+  return out;
+}
+
+/** Muda o estado de um jogo (resultados antigos só com texto passam a objeto). */
+export function setGameStatus(res, status) {
+  const out = resultObject(res);
+  out.status = status;
+  return out;
+}
+
+/**
+ * Golos de cada equipa pela ordem em que foram marcados, para a janela do jogo.
+ *
+ * @returns {{home: {pid:string, aid:string}[], away: {pid:string, aid:string}[]}}
+ */
+export function gameGoals(res) {
+  const out = { home: [], away: [] };
+  if (!res || typeof res !== 'object') return out;
+  ['home', 'away'].forEach((side) => {
+    const sc = (res.scorers && res.scorers[side]) || [];
+    const as = alignAssists(sc, res.assists && res.assists[side]);
+    out[side] = sc.map((pid, i) => ({ pid, aid: as[i] || '' }));
+  });
+  return out;
+}
+
+function statusOf(res) {
+  if (!res) return null;
+  if (typeof res !== 'object') return GAME_STATUS.TERMINADO;
+  return res.status || GAME_STATUS.AGENDADO;
+}
+
+/**
+ * Compara dois estados dos resultados e devolve o que aconteceu, para as
+ * animações: jogo começou, golo, golo anulado, jogo terminou.
+ *
+ * Um resultado escrito de uma vez já terminado (sem passar por "a decorrer")
+ * só dá o evento de fim, para não animar cada golo.
+ *
+ * @returns {{type:'inicio'|'golo'|'anulado'|'fim', gi:string, side?:string, pid?:string, aid?:string}[]}
+ */
+export function resultEvents(prev, next) {
+  const events = [];
+  const a = prev || {};
+  const b = next || {};
+  Object.keys(b).forEach((gi) => {
+    const ra = a[gi];
+    const rb = b[gi];
+    if (!rb) return;
+    const sa = statusOf(ra);
+    const sb = statusOf(rb);
+    if (sb === GAME_STATUS.TERMINADO && sa !== GAME_STATUS.TERMINADO) {
+      events.push({ type: 'fim', gi });
+      return;
+    }
+    const pa = scoreParts(ra && (typeof ra === 'object' ? ra.score : ra));
+    const pb = scoreParts(typeof rb === 'object' ? rb.score : rb);
+    let golos = false;
+    ['home', 'away'].forEach((side) => {
+      if (pb[side] === pa[side]) return;
+      golos = true;
+      const scA = (ra && typeof ra === 'object' && ra.scorers && ra.scorers[side]) || [];
+      const scB = (typeof rb === 'object' && rb.scorers && rb.scorers[side]) || [];
+      if (pb[side] > pa[side]) {
+        const i = scB.length - 1;
+        const as = (rb.assists && rb.assists[side]) || [];
+        events.push({ type: 'golo', gi, side, pid: scB.length > scA.length ? scB[i] : '', aid: scB.length > scA.length ? (as[i] || '') : '' });
+      } else {
+        events.push({ type: 'anulado', gi, side, pid: scA.length > scB.length ? scA[scA.length - 1] : '' });
+      }
+    });
+    if (!golos && sb === GAME_STATUS.DECORRER && sa !== GAME_STATUS.DECORRER) events.push({ type: 'inicio', gi });
+  });
+  return events;
 }

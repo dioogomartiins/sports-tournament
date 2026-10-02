@@ -9,8 +9,11 @@ export const ROLES = {
   user: 'Utilizador',
 };
 
-/** Secções de torneio_state que um utilizador (não admin) pode gravar. */
-const USER_SECTIONS = ['results', 'schedule', 'jogosSingulares', 'exportedAt', 'version'];
+/**
+ * Secções de torneio_state que um utilizador (não admin) pode gravar. Do
+ * calendário só pode gravar `schedule/<jogo>/home` e `away` (eliminatórias).
+ */
+const USER_SECTIONS = ['results', 'jogosSingulares', 'exportedAt', 'version'];
 
 export function isKnownRole(role) {
   return Object.prototype.hasOwnProperty.call(ROLES, role);
@@ -25,8 +28,10 @@ export function roleLabel(role) {
 export function canWritePath(role, path) {
   if (role === 'admin') return true;
   if (role !== 'user') return false;
-  const section = String(path).split('/')[0];
-  return USER_SECTIONS.includes(section);
+  const parts = String(path).split('/');
+  // No calendário, um utilizador só passa equipas aos jogos seguintes
+  if (parts[0] === 'schedule') return parts.length === 3 && (parts[2] === 'home' || parts[2] === 'away');
+  return USER_SECTIONS.includes(parts[0]);
 }
 
 /** Caminhos de um `update()` que este perfil não pode gravar. */
