@@ -1,12 +1,12 @@
 import { flashError, flashSaved, flashBackup, showToast, openConfirm, renderAll } from './ui.js';
 import { generateSchedule } from './algorithms.js';
 import { pushStateToFirebase, getSyncedSnapshot, getCurrentRole } from './firebase.js';
-import { normalizeResults } from './sync.js';
+import { normalizeResults, normalizeArquivo } from './sync.js';
 
 // ---------------------------------------------------------------------------
 // Constantes
 // ---------------------------------------------------------------------------
-export const SNAPSHOT_VERSION = 5;
+export const SNAPSHOT_VERSION = 6;
 export const MAX_TEAMS = 32;
 const DEFAULT_COLOR = '#2F7A4F';
 
@@ -80,6 +80,7 @@ export const state = {
   results: {},
   players: [],          // Base de dados global de jogadores
   jogosSingulares: [],  // Histórico de jogos singulares
+  arquivo: [],          // Torneios terminados (tabela final, campeão, jogadores)
 };
 
 // ---------------------------------------------------------------------------
@@ -160,6 +161,7 @@ export function buildSnapshot() {
     results: JSON.parse(JSON.stringify(state.results)),
     players: JSON.parse(JSON.stringify(state.players)),
     jogosSingulares: JSON.parse(JSON.stringify(state.jogosSingulares)),
+    arquivo: JSON.parse(JSON.stringify(state.arquivo)),
   };
 }
 
@@ -181,6 +183,7 @@ export function applySnapshot(s) {
   state.results = normalizeResults(s.results);
   state.players = (s.players || []).map(normalizePlayer).filter(Boolean);
   state.jogosSingulares = s.jogosSingulares || [];
+  state.arquivo = normalizeArquivo(s.arquivo);
 }
 
 // ---------------------------------------------------------------------------
@@ -255,6 +258,12 @@ export async function persistJogosSingulares() {
   await persistBackup();
 }
 
+export async function persistArquivo() {
+  await storageSet('arquivo', JSON.stringify(state.arquivo));
+  flashSaved();
+  await persistBackup();
+}
+
 /** Grava todas as camadas no localStorage (usado após restaurar ou importar um snapshot). */
 async function storeAllLayers() {
   await storageSet('config-teams', JSON.stringify({ config: state.config, teams: state.teams, squads: state.squads }));
@@ -262,6 +271,7 @@ async function storeAllLayers() {
   await storageSet('results', JSON.stringify(state.results));
   await storageSet('players', JSON.stringify(state.players));
   await storageSet('jogos-singulares', JSON.stringify(state.jogosSingulares));
+  await storageSet('arquivo', JSON.stringify(state.arquivo));
 }
 
 // ---------------------------------------------------------------------------
@@ -327,6 +337,8 @@ export async function loadState() {
   try { const r = await storageGet('backup'); bk = r ? JSON.parse(r.value) : null; } catch { bk = null; }
   try { const r = await storageGet('players'); pl = r ? JSON.parse(r.value) : null; } catch { pl = null; }
   try { const r = await storageGet('jogos-singulares'); js = r ? JSON.parse(r.value) : null; } catch { js = null; }
+  let ar = null;
+  try { const r = await storageGet('arquivo'); ar = r ? JSON.parse(r.value) : null; } catch { ar = null; }
 
   const hasIndividualData = ct && ct.config && ct.teams;
 
@@ -348,6 +360,7 @@ export async function loadState() {
     state.results = normalizeResults(rs);
     state.players = (pl || []).map(normalizePlayer).filter(Boolean);
     state.jogosSingulares = js || [];
+    state.arquivo = normalizeArquivo(ar);
   } else if (validateSnapshot(bk)) {
     applySnapshot(bk);
     await storeAllLayers();
@@ -359,6 +372,7 @@ export async function loadState() {
     state.squads = defaultSquads();
     state.players = [];
     state.jogosSingulares = [];
+    state.arquivo = [];
     applyGeneratedSchedule(state.config.numEquipas, state.config.numVoltas, false);
   }
 

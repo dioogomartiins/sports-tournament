@@ -1,7 +1,8 @@
-import { state, persistConfigTeams, loadState, persistSchedule, persistResults, persistBackup, persistPlayers, persistJogosSingulares, currentTheme, setCurrentTheme, exportJSON, importJSON, applyGeneratedSchedule, applySnapshot, buildSnapshot, defaultTeams, defaultSquads } from './state.js';
-import { dom, cacheDom, renderAll, refreshComputed, renderScheduleHint, renderSquadList, renderSquadsDropdown, renderCalendar, renderResults, showToast, flashSaved, openConfirm, closeConfirm, openDangerConfirm, switchTab, confirmCallback, openScorerModal, openPlayerProfile, computeStatsSummary, renderPlayersList, openPlayerModal, renderSquadPlayerFromDBDropdown, renderDraftPlayerList, renderDraftTeams, renderSingularHistorico, currentDraft, renderAuth, renderUsers, renderLog } from './ui.js';
-import { clamp, numOr } from './utils.js';
-import { bergerRounds, snakeDraft, buildFirstRoundSeeding, buildExtraVolta, getPlayoffWinner } from './algorithms.js';
+import { state, persistConfigTeams, loadState, persistSchedule, persistResults, persistBackup, persistPlayers, persistJogosSingulares, persistArquivo, currentTheme, setCurrentTheme, exportJSON, importJSON, applyGeneratedSchedule, applySnapshot, buildSnapshot, defaultTeams, defaultSquads } from './state.js';
+import { dom, cacheDom, renderAll, refreshComputed, renderScheduleHint, renderSquadList, renderSquadsDropdown, renderCalendar, renderResults, showToast, flashSaved, openConfirm, closeConfirm, openDangerConfirm, switchTab, confirmCallback, openScorerModal, openPlayerProfile, computeStatsSummary, renderPlayersList, openPlayerModal, renderSquadPlayerFromDBDropdown, renderDraftPlayerList, renderDraftTeams, renderSingularHistorico, currentDraft, renderAuth, renderUsers, renderLog, buildPlayerIndex, openPickPlayerModal, squadPickList } from './ui.js';
+import { clamp, numOr, escapeHtml } from './utils.js';
+import { shareStandings } from './share.js';
+import { bergerRounds, balancedDraft, buildFirstRoundSeeding, buildExtraVolta, getPlayoffWinner, buildArchiveEntry, countPlayedGames } from './algorithms.js';
 import { initFirebaseListener, onFirebaseStateChange, setSyncedSnapshot, initAuth, signInWithGoogle, signOutUser, getCurrentUser, listenUsers, listenLog, setUserRole } from './firebase.js';
 
 // ---------------------------------------------------------------------------
@@ -84,7 +85,7 @@ export function onSquadListClick(e) {
     persistConfigTeams();
     renderSquadList();
   } else if (btnStats) {
-    openPlayerProfile(btnStats.dataset.pid, btnStats.dataset.idx);
+    openPlayerProfile(btnStats.dataset.pid, Number(btnStats.dataset.idx));
   }
 }
 
@@ -140,36 +141,67 @@ export function onScoreBtnClick(e) {
 
   if (action === 'add') {
     openScorerModal(gi, side, (pid) => {
-      input.value = currentVal + 1;
+      const game = state.schedule[gi];
+      const teamIdx = side === 'home' ? game.home : game.away;
 
-      if (!state.results[gi] || typeof state.results[gi] === 'string') {
-        state.results[gi] = { score: '0-0', scorers: { home: [], away: [] }, status: 'decorrer' };
-      } else if (state.results[gi].status === 'agendado') {
-        state.results[gi].status = 'decorrer';
-      }
+      const registerGoal = (aid) => {
+        input.value = currentVal + 1;
 
-      const res = state.results[gi];
-      res.scorers = res.scorers || {};
-      res.scorers[side] = res.scorers[side] || [];
-      res.scorers[side].push(pid);
+        if (!state.results[gi] || typeof state.results[gi] === 'string') {
+          state.results[gi] = { score: '0-0', scorers: { home: [], away: [] }, status: 'decorrer' };
+        } else if (state.results[gi].status === 'agendado') {
+          state.results[gi].status = 'decorrer';
+        }
 
-      const h = side === 'home' ? input.value : (row.querySelector('input[data-side="home"]').value || 0);
-      const a = side === 'away' ? input.value : (row.querySelector('input[data-side="away"]').value || 0);
-      state.results[gi].score = `${h}-${a}`;
+        const res = state.results[gi];
+        res.scorers = res.scorers || {};
+        res.scorers[side] = res.scorers[side] || [];
+        res.assists = res.assists || {};
+        res.assists[side] = alignAssists(res.scorers[side], res.assists[side]);
+        res.scorers[side].push(pid);
+        res.assists[side].push(aid);
 
-      onResultCommit({ target: input });
+        const h = side === 'home' ? input.value : (row.querySelector('input[data-side="home"]').value || 0);
+        const a = side === 'away' ? input.value : (row.querySelector('input[data-side="away"]').value || 0);
+        state.results[gi].score = `${h}-${a}`;
+
+        onResultCommit({ target: input });
+      };
+
+      // Autogolo não tem assistência
+      if (pid === 'auto') registerGoal('');
+      else openPickPlayerModal('Assistência', squadPickList(teamIdx, pid), 'Sem assistência', registerGoal);
     });
   } else if (action === 'sub') {
     if (currentVal <= 0) {
       input.value = 0;
     } else {
       input.value = currentVal - 1;
-      if (state.results[gi]?.scorers?.[side]?.length > 0) {
-        state.results[gi].scorers[side].pop();
+      const res = state.results[gi];
+      if (res?.scorers?.[side]?.length > 0) {
+        res.assists = res.assists || {};
+        res.assists[side] = alignAssists(res.scorers[side], res.assists[side]);
+        res.scorers[side].pop();
+        res.assists[side].pop();
       }
     }
     onResultCommit({ target: input });
   }
+}
+
+export function onMvpClick(gi) {
+  const game = state.schedule[gi];
+  if (!game) return;
+  const players = [...squadPickList(game.home), ...squadPickList(game.away)];
+  openPickPlayerModal('MVP do Jogo', players, 'Sem MVP', (pid) => {
+    const res = state.results[gi];
+    if (!res || typeof res !== 'object') return;
+    if (pid) res.mvp = pid;
+    else delete res.mvp;
+    persistResults();
+    renderResults();
+    refreshComputed();
+  });
 }
 
 export function onResultCommit(e) {
@@ -302,6 +334,39 @@ export function onNovoTorneio() {
     renderAll();
     showToast('Dados apagados com sucesso.', 'ok');
   });
+}
+
+export function onArquivar() {
+  if (!countPlayedGames(state.results)) {
+    showToast('Ainda não há jogos disputados para arquivar.', 'error');
+    return;
+  }
+
+  openConfirm(
+    'Arquivar Torneio',
+    `<strong>${escapeHtml(state.config.nome)}</strong> vai para o Histórico com a classificação e as estatísticas atuais. ` +
+    'O calendário e os resultados são limpos para começares um torneio novo. Continuar?',
+    async () => {
+      const index = buildPlayerIndex();
+      const names = {};
+      Object.keys(index).forEach((pid) => { names[pid] = index[pid].name; });
+
+      const entry = buildArchiveEntry(state, names, crypto.randomUUID(), new Date().toISOString());
+      state.arquivo = [...state.arquivo, entry];
+      state.results = {};
+      state.schedule = [];
+      state.roundsMeta = [];
+      state.scheduleTeamCount = 0;
+      state.scheduleVoltas = 0;
+
+      await persistArquivo();
+      await persistSchedule();
+      await persistResults();
+      renderAll();
+      switchTab('historico');
+      showToast('Torneio arquivado no Histórico!', 'ok');
+    },
+  );
 }
 
 export function onAtualizar() {
@@ -479,15 +544,25 @@ export function onFazerDraft() {
   }
 
   const players = selectedIds.map((id) => state.players.find((p) => p.id === id)).filter(Boolean);
-  const { equipaA, equipaB } = snakeDraft(players);
+  const { equipaA, equipaB } = balancedDraft(players);
 
   // Store in module-level variable (imported as currentDraft)
   currentDraft.equipaA = equipaA;
   currentDraft.equipaB = equipaB;
   currentDraft.scorersA = [];
   currentDraft.scorersB = [];
+  currentDraft.assistsA = [];
+  currentDraft.assistsB = [];
+  currentDraft.mvp = '';
 
   renderDraftTeams(nomeA, nomeB, equipaA, equipaB);
+}
+
+/** Lista de assistências com o mesmo tamanho que a de marcadores ('' = sem assistência). */
+function alignAssists(scorers, assists) {
+  const out = (assists || []).slice(0, (scorers || []).length);
+  while (out.length < (scorers || []).length) out.push('');
+  return out;
 }
 
 export async function onGuardarJogo() {
@@ -512,8 +587,11 @@ export async function onGuardarJogo() {
     equipaB: currentDraft.equipaB.map((p) => p.id),
     scorersA: [...(currentDraft.scorersA || [])],
     scorersB: [...(currentDraft.scorersB || [])],
+    assistsA: alignAssists(currentDraft.scorersA, currentDraft.assistsA),
+    assistsB: alignAssists(currentDraft.scorersB, currentDraft.assistsB),
     resultado,
   };
+  if (currentDraft.mvp) jogo.mvp = currentDraft.mvp;
 
   state.jogosSingulares.push(jogo);
   await persistJogosSingulares();
@@ -524,6 +602,9 @@ export async function onGuardarJogo() {
   currentDraft.equipaB = [];
   currentDraft.scorersA = [];
   currentDraft.scorersB = [];
+  currentDraft.assistsA = [];
+  currentDraft.assistsB = [];
+  currentDraft.mvp = '';
   if (dom.draftResultCard) dom.draftResultCard.style.display = 'none';
   if (dom.draftScoreA) dom.draftScoreA.value = '';
   if (dom.draftScoreB) dom.draftScoreB.value = '';
@@ -613,6 +694,8 @@ export function bindEvents() {
 
   dom.btnGerarCalendario.addEventListener('click', onGerarCalendario);
   dom.btnNovoTorneio.addEventListener('click', onNovoTorneio);
+  dom.btnArquivar.addEventListener('click', onArquivar);
+  dom.btnPartilharTabela.addEventListener('click', shareStandings);
   dom.btnAtualizar.addEventListener('click', onAtualizar);
   dom.btnAdicionarVolta.addEventListener('click', onAdicionarVolta);
   dom.btnGerarEliminatorias.addEventListener('click', onGerarEliminatorias);

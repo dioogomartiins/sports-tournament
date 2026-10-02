@@ -385,3 +385,244 @@ export function snakeDraft(players) {
 
   return { equipaA, equipaB };
 }
+
+/**
+ * Divide os jogadores em 2 equipas com o rating total o mais próximo possível.
+ *
+ * As equipas ficam com o mesmo número de jogadores (ou um de diferença).
+ * Até 20 jogadores testa todas as divisões; acima disso parte do snake draft
+ * e troca pares de jogadores enquanto a diferença diminuir.
+ *
+ * @param {object[]} players - Lista de jogadores selecionados
+ * @returns {{ equipaA: object[], equipaB: object[] }}
+ */
+export function balancedDraft(players) {
+  const sorted = players.slice().sort((a, b) => getPlayerRating(b) - getPlayerRating(a));
+  const n = sorted.length;
+  if (n < 2) return { equipaA: sorted, equipaB: [] };
+
+  // Ratings em décimas, para comparar sem erros de vírgula flutuante
+  const r = sorted.map((p) => Math.round(getPlayerRating(p) * 10));
+  const total = r.reduce((s, v) => s + v, 0);
+  const sizeA = Math.ceil(n / 2);
+
+  let bestMask = null;
+
+  if (n <= 20) {
+    // O primeiro jogador fica sempre na equipa A, para não repetir divisões espelhadas
+    const sizes = new Set([Math.floor(n / 2), sizeA]);
+    let bestDiff = Infinity;
+    const pick = (i, count, sum, mask) => {
+      if (bestDiff === 0 || count > sizeA) return;
+      if (i === n) {
+        if (!sizes.has(count)) return;
+        const diff = Math.abs(total - 2 * sum);
+        if (diff < bestDiff) { bestDiff = diff; bestMask = mask; }
+        return;
+      }
+      if (count + (n - i) < Math.floor(n / 2)) return;
+      pick(i + 1, count + 1, sum + r[i], mask | (1 << i));
+      if (i > 0) pick(i + 1, count, sum, mask);
+    };
+    pick(0, 0, 0, 0);
+  }
+
+  let inA;
+  if (bestMask !== null) {
+    inA = sorted.map((_, i) => (bestMask & (1 << i)) !== 0);
+  } else {
+    const snake = snakeDraft(sorted);
+    const setA = new Set(snake.equipaA);
+    inA = sorted.map((p) => setA.has(p));
+    let sumA = r.reduce((s, v, i) => s + (inA[i] ? v : 0), 0);
+    let improved = true;
+    while (improved) {
+      improved = false;
+      for (let i = 0; i < n && !improved; i++) {
+        if (!inA[i]) continue;
+        for (let j = 0; j < n; j++) {
+          if (inA[j]) continue;
+          const newSum = sumA - r[i] + r[j];
+          if (Math.abs(total - 2 * newSum) < Math.abs(total - 2 * sumA)) {
+            inA[i] = false;
+            inA[j] = true;
+            sumA = newSum;
+            improved = true;
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  return {
+    equipaA: sorted.filter((_, i) => inA[i]),
+    equipaB: sorted.filter((_, i) => !inA[i]),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Estatísticas de jogadores (golos, assistências, MVP)
+// ---------------------------------------------------------------------------
+
+function emptyPlayerTally() {
+  return { golos: 0, assistencias: 0, mvp: 0, jogosAMarcar: 0, recorde: 0 };
+}
+
+/**
+ * Soma golos, assistências e MVPs por jogador.
+ *
+ * Um jogo pode ter `scorers` (lista de ids, 'auto' = autogolo), `assists`
+ * (alinhada com scorers, '' = sem assistência) e `mvp`.
+ *
+ * @param {object} results - Resultados do torneio (por índice de jogo)
+ * @param {object[]} jogosSingulares - Jogos singulares
+ * @returns {Object<string, {golos:number, assistencias:number, mvp:number, jogosAMarcar:number, recorde:number}>}
+ */
+export function tallyPlayerStats(results, jogosSingulares) {
+  const out = {};
+  const get = (pid) => {
+    if (!out[pid]) out[pid] = emptyPlayerTally();
+    return out[pid];
+  };
+
+  function addGame(scorers, assists, mvp) {
+    const golosNoJogo = {};
+    scorers.forEach((pid) => {
+      if (!pid || pid === 'auto') return;
+      get(pid).golos++;
+      golosNoJogo[pid] = (golosNoJogo[pid] || 0) + 1;
+    });
+    Object.keys(golosNoJogo).forEach((pid) => {
+      const t = get(pid);
+      t.jogosAMarcar++;
+      t.recorde = Math.max(t.recorde, golosNoJogo[pid]);
+    });
+    assists.forEach((pid) => {
+      if (pid && pid !== 'auto') get(pid).assistencias++;
+    });
+    if (mvp) get(mvp).mvp++;
+  }
+
+  Object.keys(results || {}).forEach((gi) => {
+    const res = results[gi];
+    if (!res || typeof res !== 'object') return;
+    const sc = res.scorers || {};
+    const as = res.assists || {};
+    addGame(
+      [...(sc.home || []), ...(sc.away || [])],
+      [...(as.home || []), ...(as.away || [])],
+      res.mvp,
+    );
+  });
+
+  (jogosSingulares || []).forEach((jogo) => {
+    addGame(
+      [...(jogo.scorersA || []), ...(jogo.scorersB || [])],
+      [...(jogo.assistsA || []), ...(jogo.assistsB || [])],
+      jogo.mvp,
+    );
+  });
+
+  return out;
+}
+
+/** Junta várias contagens de tallyPlayerStats (recorde fica o máximo). */
+export function mergePlayerStats(...tallies) {
+  const out = {};
+  tallies.forEach((tally) => {
+    Object.keys(tally || {}).forEach((pid) => {
+      const t = tally[pid];
+      if (!out[pid]) out[pid] = emptyPlayerTally();
+      const o = out[pid];
+      o.golos += t.golos || 0;
+      o.assistencias += t.assistencias || 0;
+      o.mvp += t.mvp || 0;
+      o.jogosAMarcar += t.jogosAMarcar || 0;
+      o.recorde = Math.max(o.recorde, t.recorde || 0);
+    });
+  });
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// Arquivo de torneios
+// ---------------------------------------------------------------------------
+
+/**
+ * Índice da equipa campeã: vencedor da final se houver eliminatórias, senão o
+ * primeiro da liga (só com um grupo). null se ainda não há campeão.
+ */
+export function getChampion(schedule, results, groupsData) {
+  const playoffs = schedule.map((g, gi) => ({ g, gi })).filter(({ g }) => g.isPlayoff);
+  if (playoffs.length) {
+    const final = playoffs.find(({ g }) => !g.nextMatchId);
+    return final ? getPlayoffWinner(final.g, results[final.gi]) : null;
+  }
+  if (groupsData.length !== 1) return null;
+  const leader = groupsData[0].standings[0];
+  return leader && leader.J > 0 ? leader.idx : null;
+}
+
+/** Número de jogos do torneio com resultado (não agendados). */
+export function countPlayedGames(results) {
+  return Object.keys(results || {}).filter((gi) => {
+    const r = results[gi];
+    if (!r) return false;
+    if (typeof r === 'object' && r.status === GAME_STATUS.AGENDADO) return false;
+    const score = typeof r === 'object' ? r.score : String(r);
+    return /^\d+-\d+$/.test(String(score || '').trim());
+  }).length;
+}
+
+/**
+ * Cria o registo de um torneio terminado para o arquivo: tabela final,
+ * campeão e estatísticas por jogador (só jogos do torneio).
+ *
+ * @param {object} snap - { config, teams, schedule, results, scheduleTeamCount }
+ * @param {Object<string,string>} playerNames - pid → nome
+ * @param {string} id
+ * @param {string} dataIso
+ */
+export function buildArchiveEntry(snap, playerNames, id, dataIso) {
+  const teamsArray = snap.teams.slice(0, snap.scheduleTeamCount || snap.config.numEquipas);
+  const groupsData = computeStandings(teamsArray, snap.schedule, snap.results, snap.config);
+  const teamOf = (idx) => {
+    const t = teamsArray[idx];
+    return { nome: (t && t.name) || `Equipa ${idx + 1}`, cor: (t && t.color) || '' };
+  };
+
+  const champIdx = getChampion(snap.schedule, snap.results, groupsData);
+  const tally = tallyPlayerStats(snap.results, []);
+  const jogadores = Object.keys(tally)
+    .map((pid) => ({ pid, nome: playerNames[pid] || 'Jogador Desconhecido', ...tally[pid] }))
+    .sort((a, b) => (b.golos - a.golos) || (b.assistencias - a.assistencias) || (b.mvp - a.mvp));
+
+  return {
+    id,
+    nome: snap.config.nome || 'Torneio',
+    data: dataIso,
+    campeao: champIdx === null ? null : teamOf(champIdx),
+    jogos: countPlayedGames(snap.results),
+    golos: groupsData.reduce((s, g) => s + g.standings.reduce((t, x) => t + x.GM, 0), 0),
+    grupos: groupsData.map((g) => ({
+      nome: g.name,
+      tabela: g.standings.map((s) => ({
+        ...teamOf(s.idx), J: s.J, V: s.V, E: s.E, D: s.D, GM: s.GM, GS: s.GS, DG: s.DG, Pts: s.Pts,
+      })),
+    })),
+    jogadores,
+  };
+}
+
+/** Estatísticas de jogador guardadas num registo do arquivo, no formato de tallyPlayerStats. */
+export function archiveTally(entry) {
+  const out = {};
+  (entry.jogadores || []).forEach((j) => {
+    out[j.pid] = {
+      golos: j.golos || 0, assistencias: j.assistencias || 0, mvp: j.mvp || 0,
+      jogosAMarcar: j.jogosAMarcar || 0, recorde: j.recorde || 0,
+    };
+  });
+  return out;
+}

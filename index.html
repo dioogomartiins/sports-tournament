@@ -45,6 +45,7 @@
       <button class="tab" data-tab="calendar">📅 Calendário</button>
       <button class="tab" data-tab="results">⚽ Resultados</button>
       <button class="tab" data-tab="stats">📊 Estatísticas</button>
+      <button class="tab" data-tab="historico">🗄️ Histórico</button>
       <button class="tab" data-tab="config" data-requires="admin">⚙️ Configuração</button>
 
       <div class="dropdown">
@@ -243,9 +244,10 @@
         <!-- NOVO JOGO -->
         <div id="singular-novo" class="singular-panel active">
           <div class="card">
-            <div class="section-title">🎯 Snake Draft</div>
+            <div class="section-title">🎯 Equipas Equilibradas</div>
             <p class="section-sub">Define os nomes das equipas, seleciona os jogadores presentes e clica em
-              <strong>Fazer Draft</strong> para gerar equipas equilibradas automaticamente.
+              <strong>Fazer Draft</strong>: a app divide-os em duas equipas com o rating total o mais parecido
+              possível. Em cada golo podes indicar quem assistiu.
             </p>
 
             <div class="form-grid" style="margin-bottom:20px;">
@@ -333,6 +335,7 @@
       <section id="tab-standings" class="panel">
         <div class="card">
           <div class="section-title">🏆 Classificação</div>
+          <button class="btn btn-teal share-btn" id="btnPartilharTabela">📤 Partilhar Classificação</button>
           <div class="table-wrap" id="standingsWrapper">
           </div>
           <p class="field-note" style="margin-top:14px;">Critérios de desempate, por ordem: pontos → diferença de golos
@@ -346,6 +349,19 @@
         <div class="card">
           <div class="section-title">📊 Estatísticas</div>
           <div class="stats-grid" id="statsGrid"></div>
+        </div>
+      </section>
+
+      <!-- HISTÓRICO -->
+      <section id="tab-historico" class="panel">
+        <div class="card">
+          <div class="section-title">🌟 Estatísticas de Sempre</div>
+          <p class="section-sub">Todos os torneios arquivados, o torneio atual e os jogos singulares.</p>
+          <div id="historicoSempre"></div>
+        </div>
+        <div class="card">
+          <div class="section-title">🗄️ Torneios Arquivados</div>
+          <div id="arquivoList"></div>
         </div>
       </section>
 
@@ -374,6 +390,14 @@
             <button class="btn btn-teal" id="btnImportar">⬆️ Importar JSON</button>
             <input type="file" id="inputImportar" accept=".json,application/json" style="display:none">
           </div>
+        </div>
+
+        <div class="card">
+          <div class="section-title">🗄️ Arquivar Torneio</div>
+          <p class="section-sub">Guarda a classificação final, o campeão e as estatísticas dos jogadores no
+            Histórico, e limpa o calendário e os resultados para começar um torneio novo. Equipas, plantéis,
+            jogadores e jogos singulares mantêm-se.</p>
+          <button class="btn btn-gold" id="btnArquivar" style="margin-top: 12px;">🗄️ Arquivar e Começar Novo</button>
         </div>
 
         <div class="card" style="border-color: var(--danger);">
