@@ -1990,3 +1990,342 @@
     .share-btn {
       margin-bottom: 14px;
     }
+
+    /* ---------------------------------------------------------------------
+       Janela do jogo e animações
+       --------------------------------------------------------------------- */
+    .fixture-open {
+      cursor: pointer;
+      transition: background-color .15s;
+    }
+
+    .fixture-open:hover {
+      background: var(--paper);
+    }
+
+    /* Transição ao mudar de separador */
+    .panel.active {
+      animation: panel-in .22s ease-out;
+    }
+
+    @keyframes panel-in {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: none; }
+    }
+
+    /* Janela do jogo */
+    .game-modal {
+      max-width: 560px;
+      padding: 0;
+      overflow: hidden auto;
+      animation: modal-in .22s cubic-bezier(.2, .8, .2, 1);
+    }
+
+    @keyframes modal-in {
+      from { opacity: 0; transform: translateY(14px) scale(.98); }
+      to { opacity: 1; transform: none; }
+    }
+
+    .modal.game-modal .modal-actions {
+      display: block !important;
+      padding: 14px 16px 16px;
+      margin-top: 0;
+    }
+
+    .modal.game-modal .modal-actions .btn {
+      width: 100% !important;
+    }
+
+    .gm-head {
+      position: relative;
+      padding: 18px 16px 16px;
+      color: #fff;
+      text-align: center;
+      background:
+        linear-gradient(160deg, rgba(255, 255, 255, .08) 0 35%, transparent 35% 100%),
+        linear-gradient(180deg, #1b1b1b, #000);
+    }
+
+    .gm-round {
+      display: inline-block;
+      margin-bottom: 12px;
+      padding: 4px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .1);
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .gm-score-row {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .gm-team {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .gm-crest {
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      border: 3px solid rgba(255, 255, 255, .85);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, .5);
+    }
+
+    .gm-team-name {
+      font-family: var(--font-display);
+      font-size: 17px;
+      font-weight: 700;
+      line-height: 1.15;
+      overflow-wrap: anywhere;
+    }
+
+    .gm-score {
+      font-family: var(--font-display);
+      font-size: 44px;
+      font-weight: 700;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .gm-score span {
+      display: inline-block;
+    }
+
+    .gm-colon {
+      margin: 0 8px;
+      opacity: .7;
+    }
+
+    .gm-status {
+      margin-top: 10px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .gm-live {
+      color: #ff7b6b;
+    }
+
+    .gm-pen {
+      margin-top: 4px;
+      font-size: 12px;
+      opacity: .8;
+    }
+
+    .gm-body {
+      padding: 16px 12px;
+      background: var(--paper);
+    }
+
+    .gm-goals {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      position: relative;
+    }
+
+    .gm-goals::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 50%;
+      border-left: 1px dashed var(--line);
+    }
+
+    .gm-col {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .gm-card {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 10px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      background: var(--card);
+      box-shadow: var(--shadow-sm);
+      min-width: 0;
+      animation: panel-in .25s ease-out both;
+    }
+
+    .gm-col-home .gm-card {
+      flex-direction: row-reverse;
+      text-align: right;
+    }
+
+    .gm-ball {
+      font-size: 18px;
+      flex: none;
+    }
+
+    .gm-scorer {
+      font-size: 13px;
+      font-weight: 700;
+      overflow-wrap: anywhere;
+    }
+
+    .gm-assist {
+      font-size: 12px;
+      color: var(--ink-soft);
+      overflow-wrap: anywhere;
+    }
+
+    .gm-mvp {
+      margin-top: 14px;
+      text-align: center;
+      font-size: 13px;
+    }
+
+    .gm-empty {
+      text-align: center;
+    }
+
+    /* Animações de jogo (golo, anulado, começou, terminou) */
+    .has-anim {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .game-anim {
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      padding: 8px;
+      text-align: center;
+      color: #fff;
+      background: linear-gradient(135deg, #0F2A1C, #1C4A32);
+      pointer-events: none;
+      animation: anim-overlay 2.6s ease-in-out both;
+    }
+
+    .anim-golo {
+      color: var(--anim-ink, #fff);
+      background:
+        radial-gradient(circle at 50% 50%, rgba(255, 255, 255, .28), transparent 60%),
+        var(--anim-bg, #2F7A4F);
+    }
+
+    .anim-anulado {
+      background: linear-gradient(135deg, #5c1410, #8e2219);
+    }
+
+    .anim-fim {
+      background: linear-gradient(135deg, #000, #2a2a2a);
+    }
+
+    .anim-title {
+      font-family: var(--font-display);
+      font-size: clamp(26px, 8vw, 40px);
+      font-weight: 700;
+      letter-spacing: .04em;
+      line-height: 1;
+      animation: anim-pop .5s cubic-bezier(.2, 1.6, .4, 1) both .08s;
+    }
+
+    .anim-sub {
+      font-size: 15px;
+      font-weight: 700;
+      animation: anim-rise .4s ease-out both .3s;
+    }
+
+    .anim-sub2 {
+      font-size: 12px;
+      opacity: .85;
+      animation: anim-rise .4s ease-out both .45s;
+    }
+
+    .anim-anulado .anim-title {
+      position: relative;
+    }
+
+    .anim-anulado .anim-title::after {
+      content: '';
+      position: absolute;
+      left: -4%;
+      top: 50%;
+      height: 4px;
+      width: 108%;
+      background: #fff;
+      transform-origin: left;
+      animation: anim-strike .4s ease-out both .45s;
+    }
+
+    .anim-whistle {
+      width: 46px;
+      height: 30px;
+      margin-bottom: 4px;
+      animation: anim-whistle .5s ease-in-out 3 both .05s;
+    }
+
+    @keyframes anim-overlay {
+      0% { opacity: 0; transform: scale(1.04); }
+      10% { opacity: 1; transform: none; }
+      78% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
+    @keyframes anim-pop {
+      from { opacity: 0; transform: scale(.5); }
+      to { opacity: 1; transform: none; }
+    }
+
+    @keyframes anim-rise {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: none; }
+    }
+
+    @keyframes anim-strike {
+      from { transform: scaleX(0); }
+      to { transform: scaleX(1); }
+    }
+
+    @keyframes anim-whistle {
+      0%, 100% { transform: rotate(0); }
+      25% { transform: rotate(-12deg); }
+      75% { transform: rotate(12deg); }
+    }
+
+    .score-bump {
+      animation: score-bump .6s cubic-bezier(.2, 1.6, .4, 1);
+    }
+
+    @keyframes score-bump {
+      40% { transform: scale(1.35); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .panel.active,
+      .game-modal,
+      .gm-card,
+      .score-bump,
+      .status-decorrer {
+        animation: none !important;
+      }
+
+      .game-anim {
+        display: none;
+      }
+    }

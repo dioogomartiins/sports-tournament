@@ -1,6 +1,6 @@
 import { state, MAX_TEAMS, normalizePlayer, persistPlayers, persistConfigTeams, persistJogosSingulares, persistArquivo } from './state.js';
 import { getTeamName, getTeamDisplay, escapeHtml, fmtTimestamp, clamp, safeColor } from './utils.js';
-import { computeStandings, GAME_STATUS, getPlayerRating, getTeamTotalRating, tallyPlayerStats, mergePlayerStats, archiveTally } from './algorithms.js';
+import { computeStandings, GAME_STATUS, getPlayerRating, getTeamTotalRating, tallyPlayerStats, mergePlayerStats, archiveTally, gameGoals } from './algorithms.js';
 import { onStatusBtnClick, onScoreBtnClick, onResultCommit, onTeamPropChange, onSquadListClick, onMvpClick } from './main.js';
 import { shareResult } from './share.js';
 import { ROLES, isKnownRole, roleLabel } from './permissions.js';
@@ -277,7 +277,7 @@ export function renderCalendar() {
       const val = state.results[gi];
       const status = val && val.status ? val.status : GAME_STATUS.AGENDADO;
       parts.push(
-        `<div class="fixture"><span class="fx-home">${getTeamDisplay(g.home)}</span>` +
+        `<div class="fixture fixture-open" data-game="${gi}" title="Ver o jogo"><span class="fx-home">${getTeamDisplay(g.home)}</span>` +
         `<span class="fx-vs">${getStatusBadge(status, gi)} VS</span>` +
         `<span class="fx-away">${getTeamDisplay(g.away)}</span></div>`
       );
@@ -294,6 +294,13 @@ export function renderCalendar() {
 
   Array.from(dom.calendarList.querySelectorAll('.status-badge')).forEach((btn) => {
     btn.addEventListener('click', onStatusBtnClick);
+  });
+
+  Array.from(dom.calendarList.querySelectorAll('.fixture-open')).forEach((row) => {
+    row.addEventListener('click', (e) => {
+      if (e.target.closest('.status-badge')) return;
+      openGameModal(row.dataset.game);
+    });
   });
 }
 
@@ -355,7 +362,7 @@ export function renderResults() {
       }
 
       parts.push(
-        `<div class="fixture fixture-input">` +
+        `<div class="fixture fixture-input" data-game="${gi}">` +
         `<span class="fx-home">${getTeamDisplay(g.home)}</span>` +
         `<div class="result-split">` +
         `<button class="score-btn" data-gi="${gi}" data-side="home" data-action="sub">-</button>` +
@@ -369,6 +376,7 @@ export function renderResults() {
         `<span class="fx-away">${getTeamDisplay(g.away)}</span>` +
         penaltiesHtml +
         `<div class="fixture-actions">${getStatusBadge(status, gi)}` +
+        `<button class="mini-btn game-open-btn" data-gi="${gi}" title="Ver golos e assistências">📋 Jogo</button>` +
         (isTerminado
           ? `<button class="mini-btn mvp-btn" data-gi="${gi}" title="Escolher o MVP do jogo">⭐ ${val && val.mvp ? escapeHtml(playerName(val.mvp)) : 'MVP'}</button>` +
             `<button class="mini-btn share-result-btn" data-gi="${gi}" title="Partilhar resultado">📤</button>`
@@ -387,6 +395,10 @@ export function renderResults() {
     btn.addEventListener('click', () => onMvpClick(btn.dataset.gi));
   });
 
+  Array.from(dom.resultsList.querySelectorAll('.game-open-btn')).forEach((btn) => {
+    btn.addEventListener('click', () => openGameModal(btn.dataset.gi));
+  });
+
   Array.from(dom.resultsList.querySelectorAll('.share-result-btn')).forEach((btn) => {
     btn.addEventListener('click', () => shareResult(btn.dataset.gi));
   });
@@ -403,11 +415,41 @@ export function renderResults() {
   Array.from(dom.resultsList.querySelectorAll('.status-badge')).forEach((btn) => {
     btn.addEventListener('click', onStatusBtnClick);
   });
+
+  refreshGameModal();
 }
 
 // ---------------------------------------------------------------------------
 // Render — classificação
 // ---------------------------------------------------------------------------
+
+/** Posição vertical de cada linha da tabela (por equipa), antes de redesenhar. */
+function rowPositions(container) {
+  const pos = new Map();
+  container.querySelectorAll('tr[data-team]').forEach((r) => {
+    const top = r.getBoundingClientRect().top;
+    if (top) pos.set(r.dataset.team, top);
+  });
+  return pos;
+}
+
+/** Faz as equipas que mudaram de lugar deslizar da posição antiga para a nova. */
+function slideRows(container, before) {
+  if (!before.size || prefersReducedMotion()) return;
+  container.querySelectorAll('tr[data-team]').forEach((r) => {
+    const old = before.get(r.dataset.team);
+    const now = r.getBoundingClientRect().top;
+    if (old === undefined || !now || Math.abs(old - now) < 1 || !r.animate) return;
+    r.animate(
+      [{ transform: `translateY(${old - now}px)`, background: 'rgba(203,161,53,.22)' }, { transform: 'none' }],
+      { duration: 450, easing: 'cubic-bezier(.2,.8,.2,1)' },
+    );
+  });
+}
+
+export function prefersReducedMotion() {
+  return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+}
 export function renderStandingsWrapper(groupsData) {
   if (!groupsData || !groupsData.length || !groupsData[0].standings.length) {
     dom.standingsWrapper.innerHTML = '<table class="standings-table"><tr><td colspan="10" class="empty">Sem equipas configuradas.</td></tr></table>';
@@ -419,7 +461,7 @@ export function renderStandingsWrapper(groupsData) {
       const cls = i === 0 ? 'pos-gold' : i === 1 ? 'pos-silver' : i === 2 ? 'pos-bronze' : '';
       const dgTxt = (s.DG > 0 ? '+' : '') + s.DG;
       return (
-        `<tr class="${cls}">` +
+        `<tr class="${cls}" data-team="${escapeHtml(s.idx)}">` +
         `<td><span class="pos-badge">${i + 1}</span></td>` +
         `<td class="team-cell">${getTeamDisplay(s.idx)}</td>` +
         `<td class="num">${s.J}</td><td class="num">${s.V}</td><td class="num">${s.E}</td><td class="num">${s.D}</td>` +
@@ -445,7 +487,9 @@ export function renderStandingsWrapper(groupsData) {
     );
   });
 
+  const before = rowPositions(dom.standingsWrapper);
   dom.standingsWrapper.innerHTML = html.join('');
+  slideRows(dom.standingsWrapper, before);
 }
 
 // ---------------------------------------------------------------------------
@@ -1589,4 +1633,102 @@ export function renderHistorico() {
       });
     });
   });
+}
+
+// ---------------------------------------------------------------------------
+// Janela do jogo — resultado, cronologia de golos e assistências
+// ---------------------------------------------------------------------------
+let openGameGi = null;
+
+function goalScorerName(pid) {
+  if (pid === 'auto') return 'Autogolo';
+  return pid ? playerName(pid) : 'Golo';
+}
+
+function gameStatusLine(val) {
+  const status = val && typeof val === 'object' ? (val.status || GAME_STATUS.AGENDADO) : (val ? GAME_STATUS.TERMINADO : GAME_STATUS.AGENDADO);
+  if (status === GAME_STATUS.DECORRER) return '<span class="gm-live">● A decorrer</span>';
+  if (status === GAME_STATUS.TERMINADO) return 'Terminado';
+  return 'Agendado';
+}
+
+function gameTeamHtml(idx, cls) {
+  const color = typeof idx === 'number' && state.teams[idx] ? state.teams[idx].color : '#888888';
+  return (
+    `<div class="gm-team ${cls}">` +
+    `<span class="gm-crest" style="background:${safeColor(color)}"></span>` +
+    `<span class="gm-team-name">${escapeHtml(getTeamName(idx))}</span>` +
+    `</div>`
+  );
+}
+
+function gameModalHtml(gi) {
+  const g = state.schedule[gi];
+  if (!g) return '<p class="empty">Este jogo já não existe.</p>';
+  const val = state.results[gi];
+  const score = (val && typeof val === 'object' ? val.score : val) || '';
+  const m = /^(\d+)-(\d+)$/.exec(score);
+  const [h, a] = m ? [m[1], m[2]] : ['–', '–'];
+  const ronda = typeof g.jornada === 'number' ? `Jornada ${g.jornada}` : String(g.jornada || '');
+  const pen = val && val.penalties ? `<div class="gm-pen">Penáltis ${escapeHtml(val.penalties)}</div>` : '';
+
+  const goals = gameGoals(val);
+  const goalCard = (goal) => {
+    const assist = goal.aid && goal.aid !== 'auto' ? `<div class="gm-assist">${escapeHtml(playerName(goal.aid))}</div>` : '';
+    return (
+      `<div class="gm-card">` +
+      `<span class="gm-ball" aria-hidden="true">⚽</span>` +
+      `<div><div class="gm-scorer">${escapeHtml(goalScorerName(goal.pid))}</div>${assist}</div>` +
+      `</div>`
+    );
+  };
+  const hasGoals = goals.home.length || goals.away.length;
+  const cols = hasGoals
+    ? `<div class="gm-goals">` +
+      `<div class="gm-col gm-col-home">${goals.home.map(goalCard).join('')}</div>` +
+      `<div class="gm-col gm-col-away">${goals.away.map(goalCard).join('')}</div>` +
+      `</div>`
+    : '';
+
+  const mvp = val && val.mvp
+    ? `<div class="gm-mvp">⭐ MVP: <strong>${escapeHtml(playerName(val.mvp))}</strong></div>`
+    : '';
+
+  return (
+    `<div class="gm-head" data-game="${escapeHtml(gi)}">` +
+    (ronda ? `<div class="gm-round">${escapeHtml(ronda)}</div>` : '') +
+    `<div class="gm-score-row">` +
+    gameTeamHtml(g.home, 'gm-home') +
+    `<div class="gm-score"><span data-side="home">${escapeHtml(h)}</span><span class="gm-colon">:</span><span data-side="away">${escapeHtml(a)}</span></div>` +
+    gameTeamHtml(g.away, 'gm-away') +
+    `</div>` +
+    `<div class="gm-status">${gameStatusLine(val)}</div>${pen}` +
+    `</div>` +
+    `<div class="gm-body">` +
+    (cols || '<p class="empty gm-empty">Ainda não há golos neste jogo.</p>') +
+    mvp +
+    `</div>`
+  );
+}
+
+export function openGameModal(gi) {
+  const overlay = document.getElementById('gameOverlay');
+  if (!overlay) return;
+  openGameGi = String(gi);
+  document.getElementById('gameModalContent').innerHTML = gameModalHtml(openGameGi);
+  overlay.hidden = false;
+  document.getElementById('gameModalClose').focus();
+}
+
+export function closeGameModal() {
+  const overlay = document.getElementById('gameOverlay');
+  if (overlay) overlay.hidden = true;
+  openGameGi = null;
+}
+
+/** Redesenha a janela do jogo aberta (resultados mudaram aqui ou noutro telemóvel). */
+export function refreshGameModal() {
+  if (openGameGi === null) return;
+  const el = document.getElementById('gameModalContent');
+  if (el) el.innerHTML = gameModalHtml(openGameGi);
 }
