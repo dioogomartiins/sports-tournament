@@ -108,7 +108,7 @@ export function populateConfigForm() {
 export function renderScheduleHint() {
   const confN = clamp(parseInt(dom.cfgNumEquipas.value, 10) || state.config.numEquipas, 2, 32);
   const confV = clamp(parseInt(dom.cfgNumVoltas.value, 10) || state.config.numVoltas, 1, 20);
-  let live = `Calendário atual: <strong>${state.scheduleTeamCount} equipas / ${state.scheduleVoltas} volta(s)</strong> · ${state.schedule.length} jogos.`;
+  let live = `Calendário atual: <strong>${escapeHtml(state.scheduleTeamCount)} equipas / ${escapeHtml(state.scheduleVoltas)} volta(s)</strong> · ${state.schedule.length} jogos.`;
 
   if (confN !== state.scheduleTeamCount || confV !== state.scheduleVoltas) {
     live += ` Configurado agora: ${confN} equipas / ${confV} volta(s) — clica em 🔄 Gerar Calendário para aplicar.`;
@@ -236,8 +236,9 @@ export function getStatusBadge(status, gi) {
     [GAME_STATUS.DECORRER]: '⏳ A Decorrer',
     [GAME_STATUS.TERMINADO]: '✅ Terminado',
   };
-  const lbl = labels[status] || labels[GAME_STATUS.AGENDADO];
-  return `<button class="status-badge status-${status}" data-gi="${gi}" title="Clique para mudar estado">${lbl}</button>`;
+  // O estado vem do Firebase: só aceitar valores conhecidos (vai para um atributo)
+  const safe = Object.prototype.hasOwnProperty.call(labels, status) ? status : GAME_STATUS.AGENDADO;
+  return `<button class="status-badge status-${safe}" data-gi="${escapeHtml(gi)}" title="Clique para mudar estado">${labels[safe]}</button>`;
 }
 
 export function renderCalendar() {
@@ -264,7 +265,7 @@ export function renderCalendar() {
   state.roundsMeta.forEach((rm) => {
     const j = rm.jornada;
     const games = byRound[j] || [];
-    parts.push(`<div class="round-card"><div class="round-head">Jornada ${j}</div><div class="round-games">`);
+    parts.push(`<div class="round-card"><div class="round-head">Jornada ${escapeHtml(j)}</div><div class="round-games">`);
 
     games.forEach(({ g, gi }) => {
       const val = state.results[gi];
@@ -312,7 +313,7 @@ export function renderResults() {
     const games = byRound[j] || [];
     if (!games.length) return;
 
-    parts.push(`<div class="round-card"><div class="round-head">Jornada ${j}</div><div class="round-games">`);
+    parts.push(`<div class="round-card"><div class="round-head">Jornada ${escapeHtml(j)}</div><div class="round-games">`);
 
     games.forEach(({ g, gi }) => {
       const val = state.results[gi];

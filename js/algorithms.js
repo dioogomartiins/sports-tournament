@@ -480,14 +480,15 @@ function emptyPlayerTally() {
  * @returns {Object<string, {golos:number, assistencias:number, mvp:number, jogosAMarcar:number, recorde:number}>}
  */
 export function tallyPlayerStats(results, jogosSingulares) {
-  const out = {};
+  // Sem protótipo: os ids vêm do Firebase e podem ser '__proto__' ou 'constructor'
+  const out = Object.create(null);
   const get = (pid) => {
     if (!out[pid]) out[pid] = emptyPlayerTally();
     return out[pid];
   };
 
   function addGame(scorers, assists, mvp) {
-    const golosNoJogo = {};
+    const golosNoJogo = Object.create(null);
     scorers.forEach((pid) => {
       if (!pid || pid === 'auto') return;
       get(pid).golos++;
@@ -529,7 +530,7 @@ export function tallyPlayerStats(results, jogosSingulares) {
 
 /** Junta várias contagens de tallyPlayerStats (recorde fica o máximo). */
 export function mergePlayerStats(...tallies) {
-  const out = {};
+  const out = Object.create(null);
   tallies.forEach((tally) => {
     Object.keys(tally || {}).forEach((pid) => {
       const t = tally[pid];
@@ -617,7 +618,7 @@ export function buildArchiveEntry(snap, playerNames, id, dataIso) {
 
 /** Estatísticas de jogador guardadas num registo do arquivo, no formato de tallyPlayerStats. */
 export function archiveTally(entry) {
-  const out = {};
+  const out = Object.create(null);
   (entry.jogadores || []).forEach((j) => {
     out[j.pid] = {
       golos: j.golos || 0, assistencias: j.assistencias || 0, mvp: j.mvp || 0,

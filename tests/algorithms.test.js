@@ -263,6 +263,17 @@ describe('estatísticas de jogadores', () => {
     expect(t.a.recorde).toBe(2);
   });
 
+  it('ids como __proto__ não poluem o protótipo de Object', () => {
+    const t = tallyPlayerStats(
+      { 0: { scorers: { home: ['__proto__', 'constructor'] }, assists: { home: ['__proto__', ''] }, mvp: '__proto__' } },
+      [],
+    );
+    expect(t['__proto__']).toEqual({ golos: 1, assistencias: 1, mvp: 1, jogosAMarcar: 1, recorde: 1 });
+    expect(t.constructor.golos).toBe(1);
+    expect({}.golos).toBeUndefined();
+    expect(Object.golos).toBeUndefined();
+  });
+
   it('junta contagens somando e mantendo o recorde máximo', () => {
     const a = { x: { golos: 2, assistencias: 1, mvp: 0, jogosAMarcar: 1, recorde: 2 } };
     const b = { x: { golos: 1, assistencias: 0, mvp: 1, jogosAMarcar: 1, recorde: 1 }, y: { golos: 1, assistencias: 0, mvp: 0, jogosAMarcar: 1, recorde: 1 } };
