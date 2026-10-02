@@ -1148,44 +1148,51 @@
         grid-template-columns: 1fr;
       }
 
-      /* Topo: atualizar, tema e conta; preso em cima e encolhe ao fazer scroll */
+      /* Topo fino, preso em cima: nome do torneio e jornada à esquerda,
+         atualizar, tema e conta à direita */
       .marquee {
         position: sticky;
         top: 0;
         z-index: 200;
-        padding: 10px 16px 14px;
-        transition: padding .2s ease;
+        padding: calc(8px + env(safe-area-inset-top)) 12px 8px 16px;
       }
 
-      .marquee.compact {
-        padding: 8px 16px;
-      }
-
-      .marquee.compact .marquee-ticker {
-        display: none;
-      }
-
-      /* Compacto: nome do torneio na mesma linha dos botões */
-      .marquee.compact .marquee-content {
+      .marquee-content {
         display: grid;
         grid-template-columns: minmax(0, 1fr) auto;
         align-items: center;
-        gap: 10px;
+        column-gap: 10px;
       }
 
-      .marquee.compact .marquee-top {
+      .marquee-top {
         grid-column: 2;
-        grid-row: 1;
+        grid-row: 1 / span 2;
       }
 
-      .marquee.compact #tournamentTitle {
+      #tournamentTitle {
         grid-column: 1;
         grid-row: 1;
-        font-size: 20px;
+        font-size: 19px;
         margin: 0;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+      }
+
+      .marquee-ticker {
+        grid-column: 1;
+        grid-row: 2;
+        justify-self: start;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        padding: 0;
+        border: none;
+        background: none;
+        font-size: 11px;
+        letter-spacing: .02em;
+        color: var(--gold);
       }
 
       .marquee-top {
@@ -1205,10 +1212,10 @@
       }
 
       .marquee-top .theme-toggle-btn {
-        min-width: 38px;
-        height: 38px;
-        padding: 0 10px;
-        font-size: 17px;
+        min-width: 36px;
+        height: 36px;
+        padding: 0 9px;
+        font-size: 16px;
       }
 
       .auth-btn {
@@ -1219,17 +1226,9 @@
         display: none;
       }
 
-      #tournamentTitle {
-        margin: 8px 0 8px;
-      }
-
-      .marquee-ticker {
-        font-size: 12px;
-      }
-
       /* Pílula flutuante em baixo, ao alcance do polegar */
       .content {
-        padding-bottom: calc(88px + env(safe-area-inset-bottom));
+        padding-bottom: calc(76px + env(safe-area-inset-bottom));
       }
 
       .bottom-nav {
@@ -1242,7 +1241,7 @@
         transform: translateX(-50%);
         z-index: 250;
         max-width: calc(100% - 24px);
-        padding: 6px;
+        padding: 4px;
         border-radius: 999px;
         background: var(--card);
         border: 1px solid var(--line);
@@ -1255,10 +1254,10 @@
         align-items: center;
         gap: 6px;
         flex: 0 0 auto;
-        min-width: 48px;
-        height: 48px;
+        min-width: 42px;
+        height: 40px;
         justify-content: center;
-        padding: 0 12px;
+        padding: 0 10px;
         border: none;
         border-radius: 999px;
         background: none;
@@ -1269,7 +1268,7 @@
       }
 
       .bn-icon {
-        font-size: 21px;
+        font-size: 18px;
         line-height: 1;
       }
 
@@ -1282,7 +1281,7 @@
       .bottom-nav .tab.active {
         background: var(--pitch-900);
         color: #fff;
-        padding: 0 16px 0 14px;
+        padding: 0 14px 0 12px;
       }
 
       .bottom-nav .tab.active .bn-label {
@@ -1303,7 +1302,7 @@
       }
 
       .toast-root {
-        bottom: calc(84px + env(safe-area-inset-bottom));
+        bottom: calc(72px + env(safe-area-inset-bottom));
       }
 
       /* Painel "Mais": sobe de baixo com os restantes separadores */

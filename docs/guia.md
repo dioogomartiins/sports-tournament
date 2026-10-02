@@ -46,7 +46,7 @@ Os botões que o teu perfil não pode usar ficam escondidos. Mesmo que alguém c
 
 O botão de tema no topo alterna entre claro e escuro.
 
-No telemóvel, o topo mostra só 🔁 (atualizar), o tema e a conta (👤 quando tens sessão iniciada; ao tocar nele vês com que conta e perfil estás, antes de confirmar a saída), e encolhe para uma linha ao fazer scroll. Em baixo há uma pílula de navegação flutuante com 🏠 Início, ⚽ Resultados, 🏆 Tabela, 📅 Calendário e ☰ Mais (o separador aberto mostra o nome); o **Mais** abre um painel com os restantes separadores (Estatísticas, Histórico, Configuração, Gestão e Jogo Singular). O aviso "Guardado ✓" só aparece no topo logo depois de uma gravação ou se houver um erro.
+No telemóvel, o topo fica numa só linha, preso em cima: à esquerda o nome do torneio e a jornada, à direita 🔁 (atualizar), o tema e a conta (👤 quando tens sessão iniciada; ao tocar nele vês com que conta e perfil estás, antes de confirmar a saída). Em baixo há uma pílula de navegação flutuante com 🏠 Início, ⚽ Resultados, 🏆 Tabela, 📅 Calendário e ☰ Mais (o separador aberto mostra o nome); o **Mais** abre um painel com os restantes separadores (Estatísticas, Histórico, Configuração, Gestão e Jogo Singular). O aviso "Guardado ✓" só aparece no topo logo depois de uma gravação ou se houver um erro.
 
 ## Montar um torneio
 

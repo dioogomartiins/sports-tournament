@@ -639,11 +639,8 @@ export function onUserRoleChange(e) {
 }
 
 // ---------------------------------------------------------------------------
-// Telemóvel: painel "Mais" (abre de baixo) e topo que encolhe ao fazer scroll
+// Telemóvel: painel "Mais" (abre de baixo a partir da pílula de navegação)
 // ---------------------------------------------------------------------------
-const TOPO_ENCOLHE = 80;  // px de scroll a partir dos quais o topo fica compacto
-const TOPO_EXPANDE = 10;  // volta ao tamanho normal só perto do início (evita tremer)
-
 function bindMenuDrawer() {
   const drawer = document.getElementById('tabs');
   const btnMenu = document.getElementById('btnMobileMenu');
@@ -664,15 +661,6 @@ function bindMenuDrawer() {
   backdrop.addEventListener('click', () => setOpen(false));
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && isOpen()) setOpen(false); });
   mobile.addEventListener('change', () => setOpen(false));
-
-  const header = document.querySelector('.marquee');
-  if (header) {
-    window.addEventListener('scroll', () => {
-      const y = window.scrollY;
-      if (y > TOPO_ENCOLHE) header.classList.add('compact');
-      else if (y < TOPO_EXPANDE) header.classList.remove('compact');
-    }, { passive: true });
-  }
 }
 
 // ---------------------------------------------------------------------------
