@@ -459,9 +459,9 @@ function standingsHtml(groupsData) {
         `<tr class="${cls}" data-team="${escapeHtml(s.idx)}">` +
         `<td class="pos-cell"><span class="pos-badge">${i + 1}</span>${moveBadge(s.idx)}</td>` +
         `<td class="team-cell">${getTeamDisplay(s.idx)}</td>` +
+        `<td class="num pts-cell">${s.Pts}</td>` +
         `<td class="num">${s.J}</td><td class="num">${s.V}</td><td class="num">${s.E}</td><td class="num">${s.D}</td>` +
         `<td class="num">${s.GM}</td><td class="num">${s.GS}</td><td class="num">${dgTxt}</td>` +
-        `<td class="num pts-cell">${s.Pts}</td>` +
         `</tr>`
       );
     });
@@ -474,8 +474,8 @@ function standingsHtml(groupsData) {
       titleHtml +
       `<table class="standings-table">` +
       `<thead><tr>` +
-      `<th>Pos</th><th style="text-align:left;">Equipa</th>` +
-      `<th>J</th><th>V</th><th>E</th><th>D</th><th>GM</th><th>GS</th><th>DG</th><th>Pts</th>` +
+      `<th>Pos</th><th class="team-cell">Equipa</th><th>Pts</th>` +
+      `<th>J</th><th>V</th><th>E</th><th>D</th><th>GM</th><th>GS</th><th>DG</th>` +
       `</tr></thead>` +
       `<tbody>${rows.join('')}</tbody>` +
       `</table>`

@@ -35,7 +35,7 @@ Os botões que o teu perfil não pode usar ficam escondidos. Mesmo que alguém c
 | Separador | Para quê |
 |---|---|
 | 🏠 Dashboard | Resumo: top 3 da classificação e números do torneio. O botão 🔁 no topo atualiza os números. |
-| 🏆 Classificação | Tabela completa (por grupo) e bracket das eliminatórias. |
+| 🏆 Classificação | Tabela completa (por grupo, com os pontos logo a seguir à equipa) e bracket das eliminatórias. |
 | 📅 Calendário | Jornadas, jogos e folgas; gerar eliminatórias e adicionar voltas. Tocar num jogo abre a janela do jogo. |
 | ⚽ Resultados | Onde se registam os jogos ao vivo. |
 | 📊 Estatísticas | Marcadores, assistências e MVPs do torneio atual e dos jogos singulares. |
@@ -118,7 +118,7 @@ Os golos, assistências e MVPs dos jogos singulares contam para as estatísticas
 - **📊 Estatísticas**: tabela de marcadores, assistências e MVPs do torneio atual e dos jogos singulares.
 - **🗄️ Histórico**: lista dos torneios arquivados e uma tabela de sempre (torneios arquivados, torneio atual e jogos singulares).
 - **Ficha de jogador**: carrega no nome de um jogador para ver atributos, rating, e golos, assistências e MVPs de sempre.
-- **Partilhar**: **📤 Partilhar Classificação** na Classificação, e **📤 Partilhar imagem** na janela de cada jogo terminado. No telemóvel abre a partilha do sistema (WhatsApp, etc.); no computador descarrega a imagem PNG.
+- **Partilhar**: o botão **📤** no canto do título da Classificação, e **📤 Partilhar imagem** na janela de cada jogo terminado. No telemóvel abre a partilha do sistema (WhatsApp, etc.); no computador descarrega a imagem PNG.
 
 ## Dados: exportar, importar e apagar
 
