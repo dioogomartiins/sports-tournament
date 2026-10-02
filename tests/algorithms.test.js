@@ -17,6 +17,9 @@ const {
   getPlayoffWinner,
   addGoal,
   removeGoal,
+  setGameStatus,
+  gameGoals,
+  resultEvents,
   balancedDraft,
   tallyPlayerStats,
   mergePlayerStats,
@@ -365,5 +368,50 @@ describe('golos de um jogo', () => {
     const r = { score: '0-1', scorers: { home: [], away: ['x'] } };
     expect(removeGoal(r, 'home')).toBe(r);
     expect(removeGoal(undefined, 'home')).toBeUndefined();
+  });
+});
+
+describe('estado e golos de um jogo', () => {
+  it('muda o estado e converte resultados antigos em texto', () => {
+    expect(setGameStatus(undefined, 'decorrer')).toMatchObject({ score: '0-0', status: 'decorrer' });
+    expect(setGameStatus('2-1', 'terminado')).toMatchObject({ score: '2-1', status: 'terminado' });
+  });
+
+  it('golos de cada equipa pela ordem, com assistências', () => {
+    const r = { score: '2-1', scorers: { home: ['a', 'b'], away: ['c'] }, assists: { home: ['', 'x'] } };
+    expect(gameGoals(r)).toEqual({
+      home: [{ pid: 'a', aid: '' }, { pid: 'b', aid: 'x' }],
+      away: [{ pid: 'c', aid: '' }],
+    });
+    expect(gameGoals('1-0')).toEqual({ home: [], away: [] });
+  });
+});
+
+describe('eventos para animações', () => {
+  const base = { 0: { score: '1-0', status: 'decorrer', scorers: { home: ['a'], away: [] } } };
+
+  it('golo com marcador e assistência', () => {
+    const next = { 0: { score: '1-1', status: 'decorrer', scorers: { home: ['a'], away: ['b'] }, assists: { away: ['c'] } } };
+    expect(resultEvents(base, next)).toEqual([{ type: 'golo', gi: '0', side: 'away', pid: 'b', aid: 'c' }]);
+  });
+
+  it('golo anulado', () => {
+    const next = { 0: { score: '0-0', status: 'decorrer', scorers: { home: [], away: [] } } };
+    expect(resultEvents(base, next)).toEqual([{ type: 'anulado', gi: '0', side: 'home', pid: 'a' }]);
+  });
+
+  it('jogo começou e jogo terminou', () => {
+    expect(resultEvents({}, { 1: { score: '0-0', status: 'decorrer' } })).toEqual([{ type: 'inicio', gi: '1' }]);
+    expect(resultEvents(base, { 0: { ...base[0], status: 'terminado' } })).toEqual([{ type: 'fim', gi: '0' }]);
+  });
+
+  it('primeiro golo num jogo agendado só anima o golo', () => {
+    const next = { 1: { score: '1-0', status: 'decorrer', scorers: { home: ['z'] } } };
+    expect(resultEvents({ 1: { score: '0-0', status: 'agendado' } }, next).map((e) => e.type)).toEqual(['golo']);
+  });
+
+  it('resultado escrito já terminado só anima o fim; sem mudanças não anima', () => {
+    expect(resultEvents({}, { 2: { score: '3-1', status: 'terminado' } })).toEqual([{ type: 'fim', gi: '2' }]);
+    expect(resultEvents(base, JSON.parse(JSON.stringify(base)))).toEqual([]);
   });
 });

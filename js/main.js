@@ -1,8 +1,9 @@
 import { state, persistConfigTeams, loadState, persistSchedule, persistResults, persistBackup, persistPlayers, persistJogosSingulares, persistArquivo, storeAllLayers, notifyPushError, currentTheme, setCurrentTheme, exportJSON, importJSON, applyGeneratedSchedule, applySnapshot, buildSnapshot, defaultTeams, defaultSquads } from './state.js';
-import { dom, cacheDom, renderAll, refreshComputed, renderScheduleHint, renderSquadList, renderSquadsDropdown, renderCalendar, renderResults, showToast, flashSaved, openConfirm, closeConfirm, openDangerConfirm, switchTab, confirmCallback, openScorerModal, openPlayerProfile, computeStatsSummary, renderPlayersList, openPlayerModal, renderSquadPlayerFromDBDropdown, renderDraftPlayerList, renderDraftTeams, renderSingularHistorico, currentDraft, renderAuth, renderUsers, renderLog, buildPlayerIndex, openPickPlayerModal, squadPickList } from './ui.js';
+import { closeGameModal, dom, cacheDom, renderAll, refreshComputed, renderScheduleHint, renderSquadList, renderSquadsDropdown, renderCalendar, renderResults, showToast, flashSaved, openConfirm, closeConfirm, openDangerConfirm, switchTab, confirmCallback, openScorerModal, openPlayerProfile, computeStatsSummary, renderPlayersList, openPlayerModal, renderSquadPlayerFromDBDropdown, renderDraftPlayerList, renderDraftTeams, renderSingularHistorico, currentDraft, renderAuth, renderUsers, renderLog, buildPlayerIndex, openPickPlayerModal, squadPickList } from './ui.js';
 import { clamp, numOr, escapeHtml } from './utils.js';
-import { shareStandings } from './share.js';
-import { bergerRounds, balancedDraft, buildFirstRoundSeeding, buildExtraVolta, getPlayoffWinner, buildArchiveEntry, countPlayedGames, GAME_STATUS, alignAssists, addGoal, removeGoal } from './algorithms.js';
+import { shareStandings, shareResult } from './share.js';
+import { animateResultChanges } from './animations.js';
+import { bergerRounds, balancedDraft, buildFirstRoundSeeding, buildExtraVolta, getPlayoffWinner, buildArchiveEntry, countPlayedGames, GAME_STATUS, alignAssists, addGoal, removeGoal, setGameStatus } from './algorithms.js';
 import { initFirebaseListener, onFirebaseStateChange, onFirebasePushError, setSyncedSnapshot, initAuth, signInWithGoogle, signOutUser, getCurrentUser, listenUsers, listenLog, setUserRole } from './firebase.js';
 
 // ---------------------------------------------------------------------------
@@ -109,16 +110,14 @@ function propagatePlayoffWinner(gi) {
 export function onStatusBtnClick(e) {
   const gi = e.target.dataset.gi;
 
-  if (!state.results[gi] || typeof state.results[gi] === 'string') {
-    state.results[gi] = { score: '0-0', scorers: { home: [], away: [] }, status: 'agendado' };
-  }
-
-  const current = state.results[gi].status || 'agendado';
+  const res = state.results[gi];
+  const current = (res && typeof res === 'object' && res.status) || 'agendado';
   const cycle = { agendado: 'decorrer', decorrer: 'terminado', terminado: 'agendado' };
-  state.results[gi].status = cycle[current] ?? 'agendado';
+  state.results[gi] = setGameStatus(res, cycle[current] ?? 'agendado');
   propagatePlayoffWinner(gi);
 
-  persistResults();
+  // Anima depois de gravar: se a gravação for recusada o estado já voltou atrás
+  persistResults().then(() => animateResultChanges());
   renderResults();
   renderCalendar();
   refreshComputed();
@@ -136,7 +135,7 @@ export function onScoreBtnClick(e) {
     if (next === state.results[gi]) return;
     state.results[gi] = next;
     propagatePlayoffWinner(gi);
-    persistResults();
+    persistResults().then(() => animateResultChanges());
     renderResults();
     renderCalendar();
     refreshComputed();
@@ -225,7 +224,7 @@ export function onResultCommit(e) {
     return;
   }
 
-  persistResults();
+  persistResults().then(() => animateResultChanges());
   renderResults();
   refreshComputed();
 }
@@ -714,6 +713,19 @@ export function bindEvents() {
   dom.cfgMataMata.addEventListener('change', onConfigFieldChange);
   dom.cfgNumPlayoffTeams.addEventListener('change', onConfigFieldChange);
 
+  // Janela do jogo
+  const gameOverlay = document.getElementById('gameOverlay');
+  document.getElementById('gameModalClose').addEventListener('click', closeGameModal);
+  document.getElementById('gameModalContent').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-action]');
+    const head = document.querySelector('#gameModalContent [data-game]');
+    if (!btn || !head) return;
+    if (btn.dataset.action === 'mvp') onMvpClick(head.dataset.game);
+    else if (btn.dataset.action === 'share') shareResult(head.dataset.game);
+  });
+  gameOverlay.addEventListener('click', (e) => { if (e.target === gameOverlay) closeGameModal(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !gameOverlay.hidden) closeGameModal(); });
+
   // Modal
   dom.modalCancel.addEventListener('click', closeConfirm);
   dom.modalConfirm.addEventListener('click', () => {
@@ -774,12 +786,14 @@ export async function init() {
 
   initFirebaseListener();
   onFirebasePushError(notifyPushError);
-  onFirebaseStateChange((data) => {
+  onFirebaseStateChange((data, isFirstLoad) => {
     if (data) {
       applySnapshot(data);
       setSyncedSnapshot(buildSnapshot());
       storeAllLayers();
       renderWhenIdle();
+      // Na primeira leitura só regista o estado: não anima o que mudou com a app fechada
+      animateResultChanges({ silent: isFirstLoad });
     }
   });
 
