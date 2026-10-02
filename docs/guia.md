@@ -76,7 +76,7 @@ Também podes escrever o resultado diretamente nas caixas; nesse caso não ficam
 
 **Janela do jogo.** Abre com **📋 Jogo** nos Resultados, ou tocando no jogo no Calendário. Mostra o resultado e, por equipa, cada golo com o marcador e a assistência. Atualiza-se sozinha quando alguém regista um golo noutro telemóvel. Com o jogo terminado, tem os botões **⭐ Escolher MVP** e **📤 Partilhar imagem** (a imagem do resultado).
 
-**Ao vivo em todos os telemóveis.** Quando um jogo começa, há golo (fundo com a cor da equipa, marcador e assistência), um golo é anulado ou o jogo termina, aparece uma animação curta em todos os dispositivos, e na Classificação as equipas deslizam para o novo lugar. Com *movimento reduzido* ligado no telemóvel, as animações não aparecem.
+**Ao vivo em todos os telemóveis.** Quando um jogo começa, há golo (fundo com a cor da equipa, marcador e assistência), um golo é anulado ou o jogo termina, aparece uma animação curta em todos os dispositivos, e na Classificação as equipas deslizam para o novo lugar. Se a classificação mudou enquanto estavas noutro separador, ao abri-la vês por um instante a ordem da última vez que a viste e depois as equipas deslizam para a posição atual. Ao lado da posição, uma seta verde (▲) ou vermelha (▼) mostra quantos lugares cada equipa ganhou ou perdeu desde essa vez, e fica até a ordem voltar a mudar. Com *movimento reduzido* ligado no telemóvel, as animações não aparecem.
 
 A classificação, o dashboard e as estatísticas atualizam sozinhos em todos os dispositivos.
 
