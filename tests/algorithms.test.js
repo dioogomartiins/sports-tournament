@@ -26,6 +26,8 @@ const {
   getChampion,
   buildArchiveEntry,
   archiveTally,
+  standingsOrder,
+  rankMoves,
   GAME_STATUS,
 } = await import('../js/algorithms.js');
 
@@ -413,5 +415,25 @@ describe('eventos para animações', () => {
   it('resultado escrito já terminado só anima o fim; sem mudanças não anima', () => {
     expect(resultEvents({}, { 2: { score: '3-1', status: 'terminado' } })).toEqual([{ type: 'fim', gi: '2' }]);
     expect(resultEvents(base, JSON.parse(JSON.stringify(base)))).toEqual([]);
+  });
+});
+
+describe('rankMoves', () => {
+  const groups = (...ids) => ids.map((g) => ({ standings: g.map((idx) => ({ idx })) }));
+
+  it('conta lugares ganhos e perdidos', () => {
+    const before = standingsOrder(groups([0, 1, 2, 3]));
+    const after = standingsOrder(groups([2, 0, 1, 3]));
+    expect(Object.fromEntries(rankMoves(before, after))).toEqual({ 2: 2, 0: -1, 1: -1 });
+  });
+
+  it('ignora equipas sem mudança, novas ou noutro grupo', () => {
+    const before = standingsOrder(groups([0, 1], [2, 3]));
+    const after = standingsOrder(groups([0, 2], [1, 3, 4]));
+    expect(rankMoves(before, after).size).toBe(0);
+  });
+
+  it('sem classificação anterior não há mudanças', () => {
+    expect(rankMoves(null, standingsOrder(groups([0, 1]))).size).toBe(0);
   });
 });

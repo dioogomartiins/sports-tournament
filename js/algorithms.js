@@ -770,3 +770,29 @@ export function resultEvents(prev, next) {
   });
   return events;
 }
+
+/**
+ * Lugar de cada equipa na classificação: Map equipa → { g: grupo, r: posição }.
+ * @param {Array<{standings: Array<{idx: number}>}>} groupsData
+ */
+export function standingsOrder(groupsData) {
+  const order = new Map();
+  (groupsData || []).forEach((group, g) => {
+    group.standings.forEach((s, r) => order.set(String(s.idx), { g, r }));
+  });
+  return order;
+}
+
+/**
+ * Lugares ganhos (positivo) ou perdidos (negativo) por equipa entre duas
+ * classificações. Só entram equipas que mudaram de lugar no mesmo grupo.
+ */
+export function rankMoves(before, after) {
+  const moves = new Map();
+  if (!before || !after) return moves;
+  after.forEach((now, team) => {
+    const old = before.get(team);
+    if (old && old.g === now.g && old.r !== now.r) moves.set(team, old.r - now.r);
+  });
+  return moves;
+}

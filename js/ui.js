@@ -1,6 +1,6 @@
 import { state, MAX_TEAMS, normalizePlayer, persistPlayers, persistConfigTeams, persistJogosSingulares, persistArquivo } from './state.js';
 import { getTeamName, getTeamDisplay, escapeHtml, fmtTimestamp, clamp, safeColor } from './utils.js';
-import { computeStandings, GAME_STATUS, getPlayerRating, getTeamTotalRating, tallyPlayerStats, mergePlayerStats, archiveTally, gameGoals } from './algorithms.js';
+import { computeStandings, GAME_STATUS, getPlayerRating, getTeamTotalRating, tallyPlayerStats, mergePlayerStats, archiveTally, gameGoals, standingsOrder, rankMoves } from './algorithms.js';
 import { onStatusBtnClick, onScoreBtnClick, onResultCommit, onTeamPropChange, onSquadListClick } from './main.js';
 import { ROLES, isKnownRole, roleLabel } from './permissions.js';
 
@@ -437,10 +437,18 @@ function slideRows(container, before, duration = 450) {
 export function prefersReducedMotion() {
   return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 }
-export function renderStandingsWrapper(groupsData) {
+/** Seta com os lugares ganhos (verde) ou perdidos (vermelho). */
+function moveBadge(team) {
+  const n = standingsMoves.get(String(team));
+  if (!n) return '';
+  const up = n > 0;
+  const label = `${up ? 'Subiu' : 'Desceu'} ${Math.abs(n)} ${Math.abs(n) === 1 ? 'lugar' : 'lugares'}`;
+  return `<span class="pos-move ${up ? 'up' : 'down'}" title="${label}" aria-label="${label}">${up ? '▲' : '▼'}${Math.abs(n)}</span>`;
+}
+
+function standingsHtml(groupsData) {
   if (!groupsData || !groupsData.length || !groupsData[0].standings.length) {
-    dom.standingsWrapper.innerHTML = '<table class="standings-table"><tr><td colspan="10" class="empty">Sem equipas configuradas.</td></tr></table>';
-    return;
+    return '<table class="standings-table"><tr><td colspan="10" class="empty">Sem equipas configuradas.</td></tr></table>';
   }
 
   const html = groupsData.map((group) => {
@@ -449,7 +457,7 @@ export function renderStandingsWrapper(groupsData) {
       const dgTxt = (s.DG > 0 ? '+' : '') + s.DG;
       return (
         `<tr class="${cls}" data-team="${escapeHtml(s.idx)}">` +
-        `<td><span class="pos-badge">${i + 1}</span></td>` +
+        `<td class="pos-cell"><span class="pos-badge">${i + 1}</span>${moveBadge(s.idx)}</td>` +
         `<td class="team-cell">${getTeamDisplay(s.idx)}</td>` +
         `<td class="num">${s.J}</td><td class="num">${s.V}</td><td class="num">${s.E}</td><td class="num">${s.D}</td>` +
         `<td class="num">${s.GM}</td><td class="num">${s.GS}</td><td class="num">${dgTxt}</td>` +
@@ -473,28 +481,49 @@ export function renderStandingsWrapper(groupsData) {
       `</table>`
     );
   });
-
-  clearTimeout(standingsReplayTimer);
-  const before = rowPositions(dom.standingsWrapper);
-  dom.standingsWrapper.innerHTML = html.join('');
-  slideRows(dom.standingsWrapper, before);
-  // Só conta como "vista" se a tabela estiver no ecrã
-  if (dom.standingsWrapper.offsetParent) seenStandingsHtml = dom.standingsWrapper.innerHTML;
+  return html.join('');
 }
 
 // A classificação é atualizada mesmo escondida. Para se ver quem subiu ou
 // desceu, guarda-se a tabela tal como foi vista da última vez e, ao voltar ao
 // separador, mostra-se essa versão por um instante antes de animar para a atual.
+// As setas mostram os lugares ganhos/perdidos face a essa versão e ficam até
+// a ordem voltar a mudar.
 let seenStandingsHtml = null;
+let seenStandingsOrder = null;
+let standingsMoves = new Map();
+let lastGroupsData = null;
 let standingsReplayTimer = null;
 const STANDINGS_HOLD = 600; // ms com a classificação anterior à vista
 
+/** Atualiza as setas quando a ordem mudou desde a última vez que foi vista. */
+function noteStandingsSeen(groupsData) {
+  const order = standingsOrder(groupsData);
+  const moves = rankMoves(seenStandingsOrder, order);
+  if (moves.size) standingsMoves = moves;
+  seenStandingsOrder = order;
+}
+
+export function renderStandingsWrapper(groupsData) {
+  lastGroupsData = groupsData;
+  clearTimeout(standingsReplayTimer);
+  const visible = !!dom.standingsWrapper.offsetParent;
+  if (visible) noteStandingsSeen(groupsData);
+  const before = rowPositions(dom.standingsWrapper);
+  dom.standingsWrapper.innerHTML = standingsHtml(groupsData);
+  slideRows(dom.standingsWrapper, before);
+  // Só conta como "vista" se a tabela estiver no ecrã
+  if (visible) seenStandingsHtml = dom.standingsWrapper.innerHTML;
+}
+
 function replayStandings() {
   const wrapper = dom.standingsWrapper;
-  if (!wrapper) return;
+  if (!wrapper || !lastGroupsData) return;
   clearTimeout(standingsReplayTimer);
-  const current = wrapper.innerHTML;
   const previous = seenStandingsHtml;
+  noteStandingsSeen(lastGroupsData);
+  wrapper.innerHTML = standingsHtml(lastGroupsData);
+  const current = wrapper.innerHTML;
   seenStandingsHtml = current;
   if (previous === null || previous === current || prefersReducedMotion()) return;
   wrapper.innerHTML = previous;
