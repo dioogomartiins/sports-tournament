@@ -1492,8 +1492,9 @@ export function renderAuth(user, role) {
   if (dom.btnConta) {
     if (user) {
       const nome = (user.displayName || user.email || '').split(' ')[0];
-      dom.btnConta.textContent = `👤 ${nome} · ${roleLabel(role)}`;
-      dom.btnConta.title = 'Terminar sessão';
+      // No telemóvel só se vê o ícone; o nome e o perfil ficam no title
+      dom.btnConta.innerHTML = `👤<span class="auth-label"> ${escapeHtml(nome)} · ${escapeHtml(roleLabel(role))}</span>`;
+      dom.btnConta.title = `${nome} · ${roleLabel(role)} — Terminar sessão`;
     } else {
       dom.btnConta.textContent = '🔑 Entrar';
       dom.btnConta.title = 'Entrar com Google';

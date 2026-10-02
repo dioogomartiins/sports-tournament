@@ -20,7 +20,12 @@
       <div class="marquee-lines" aria-hidden="true"></div>
       <div class="marquee-content">
         <div class="marquee-top">
-          <span class="eyebrow">Gestor de Torneio</span>
+          <div class="marquee-brand">
+            <!-- MENU MOBILE: abre a gaveta lateral (também abre com swipe da margem esquerda) -->
+            <button class="theme-toggle-btn menu-btn" id="btnMobileMenu" title="Menu" aria-label="Abrir menu"
+              aria-controls="tabs" aria-expanded="false">☰</button>
+            <span class="eyebrow">Gestor de Torneio</span>
+          </div>
           <div class="header-pills">
             <button class="theme-toggle-btn" id="btnAtualizar" title="Atualizar Tabela">🔁</button>
             <span class="save-pill" id="savePill">Guardado</span>
@@ -34,12 +39,11 @@
       </div>
     </header>
 
-    <div class="toolbar">
-      <!-- MENU MOBILE -->
-      <button class="btn btn-outline" id="btnMobileMenu">☰ Menu</button>
-    </div>
-
-    <nav class="tabs" id="tabs">
+    <nav class="tabs" id="tabs" aria-label="Separadores">
+      <div class="drawer-head">
+        <span class="drawer-title">Menu</span>
+        <button class="drawer-close" id="btnFecharMenu" title="Fechar menu" aria-label="Fechar menu">✕</button>
+      </div>
       <button class="tab active" data-tab="dashboard">🏠 Dashboard</button>
       <button class="tab" data-tab="standings">🏆 Classificação</button>
       <button class="tab" data-tab="calendar">📅 Calendário</button>
@@ -49,7 +53,7 @@
       <button class="tab" data-tab="config" data-requires="admin">⚙️ Configuração</button>
 
       <div class="dropdown">
-        <button class="tab dropdown-btn">🛠️ Gestão ▾</button>
+        <button class="tab dropdown-btn">🛠️ Gestão <span class="dropdown-caret">▾</span></button>
         <div class="dropdown-content">
           <button class="tab" data-tab="teams">👥 Equipas</button>
           <button class="tab" data-tab="squads">👕 Plantéis</button>
@@ -61,6 +65,7 @@
 
       <button class="tab" data-tab="singular">⚽ Jogo Singular</button>
     </nav>
+    <div class="drawer-backdrop" id="drawerBackdrop" aria-hidden="true"></div>
 
     <main class="content">
 

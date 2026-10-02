@@ -46,6 +46,8 @@ Os botões que o teu perfil não pode usar ficam escondidos. Mesmo que alguém c
 
 O botão de tema no topo alterna entre claro e escuro.
 
+No telemóvel, o topo mostra só ☰ (menu), 🔁 (atualizar), o tema e a conta (👤 quando tens sessão iniciada; ao tocar nele vês com que conta e perfil estás, antes de confirmar a saída). Os separadores ficam num menu lateral: abre com ☰ ou deslizando o dedo a partir da margem esquerda do ecrã, e fecha ao escolher um separador, ao tocar fora dele, com ✕ ou deslizando para a esquerda. O aviso "Guardado ✓" só aparece no topo logo depois de uma gravação ou se houver um erro.
+
 ## Montar um torneio
 
 Estes passos são feitos por um **admin**. Quem não é admin vê Equipas, Plantéis e Jogadores só de leitura, sem botões de edição.

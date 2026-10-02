@@ -1124,10 +1124,18 @@
     /* =========================================================
        📱 MELHORIAS MOBILE (RESPONSIVE)
     ========================================================= */
-    #btnMobileMenu {
+    .marquee-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    /* Menu lateral: só existe no telemóvel */
+    #btnMobileMenu,
+    .drawer-head,
+    .drawer-backdrop {
       display: none;
-      margin-left: auto;
-      order: 99;
     }
 
     @media (max-width: 760px) {
@@ -1147,56 +1155,190 @@
         grid-template-columns: 1fr;
       }
 
-      /* Menu Hamburguer */
+      /* Cabeçalho compacto: ☰ à esquerda; atualizar, tema e conta à direita */
+      .marquee {
+        padding: 10px 16px 16px;
+      }
+
+      .marquee-top {
+        flex-wrap: nowrap;
+      }
+
+      .marquee-top .eyebrow,
+      .backup-pill,
+      .save-pill:not(.pill-ok):not(.pill-error) {
+        display: none;
+      }
+
+      .header-pills {
+        flex-wrap: nowrap;
+        gap: 6px;
+      }
+
+      .marquee-top .theme-toggle-btn {
+        min-width: 38px;
+        height: 38px;
+        padding: 0 10px;
+        font-size: 17px;
+      }
+
       #btnMobileMenu {
         display: inline-flex;
+        font-size: 20px;
       }
 
+      .auth-btn {
+        max-width: none;
+      }
+
+      .auth-label {
+        display: none;
+      }
+
+      #tournamentTitle {
+        margin: 8px 0 8px;
+      }
+
+      .marquee-ticker {
+        font-size: 12px;
+      }
+
+      /* Separadores numa gaveta que entra pela esquerda */
       .tabs {
-        display: none;
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 300;
+        width: min(82vw, 300px);
         flex-direction: column;
-        padding: 10px;
-        background: var(--card);
-        box-shadow: var(--shadow-sm);
+        flex-wrap: nowrap;
+        gap: 0;
+        padding: 0 0 calc(16px + env(safe-area-inset-bottom));
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        border-bottom: none;
+        border-right: 1px solid var(--line);
+        box-shadow: var(--shadow-md);
+        transform: translateX(-100%);
+        visibility: hidden;
+        transition: transform .25s ease, visibility 0s linear .25s;
       }
 
-      .tabs.menu-open {
+      .tabs.menu-open,
+      .tabs.dragging {
+        transform: none;
+        visibility: visible;
+        transition: transform .25s ease;
+      }
+
+      .tabs.dragging {
+        transition: none;
+      }
+
+      .drawer-head {
         display: flex;
-        animation: fadein 0.2s ease;
+        align-items: center;
+        justify-content: space-between;
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        padding: calc(14px + env(safe-area-inset-top)) 12px 14px 18px;
+        background: linear-gradient(180deg, var(--pitch-800), var(--pitch-900));
+        color: #fff;
       }
 
-      /* Dropdown adjustments for mobile */
-      .dropdown-content {
+      .drawer-title {
+        font-family: var(--font-display);
+        font-size: 14px;
+        letter-spacing: .16em;
+        text-transform: uppercase;
+        color: var(--gold);
+        font-weight: 600;
+      }
+
+      .drawer-close {
+        width: 38px;
+        height: 38px;
+        border: none;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, .12);
+        color: #dfe8de;
+        font-size: 16px;
+      }
+
+      .drawer-backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        z-index: 299;
+        background: rgba(0, 0, 0, .45);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity .25s ease;
+      }
+
+      .tabs.menu-open + .drawer-backdrop {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .tabs.dragging + .drawer-backdrop {
+        transition: none;
+      }
+
+      body:has(.tabs.menu-open) {
+        overflow: hidden;
+      }
+
+      /* "Gestão" fica sempre aberta, como secção da gaveta */
+      .tabs .dropdown {
+        display: block;
+      }
+
+      .tabs .dropdown-content {
         position: static;
-        display: none;
+        display: flex;
         box-shadow: none;
         border: none;
+        border-radius: 0;
         background: transparent;
-        padding-left: 20px;
-        padding-top: 0;
-        padding-bottom: 0;
-      }
-      
-      .dropdown-btn {
-        pointer-events: auto;
-        color: var(--gold-dark);
-        opacity: 0.8;
-      }
-      
-      .dropdown-content .tab {
-        border-bottom: none !important;
+        padding: 0;
       }
 
-      .tab {
+      .tabs .dropdown-btn {
+        width: 100%;
+        pointer-events: none;
+        padding: 18px 18px 6px;
+        font-family: var(--font-display);
+        font-size: 12px;
+        letter-spacing: .14em;
+        text-transform: uppercase;
+        color: var(--gold-dark);
+        border-bottom: 1px solid var(--line);
+      }
+
+      .dropdown-caret {
+        display: none;
+      }
+
+      .tabs .tab {
+        width: 100%;
         text-align: left;
-        padding: 14px;
+        padding: 14px 18px;
         border-bottom: 1px solid var(--line);
         border-left: 3px solid transparent;
       }
 
-      .tab.active {
+      .tabs .dropdown-content .tab {
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--line) !important;
+        border-left: 3px solid transparent !important;
+      }
+
+      .tabs .tab.active {
         border-bottom-color: var(--line);
-        border-left-color: var(--gold);
+        border-left-color: var(--gold) !important;
         background: var(--paper);
       }
 
