@@ -16,7 +16,8 @@ Deployed to GitHub Pages at `/torneio-ilog/` on every push to `main`.
     tournament archive entries. Keep logic here so it stays testable.
   - `js/sync.js` diffs snapshots for `update()`, normalizes older saved data
     and describes changes for the log; `js/permissions.js` mirrors the rules.
-  - `js/ui.js` renders; `js/main.js` wires event handlers; `js/firebase.js`
+  - `js/ui.js` renders (one module per section in `js/ui/`, re-exported by
+    `ui.js`; `js/ui/` modules never import `ui.js`); `js/main.js` wires event handlers; `js/firebase.js`
     syncs and handles Google sign-in; `js/share.js` draws the PNG share images.
 - All state lives in one Firebase node, `torneio_state`. Saves send only what
   changed since the last sync with `update()` (`js/sync.js`): results per game,

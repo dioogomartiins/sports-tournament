@@ -40,7 +40,7 @@ Como o código está organizado, como os dados são guardados e sincronizados, e
 | `js/sync.js` | Diferenças entre snapshots para o `update()`, normalização de dados guardados pelo Firebase e texto do registo de alterações. |
 | `js/firebase.js` | Ligação ao Firebase: escuta `torneio_state`, envia alterações, login Google, perfil do utilizador, lista de utilizadores e registo. |
 | `js/permissions.js` | Que secções cada perfil pode gravar. Espelha `database.rules.json`. |
-| `js/ui.js` | Desenha todos os ecrãs e modais (classificação, calendário, resultados, janela do jogo, fichas, histórico, …). |
+| `js/ui.js` e `js/ui/` | Desenham todos os ecrãs e modais. Cada secção tem o seu módulo em `js/ui/` (`classificacao.js`, `calendario.js`, `jogo.js`, `jogadores.js`, `historico.js`, `modais.js`, …); `dom.js` guarda os elementos e `avisos.js` os toasts. `ui.js` tem o `renderAll`/`refreshComputed` e reexporta o resto, por isso os outros módulos importam tudo de `./ui.js`. Os módulos de `js/ui/` nunca importam `ui.js`. |
 | `js/animations.js` | Animações ao vivo (jogo começa, golo, golo anulado, jogo termina). Nascem da comparação entre o resultado anterior e o novo, por isso aparecem em todos os dispositivos. Desligadas com *movimento reduzido*. |
 | `js/share.js` | Desenha num `<canvas>` as imagens PNG da classificação e dos resultados, e partilha-as. |
 | `js/utils.js` | Funções pequenas: `escapeHtml`, `safeColor`, nomes de equipas e de jogadores (`playerName`, `buildPlayerIndex`), datas, `prefersReducedMotion`. |
