@@ -31,6 +31,11 @@ Deployed to GitHub Pages at `/torneio-ilog/` on every push to `main`.
   writable by anyone with the public config, so it is untrusted input.
 - The app is used live on phones during matches: check mobile widths and both
   light and dark themes when touching UI.
+- Docs live in `README.md` and `docs/` (in Portuguese): `guia.md` (using the
+  app), `regras.md` (scoring, tiebreaks, draft), `configuracao.md` (Firebase,
+  env, deploy), `arquitetura.md` (modules, data model, sync, permissions).
+  Update the matching page in the same PR when behaviour, rules or the state
+  shape change.
 - Commit messages follow conventional commits (`feat:`, `fix:`, `refactor:`, ...).
 
 ## Checks
