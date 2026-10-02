@@ -33,17 +33,17 @@ Como o código está organizado, como os dados são guardados e sincronizados, e
 | Ficheiro | Papel |
 |---|---|
 | `index.html` | Estrutura de todos os separadores e modais. |
-| `css/style.css` | Estilos, com variáveis para os temas claro e escuro. |
-| `js/main.js` | Liga os eventos da interface às ações (gerar calendário, registar golos, arquivar, …) e arranca a app. |
-| `js/state.js` | Estado global, valores por defeito, snapshots (`buildSnapshot` / `applySnapshot`), persistência no localStorage e envio para o Firebase. Desfaz alterações locais que o Firebase não aceitaria. |
+| `css/` | Estilos partidos por área (`base.css` tem as variáveis dos temas claro e escuro). `style.css` só faz `@import` dos outros, pela ordem da cascata; o Vite junta tudo num ficheiro no build. Estilos novos vão para o ficheiro da área. |
+| `js/main.js` | Liga os eventos da interface às ações (gerar calendário, registar golos, arquivar, …) e arranca a app. Os botões e campos das equipas, calendário e resultados, redesenhados com `innerHTML`, têm um só listener no contentor (delegação). |
+| `js/state.js` | Estado global, valores por defeito, snapshots (`buildSnapshot` / `applySnapshot`), persistência no localStorage e envio para o Firebase. Desfaz alterações locais que o Firebase não aceitaria. Não importa o `ui.js`: os avisos e o `renderAll` chegam por `setStateHooks`, chamado pelo `main.js` no arranque. |
 | `js/algorithms.js` | Lógica pura: Berger, calendário, classificação, desempates, eliminatórias, ratings, equipas equilibradas, estatísticas de jogadores, arquivo. Ver [Regras e Cálculos](regras.md). |
 | `js/sync.js` | Diferenças entre snapshots para o `update()`, normalização de dados guardados pelo Firebase e texto do registo de alterações. |
 | `js/firebase.js` | Ligação ao Firebase: escuta `torneio_state`, envia alterações, login Google, perfil do utilizador, lista de utilizadores e registo. |
 | `js/permissions.js` | Que secções cada perfil pode gravar. Espelha `database.rules.json`. |
-| `js/ui.js` | Desenha todos os ecrãs e modais (classificação, calendário, resultados, janela do jogo, fichas, histórico, …). |
+| `js/ui.js` e `js/ui/` | Desenham todos os ecrãs e modais. Cada secção tem o seu módulo em `js/ui/` (`classificacao.js`, `calendario.js`, `jogo.js`, `jogadores.js`, `historico.js`, `modais.js`, …); `dom.js` guarda os elementos e `avisos.js` os toasts. `ui.js` tem o `renderAll`/`refreshComputed` e reexporta o resto, por isso os outros módulos importam tudo de `./ui.js`. Os módulos de `js/ui/` nunca importam `ui.js`. |
 | `js/animations.js` | Animações ao vivo (jogo começa, golo, golo anulado, jogo termina). Nascem da comparação entre o resultado anterior e o novo, por isso aparecem em todos os dispositivos. Desligadas com *movimento reduzido*. |
 | `js/share.js` | Desenha num `<canvas>` as imagens PNG da classificação e dos resultados, e partilha-as. |
-| `js/utils.js` | Funções pequenas: `escapeHtml`, `safeColor`, nomes de equipas, datas. |
+| `js/utils.js` | Funções pequenas: `escapeHtml`, `safeColor`, nomes de equipas e de jogadores (`playerName`, `buildPlayerIndex`), datas, `prefersReducedMotion`. |
 | `database.rules.json` | Regras de segurança do Realtime Database, publicadas pelo deploy. |
 | `firebase.json` | Diz ao Firebase CLI onde estão as regras (usado pelo deploy). |
 | `tests/` | Testes Vitest; `tests/rules/` tem os testes das regras no emulador. |
@@ -140,6 +140,7 @@ Qualquer pessoa com a configuração pública pode tentar escrever no Firebase, 
 ## Testes
 
 ```bash
+npm run lint         # ESLint (eslint.config.mjs)
 npm test             # lógica pura
 npm run test:rules   # regras do Firebase no emulador (precisa de Java)
 ```
@@ -153,8 +154,8 @@ npm run test:rules   # regras do Firebase no emulador (precisa de Java)
 | `tests/permissions.test.js` | `canWritePath`, `blockedPaths`, `roleLabel` |
 | `tests/utils.test.js` | `escapeHtml`, `safeColor` |
 
-`algorithms.js` importa `state.js` e `utils.js`, que carregam a interface e o Firebase; os testes substituem-nos com `vi.mock` e depois fazem `await import` do módulo. A interface verifica-se à mão (ver [Correr localmente](configuracao.md#correr-localmente)).
+`algorithms.js` não importa nenhum outro módulo, por isso os testes importam-no diretamente. Não há importações circulares: `ui.js` não importa `main.js` e `state.js` não importa `ui.js`; mantém assim ao acrescentar código. A interface verifica-se à mão (ver [Correr localmente](configuracao.md#correr-localmente)).
 
 `npm run test:rules` arranca o emulador do Realtime Database com `database.rules.json` e corre `tests/rules/rules.check.mjs`: quem pode gravar cada caminho, as validações e o `logRef`. Usa a configuração de `tests/rules/firebase.json`, separada da da raiz.
 
-O CI corre os dois antes de cada deploy: as regras no passo `rules`, a lógica no passo `deploy`.
+O CI corre tudo antes de cada deploy: as regras no passo `rules`, o ESLint e a lógica no passo `deploy`.

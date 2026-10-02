@@ -1,0 +1,147 @@
+/* ---------- Forms ---------- */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px 18px;
+}
+
+.field label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  margin-bottom: 5px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.input {
+  width: 100%;
+  padding: 9px 11px;
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  color: var(--ink);
+  background: var(--card);
+  transition: border-color .15s;
+}
+
+.input:focus {
+  border-color: var(--pitch-500);
+}
+
+.input-invalid {
+  border-color: var(--danger) !important;
+  background: var(--danger-bg);
+}
+
+.field-note {
+  font-size: 12px;
+  color: var(--ink-faint);
+  margin-top: 5px;
+}
+
+.hint-box {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--pitch-700);
+  background: rgba(47, 122, 79, .08);
+  border: 1px solid rgba(47, 122, 79, .18);
+  border-radius: var(--radius-sm);
+  padding: 9px 11px;
+}
+
+[data-theme="dark"] .hint-box {
+  color: #7dd8a0;
+}
+
+/* ---------- Teams & Squads ---------- */
+.teams-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px 20px;
+}
+
+.team-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 4px 0;
+}
+
+.team-num {
+  font-family: var(--font-display);
+  font-size: 12px;
+  color: var(--ink-faint);
+  width: 22px;
+  text-align: right;
+  flex: 0 0 auto;
+}
+
+.team-tag {
+  font-size: 10px;
+  color: var(--ink-faint);
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+.team-color-picker {
+  width: 34px;
+  height: 38px;
+  padding: 2px;
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.player-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+
+.player-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.player-num {
+  font-family: var(--font-display);
+  font-size: 14px;
+  color: var(--ink-soft);
+  background: var(--paper);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.player-del {
+  color: var(--danger);
+  background: transparent;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  line-height: 1;
+}
+
+.player-del:hover {
+  background: var(--danger-bg);
+}
+
+.player-stats-btn:hover {
+  background: var(--line) !important;
+}

@@ -1,0 +1,91 @@
+/* ---------------------------------------------------------------------
+   Sessão e perfis
+   --------------------------------------------------------------------- */
+body:not([data-role="admin"]) [data-requires="admin"] {
+  display: none !important;
+}
+
+body[data-role="admin"] [data-hide-for="admin"] {
+  display: none !important;
+}
+
+.readonly-note {
+  color: var(--ink-soft);
+}
+
+/* Quem não é admin só vê as equipas do calendário atual */
+body:not([data-role="admin"]) .team-row-inactive {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  .teams-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.team-row .input {
+  min-width: 0;
+}
+
+[data-theme="dark"] .player-attr-val {
+  color: var(--pitch-500);
+}
+
+[data-theme="dark"] .player-stats-btn {
+  color: var(--ink) !important;
+}
+
+.team-row .input:disabled,
+.team-color-picker:disabled {
+  opacity: 1;
+  cursor: default;
+  background: transparent;
+}
+
+.auth-btn {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+}
+
+.user-row,
+.log-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.user-row:last-child,
+.log-row:last-child {
+  border-bottom: none;
+}
+
+.user-row__info,
+.log-row__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.user-row__name,
+.log-row__acao {
+  font-weight: 600;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.user-row__meta,
+.log-row__meta {
+  font-size: 12px;
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+}
+
+.user-row select {
+  flex-shrink: 0;
+  width: auto;
+}

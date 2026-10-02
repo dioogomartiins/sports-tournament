@@ -6,6 +6,7 @@ description: Run and extend the Torneio ILOG test suite. Use before committing a
 # Testing Torneio ILOG
 
 ```bash
+npm run lint        # ESLint, also run by CI
 npm test            # vitest run, all tests in tests/
 npm run build       # must also pass
 ```
@@ -26,9 +27,8 @@ npm run build       # must also pass
 
 ## Adding tests
 
-- `algorithms.js` imports `state.js` and `utils.js`, which load the UI and
-  Firebase. Tests mock both with `vi.mock` and then `await import` the module;
-  copy that pattern instead of importing the real modules.
+- `algorithms.js` imports no other module, so tests import it directly. Keep
+  it that way: pass data in as arguments instead of reading `state`.
 - When fixing a bug in scheduling or standings, first add a test that fails
   with the bug, then fix it.
 - Keep test names in Portuguese, like the rest of the code.

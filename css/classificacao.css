@@ -1,0 +1,206 @@
+/* ---------- Podium ---------- */
+.podium {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.podium-card {
+  border-radius: var(--radius);
+  padding: 16px 14px;
+  color: #fff;
+  box-shadow: var(--shadow-sm);
+}
+
+.podium-1 {
+  background: linear-gradient(145deg, #D8B84A, var(--gold-dark));
+}
+
+.podium-2 {
+  background: linear-gradient(145deg, #C9CDC8, #9AA29A);
+}
+
+.podium-3 {
+  background: linear-gradient(145deg, #CE9868, var(--bronze));
+}
+
+.podium-rank {
+  font-family: var(--font-display);
+  font-size: 13px;
+  opacity: .85;
+  letter-spacing: .06em;
+}
+
+.podium-name {
+  font-family: var(--font-display);
+  font-size: 21px;
+  font-weight: 600;
+  margin: 2px 0 4px;
+  text-transform: uppercase;
+}
+
+.podium-pts {
+  font-size: 13px;
+  opacity: .92;
+}
+
+/* ---------- Tables ---------- */
+.table-wrap {
+  overflow-x: auto;
+}
+
+th,
+td {
+  padding: 9px 10px;
+  text-align: left;
+  font-size: 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+th {
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  font-weight: 600;
+}
+
+td.num,
+th.num {
+  text-align: center;
+}
+
+.standings-table th,
+.standings-table td {
+  text-align: center;
+}
+
+.standings-table th.team-cell {
+  text-align: left;
+}
+
+.standings-table td.team-cell {
+  text-align: left;
+  font-weight: 600;
+}
+
+/* No telemóvel a tabela tem de caber sem scroll horizontal */
+@media (max-width: 600px) {
+  .standings-table th,
+  .standings-table td {
+    padding: 8px 3px;
+    font-size: 13px;
+  }
+
+  .standings-table th {
+    font-size: 10px;
+    letter-spacing: .02em;
+  }
+
+  /* getTeamDisplay usa white-space:nowrap em linha; aqui o nome pode partir */
+  .standings-table td.team-cell > span {
+    white-space: normal !important;
+  }
+
+  .standings-table td.team-cell > span > span {
+    flex-shrink: 0;
+  }
+
+  .standings-table .pos-badge {
+    width: 22px;
+    height: 22px;
+    font-size: 11px;
+  }
+
+  .pos-move {
+    display: block;
+    margin: 2px 0 0;
+    font-size: 10px;
+  }
+}
+
+.standings-table td.pts-cell {
+  font-weight: 700;
+  color: var(--pitch-800);
+}
+
+[data-theme="dark"] .standings-table td.pts-cell {
+  color: var(--gold);
+}
+
+.pos-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--paper);
+  color: var(--ink-soft);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.standings-table td.pos-cell {
+  white-space: nowrap;
+}
+
+/* Lugares ganhos/perdidos desde a última vez que a classificação foi vista */
+.pos-move {
+  display: inline-block;
+  margin-left: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  vertical-align: middle;
+}
+
+.pos-move.up {
+  color: #1E8E4A;
+}
+
+.pos-move.down {
+  color: var(--danger);
+}
+
+[data-theme="dark"] .pos-move.up {
+  color: #4ADE80;
+}
+
+[data-theme="dark"] .pos-move.down {
+  color: #F87171;
+}
+
+tr.pos-gold .pos-badge {
+  background: var(--gold);
+  color: #fff;
+}
+
+tr.pos-silver .pos-badge {
+  background: var(--silver);
+  color: #fff;
+}
+
+tr.pos-bronze .pos-badge {
+  background: var(--bronze);
+  color: #fff;
+}
+
+tr.pos-gold {
+  background: rgba(203, 161, 53, .07);
+}
+
+tr.pos-silver {
+  background: rgba(196, 201, 196, .10);
+}
+
+tr.pos-bronze {
+  background: rgba(192, 133, 82, .07);
+}
+
+.mini-table td,
+.mini-table th {
+  padding: 6px 8px;
+  font-size: 13px;
+}
