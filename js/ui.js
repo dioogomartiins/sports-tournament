@@ -1,7 +1,8 @@
-import { state, MAX_TEAMS, normalizePlayer, persistPlayers, persistConfigTeams, persistJogosSingulares } from './state.js';
+import { state, MAX_TEAMS, normalizePlayer, persistPlayers, persistConfigTeams, persistJogosSingulares, persistArquivo } from './state.js';
 import { getTeamName, getTeamDisplay, escapeHtml, fmtTimestamp, clamp, safeColor } from './utils.js';
-import { computeStandings, GAME_STATUS, getPlayerRating, getTeamTotalRating } from './algorithms.js';
-import { onStatusBtnClick, onScoreBtnClick, onResultCommit, onTeamPropChange, onSquadListClick } from './main.js';
+import { computeStandings, GAME_STATUS, getPlayerRating, getTeamTotalRating, tallyPlayerStats, mergePlayerStats, archiveTally } from './algorithms.js';
+import { onStatusBtnClick, onScoreBtnClick, onResultCommit, onTeamPropChange, onSquadListClick, onMvpClick } from './main.js';
+import { shareResult } from './share.js';
 import { ROLES, isKnownRole, roleLabel } from './permissions.js';
 
 // ---------------------------------------------------------------------------
@@ -32,6 +33,7 @@ export function cacheDom() {
     'draftLabelA', 'draftLabelB', 'draftScoreA', 'draftScoreB', 'btnGuardarJogo',
     'singularHistoricoList',
     'btnConta', 'usersList', 'logList',
+    'historicoSempre', 'arquivoList', 'btnArquivar', 'btnPartilharTabela',
   ].forEach((id) => { dom[id] = document.getElementById(id); });
 
   dom.panels = Array.from(document.querySelectorAll('.panel'));
@@ -51,6 +53,7 @@ export function renderAll() {
   renderSquadPlayerFromDBDropdown();
   renderDraftPlayerList();
   renderSingularHistorico();
+  renderHistorico();
 }
 
 export function refreshComputed() {
@@ -358,7 +361,12 @@ export function renderResults() {
         `</div>` +
         `<span class="fx-away">${getTeamDisplay(g.away)}</span>` +
         penaltiesHtml +
-        `<div style="grid-column: 1 / span 3; text-align: center; margin-top: 10px;">${getStatusBadge(status, gi)}</div>` +
+        `<div class="fixture-actions">${getStatusBadge(status, gi)}` +
+        (isTerminado
+          ? `<button class="mini-btn mvp-btn" data-gi="${gi}" title="Escolher o MVP do jogo">⭐ ${val && val.mvp ? escapeHtml(playerName(val.mvp)) : 'MVP'}</button>` +
+            `<button class="mini-btn share-result-btn" data-gi="${gi}" title="Partilhar resultado">📤</button>`
+          : '') +
+        `</div>` +
         `</div>`
       );
     });
@@ -367,6 +375,14 @@ export function renderResults() {
   });
 
   dom.resultsList.innerHTML = parts.join('');
+
+  Array.from(dom.resultsList.querySelectorAll('.mvp-btn')).forEach((btn) => {
+    btn.addEventListener('click', () => onMvpClick(btn.dataset.gi));
+  });
+
+  Array.from(dom.resultsList.querySelectorAll('.share-result-btn')).forEach((btn) => {
+    btn.addEventListener('click', () => shareResult(btn.dataset.gi));
+  });
 
   Array.from(dom.resultsList.querySelectorAll('.res-box, .pen-box')).forEach((inp) => {
     inp.addEventListener('blur', onResultCommit);
@@ -433,7 +449,7 @@ export function renderStandingsWrapper(groupsData) {
  * Constrói um índice pId → { name, team } percorrendo os plantéis uma única vez,
  * evitando a busca O(n²) anterior.
  */
-function buildPlayerIndex() {
+export function buildPlayerIndex() {
   const index = {};
   state.players.forEach((p) => {
     const tName = p.teamIdx !== null && p.teamIdx !== undefined ? getTeamName(p.teamIdx) : 'Sem Equipa';
@@ -506,7 +522,25 @@ export function renderStatsGrid(summary) {
     ).join('')
     : '<p class="empty">Nenhum golo registado ainda.</p>';
 
-  html += `<div class="card" style="grid-column: span 3;"><div class="section-title">👟 Tabela de Marcadores</div>${scorerRows}</div>`;
+  html += `<div class="card stats-half"><div class="section-title">👟 Tabela de Marcadores</div>${scorerRows}</div>`;
+
+  const tally = tallyPlayerStats(state.results, state.jogosSingulares);
+  const index = buildPlayerIndex();
+  const topBy = (key, unit) => {
+    const rows = Object.keys(tally)
+      .filter((pid) => tally[pid][key] > 0)
+      .sort((a, b) => tally[b][key] - tally[a][key])
+      .slice(0, 10);
+    return rows.length
+      ? rows.map((pid) => {
+        const info = index[pid] || { name: 'Jogador Desconhecido', team: 'Sem Equipa' };
+        return `<div style="padding:6px 0; border-bottom:1px solid var(--line);"><strong>${tally[pid][key]}</strong> ${unit} — ${escapeHtml(info.name)} <span style="color:var(--ink-faint); font-size:13px;">(${escapeHtml(info.team)})</span></div>`;
+      }).join('')
+      : '<p class="empty">Ainda nada registado.</p>';
+  };
+
+  html += `<div class="card stats-half"><div class="section-title">🅰️ Assistências</div>${topBy('assistencias', 'assist.')}</div>`;
+  html += `<div class="card stats-half"><div class="section-title">⭐ MVP</div>${topBy('mvp', '×')}</div>`;
   dom.statsGrid.innerHTML = html;
 }
 
@@ -745,6 +779,66 @@ export function openDangerConfirm(title, itemLabels, onConfirm) {
   };
 }
 
+/**
+ * Modal para escolher um jogador (assistência, MVP).
+ * @param {string} title
+ * @param {{id:string, label:string}[]} players
+ * @param {string} noneLabel — botão para "nenhum" (devolve '')
+ * @param {Function} onSelect — recebe o id escolhido ou ''
+ */
+export function openPickPlayerModal(title, players, noneLabel, onSelect) {
+  dom.modalTitle.textContent = title;
+  dom.modalBody.innerHTML = players.length
+    ? players.map((p) =>
+      `<button class="btn btn-ghost scorer-btn" data-pid="${escapeHtml(p.id)}">${escapeHtml(p.label)}</button>`
+    ).join('')
+    : '<p class="empty" style="margin-bottom:14px;">Nenhum jogador disponível.</p>';
+
+  dom.modalCancel.innerHTML = 'Cancelar';
+  dom.modalCancel.style.background = 'var(--paper)';
+  dom.modalCancel.style.color = 'var(--ink)';
+  dom.modalCancel.hidden = false;
+
+  dom.modalConfirm.innerHTML = noneLabel;
+  dom.modalConfirm.style.background = 'var(--pitch-500)';
+  dom.modalConfirm.style.color = '#fff';
+  dom.modalConfirm.hidden = false;
+  dom.modalConfirm.style.display = '';
+
+  confirmCallback = () => {
+    dom.modalOverlay.hidden = true;
+    onSelect('');
+  };
+
+  dom.modalOverlay.hidden = false;
+
+  Array.from(dom.modalBody.querySelectorAll('.scorer-btn')).forEach((b) => {
+    b.onclick = () => {
+      dom.modalOverlay.hidden = true;
+      onSelect(b.dataset.pid);
+    };
+  });
+}
+
+/** Jogadores do plantel de uma equipa do torneio, no formato de openPickPlayerModal. */
+export function squadPickList(teamIdx, excludeId) {
+  if (typeof teamIdx !== 'number' && !/^\d+$/.test(String(teamIdx))) return [];
+  return (state.squads[teamIdx] || [])
+    .filter((p) => p.id !== excludeId)
+    .map((p) => ({ id: p.id, label: `${p.num} - ${p.name}` }));
+}
+
+/** Nome de um jogador (base de dados, plantéis ou arquivo). */
+export function playerName(pid) {
+  const info = buildPlayerIndex()[pid];
+  if (info) return info.name;
+  for (const e of state.arquivo) {
+    const j = e.jogadores.find((x) => x.pid === pid);
+    if (j) return j.nome;
+  }
+  return 'Jogador Desconhecido';
+}
+
 export function openScorerModal(gi, side, onSelect) {
   const game = state.schedule[gi];
   const teamIdx = side === 'home' ? game.home : game.away;
@@ -771,16 +865,16 @@ export function openScorerModal(gi, side, onSelect) {
   dom.modalConfirm.style.display = '';
 
   confirmCallback = () => {
-    onSelect('auto');
     dom.modalOverlay.hidden = true;
+    onSelect('auto');
   };
 
   dom.modalOverlay.hidden = false;
 
   Array.from(dom.modalBody.querySelectorAll('.scorer-btn')).forEach((b) => {
     b.onclick = () => {
-      onSelect(b.dataset.pid);
       dom.modalOverlay.hidden = true;
+      onSelect(b.dataset.pid);
     };
   });
 }
@@ -825,36 +919,7 @@ export function openPlayerProfile(pId, tIdx = null) {
       `</div>`;
   }
 
-  let goals = 0;
-  let gamesWithGoals = 0;
-  let bestGameGolos = 0;
-
-  function countGoals(matchGoals) {
-    if (matchGoals > 0) {
-      goals += matchGoals;
-      gamesWithGoals++;
-      if (matchGoals > bestGameGolos) bestGameGolos = matchGoals;
-    }
-  }
-
-  Object.keys(state.results).forEach((gi) => {
-    const res = state.results[gi];
-    if (!res || typeof res !== 'object' || !res.scorers) return;
-    let matchGoals = 0;
-    ['home', 'away'].forEach((side) => {
-      if (res.scorers[side]) {
-        res.scorers[side].forEach((id) => { if (id === pId) matchGoals++; });
-      }
-    });
-    countGoals(matchGoals);
-  });
-
-  state.jogosSingulares.forEach((jogo) => {
-    let matchGoals = 0;
-    if (jogo.scorersA) jogo.scorersA.forEach((id) => { if (id === pId) matchGoals++; });
-    if (jogo.scorersB) jogo.scorersB.forEach((id) => { if (id === pId) matchGoals++; });
-    countGoals(matchGoals);
-  });
+  const totais = computeAllTimeStats()[pId] || { golos: 0, assistencias: 0, mvp: 0, jogosAMarcar: 0, recorde: 0 };
 
   dom.modalTitle.textContent = 'Ficha de Jogador';
   dom.modalBody.innerHTML =
@@ -865,10 +930,13 @@ export function openPlayerProfile(pId, tIdx = null) {
     `</div>` +
     attrsHtml +
     `<div class="stats-grid" style="margin-top:20px; grid-template-columns: 1fr 1fr;">` +
-    `<div class="stat-card" style="text-align:center;"><div class="stat-label">Total de Golos</div><div class="stat-value">${goals}</div></div>` +
-    `<div class="stat-card" style="text-align:center;"><div class="stat-label">Jogos a Marcar</div><div class="stat-value">${gamesWithGoals}</div></div>` +
-    `<div class="stat-card" style="grid-column: span 2; text-align:center;"><div class="stat-label">Recorde num só jogo</div><div class="stat-value">${bestGameGolos} <span style="font-size:14px; font-weight:normal; color:var(--ink-faint);">golos</span></div></div>` +
-    `</div>`;
+    `<div class="stat-card" style="text-align:center;"><div class="stat-label">Total de Golos</div><div class="stat-value">${totais.golos}</div></div>` +
+    `<div class="stat-card" style="text-align:center;"><div class="stat-label">Assistências</div><div class="stat-value">${totais.assistencias}</div></div>` +
+    `<div class="stat-card" style="text-align:center;"><div class="stat-label">MVP</div><div class="stat-value">${totais.mvp}</div></div>` +
+    `<div class="stat-card" style="text-align:center;"><div class="stat-label">Jogos a Marcar</div><div class="stat-value">${totais.jogosAMarcar}</div></div>` +
+    `<div class="stat-card" style="grid-column: span 2; text-align:center;"><div class="stat-label">Recorde num só jogo</div><div class="stat-value">${totais.recorde} <span style="font-size:14px; font-weight:normal; color:var(--ink-faint);">golos</span></div></div>` +
+    `</div>` +
+    `<p style="text-align:center; font-size:12px; color:var(--ink-faint); margin-top:8px;">Inclui torneios arquivados e jogos singulares.</p>`;
 
   dom.modalCancel.innerHTML = 'Fechar';
   dom.modalCancel.style.background = 'var(--paper)';
@@ -1194,10 +1262,12 @@ export function renderDraftTeams(nomeA, nomeB, equipaA, equipaB) {
 
     const rows = players.map((p, i) => {
       const gCount = scorersArr.filter(id => id === p.id).length;
+      const assistsArr = isTeamA ? (currentDraft.assistsA || []) : (currentDraft.assistsB || []);
+      const aCount = assistsArr.filter(id => id === p.id).length;
       return (
         `<div class="draft-team-player-row">` +
         `<span class="draft-pick-num">${i + 1}.</span>` +
-        `<span style="flex:1; font-weight:600;">${escapeHtml(p.nome)}</span>` +
+        `<span style="flex:1; font-weight:600;">${escapeHtml(p.nome)}${currentDraft.mvp === p.id ? ' ⭐' : ''}${aCount ? ` <span style="font-size:12px; color:var(--ink-faint); font-weight:500;">${aCount} 🅰️</span>` : ''}</span>` +
         `<span style="font-size:12px; color:var(--gold-dark); font-weight:700; margin-right:12px;">★ ${getPlayerRating(p).toFixed(1)}</span>` +
         `<div style="display:flex; align-items:center; gap:8px;">` +
         `<button class="btn btn-ghost" style="padding: 2px 8px; font-size:14px; color:var(--danger); border:1px solid var(--line);" data-action="draft-goal-sub" data-side="${isTeamA ? 'A' : 'B'}" data-pid="${escapeHtml(p.id)}">-</button>` +
@@ -1222,40 +1292,62 @@ export function renderDraftTeams(nomeA, nomeB, equipaA, equipaB) {
     teamCard(nomeA, equipaA, 'team-a') +
     teamCard(nomeB, equipaB, 'team-b') +
     `<div class="draft-balance-bar">Diferença de rating: <span class="draft-balance-diff">${diff} ★</span></div>` +
+    `<button class="btn btn-ghost draft-mvp-btn" data-action="draft-mvp">⭐ MVP: ${currentDraft.mvp ? escapeHtml(playerName(currentDraft.mvp)) : 'escolher'}</button>` +
     `</div>`;
 
-  // Bind draft goal buttons
+  // Golos e assistências do draft: as listas de assistências ficam alinhadas com as de marcadores
+  const lists = (side) => {
+    const sc = side === 'A' ? 'scorersA' : 'scorersB';
+    const as = side === 'A' ? 'assistsA' : 'assistsB';
+    if (!currentDraft[sc]) currentDraft[sc] = [];
+    if (!currentDraft[as]) currentDraft[as] = [];
+    while (currentDraft[as].length < currentDraft[sc].length) currentDraft[as].push('');
+    return { scorers: currentDraft[sc], assists: currentDraft[as] };
+  };
+  const scoreInput = (side) => (side === 'A' ? dom.draftScoreA : dom.draftScoreB);
+  const rerender = () => renderDraftTeams(nomeA, nomeB, equipaA, equipaB);
+
   dom.draftTeamsResult.querySelectorAll('[data-action="draft-goal-add"]').forEach(btn => {
     btn.addEventListener('click', () => {
       const side = btn.dataset.side;
       const pid = btn.dataset.pid;
-      if (side === 'A') {
-        if (!currentDraft.scorersA) currentDraft.scorersA = [];
-        currentDraft.scorersA.push(pid);
-        if (dom.draftScoreA) dom.draftScoreA.value = (parseInt(dom.draftScoreA.value || 0, 10) + 1);
-      } else {
-        if (!currentDraft.scorersB) currentDraft.scorersB = [];
-        currentDraft.scorersB.push(pid);
-        if (dom.draftScoreB) dom.draftScoreB.value = (parseInt(dom.draftScoreB.value || 0, 10) + 1);
-      }
-      renderDraftTeams(nomeA, nomeB, equipaA, equipaB);
+      const team = side === 'A' ? equipaA : equipaB;
+      const mates = team.filter((p) => p.id !== pid).map((p) => ({ id: p.id, label: p.nome }));
+      openPickPlayerModal('Assistência', mates, 'Sem assistência', (aid) => {
+        const { scorers, assists } = lists(side);
+        scorers.push(pid);
+        assists.push(aid);
+        const inp = scoreInput(side);
+        if (inp) inp.value = (parseInt(inp.value || 0, 10) + 1);
+        rerender();
+      });
     });
   });
 
   dom.draftTeamsResult.querySelectorAll('[data-action="draft-goal-sub"]').forEach(btn => {
     btn.addEventListener('click', () => {
       const side = btn.dataset.side;
-      const pid = btn.dataset.pid;
-      const arr = side === 'A' ? (currentDraft.scorersA || []) : (currentDraft.scorersB || []);
-      const idx = arr.indexOf(pid);
-      if (idx !== -1) {
-        arr.splice(idx, 1);
-        if (side === 'A' && dom.draftScoreA) dom.draftScoreA.value = Math.max(0, (parseInt(dom.draftScoreA.value || 0, 10) - 1));
-        if (side === 'B' && dom.draftScoreB) dom.draftScoreB.value = Math.max(0, (parseInt(dom.draftScoreB.value || 0, 10) - 1));
-        renderDraftTeams(nomeA, nomeB, equipaA, equipaB);
-      }
+      const { scorers, assists } = lists(side);
+      const idx = scorers.lastIndexOf(btn.dataset.pid);
+      if (idx === -1) return;
+      scorers.splice(idx, 1);
+      assists.splice(idx, 1);
+      const inp = scoreInput(side);
+      if (inp) inp.value = Math.max(0, (parseInt(inp.value || 0, 10) - 1));
+      rerender();
     });
   });
+
+  const mvpBtn = dom.draftTeamsResult.querySelector('[data-action="draft-mvp"]');
+  if (mvpBtn) {
+    mvpBtn.addEventListener('click', () => {
+      const all = [...equipaA, ...equipaB].map((p) => ({ id: p.id, label: p.nome }));
+      openPickPlayerModal('MVP do Jogo', all, 'Sem MVP', (pid) => {
+        currentDraft.mvp = pid;
+        rerender();
+      });
+    });
+  }
 
   // Update score labels
   if (dom.draftLabelA) dom.draftLabelA.textContent = nomeA || 'Equipa A';
@@ -1295,7 +1387,7 @@ export function renderSingularHistorico() {
       `<div class="historico-team-name">${escapeHtml(jogo.nomeEquipaA)}</div>` +
       `<div class="historico-team-players">${escapeHtml(playersA)}</div>` +
       `</div>` +
-      `<div class="historico-resultado">${escapeHtml(jogo.resultado || '—')}</div>` +
+      `<div class="historico-resultado">${escapeHtml(jogo.resultado || '—')}${jogo.mvp ? `<div class="historico-mvp">⭐ ${escapeHtml(playerName(jogo.mvp))}</div>` : ''}</div>` +
       `<div style="text-align:right;">` +
       `<div class="historico-team-name">${escapeHtml(jogo.nomeEquipaB)}</div>` +
       `<div class="historico-team-players">${escapeHtml(playersB)}</div>` +
@@ -1387,4 +1479,102 @@ export function renderLog(entries) {
       `</div></div>`
     ).join('')
     : '<p class="empty">Ainda não há alterações registadas.</p>';
+}
+
+// ---------------------------------------------------------------------------
+// Histórico — torneios arquivados e estatísticas de sempre
+// ---------------------------------------------------------------------------
+
+/** Estatísticas de sempre por jogador: arquivo + torneio atual + jogos singulares. */
+export function computeAllTimeStats() {
+  return mergePlayerStats(
+    ...state.arquivo.map(archiveTally),
+    tallyPlayerStats(state.results, state.jogosSingulares),
+  );
+}
+
+function fmtDate(iso) {
+  const d = new Date(iso);
+  return isNaN(d) ? '' : d.toLocaleDateString('pt-PT');
+}
+
+function allTimeRows() {
+  const index = buildPlayerIndex();
+  const archivedNames = {};
+  state.arquivo.forEach((e) => e.jogadores.forEach((j) => { archivedNames[j.pid] = j.nome; }));
+  const titles = {};
+  state.arquivo.forEach((e) => { if (e.campeao) titles[e.campeao.nome] = (titles[e.campeao.nome] || 0) + 1; });
+
+  const totals = computeAllTimeStats();
+  const rows = Object.keys(totals)
+    .map((pid) => ({ pid, nome: (index[pid] && index[pid].name) || archivedNames[pid] || 'Jogador Desconhecido', ...totals[pid] }))
+    .filter((r) => r.golos || r.assistencias || r.mvp)
+    .sort((a, b) => (b.golos - a.golos) || (b.assistencias - a.assistencias) || (b.mvp - a.mvp));
+  return { rows, titles };
+}
+
+export function renderHistorico() {
+  if (!dom.historicoSempre || !dom.arquivoList) return;
+
+  const { rows, titles } = allTimeRows();
+  const titleList = Object.keys(titles).sort((a, b) => titles[b] - titles[a]);
+  const titlesHtml = titleList.length
+    ? `<div class="historico-titulos">${titleList.map((n) => `<span class="historico-titulo">🏆 ${escapeHtml(n)} × ${titles[n]}</span>`).join('')}</div>`
+    : '';
+
+  dom.historicoSempre.innerHTML = titlesHtml + (rows.length
+    ? `<table class="standings-table historico-sempre"><thead><tr>` +
+      `<th style="text-align:left;">Jogador</th><th title="Golos">⚽</th><th title="Assistências">🅰️</th><th title="MVP">⭐</th>` +
+      `</tr></thead><tbody>` +
+      rows.slice(0, 20).map((r) =>
+        `<tr><td class="team-cell">${escapeHtml(r.nome)}</td><td class="num">${r.golos}</td><td class="num">${r.assistencias}</td><td class="num">${r.mvp}</td></tr>`
+      ).join('') +
+      `</tbody></table>`
+    : '<p class="empty">Ainda não há golos registados.</p>');
+
+  if (!state.arquivo.length) {
+    dom.arquivoList.innerHTML = '<p class="empty">Ainda não há torneios arquivados. Um admin pode arquivar o torneio atual em Gestão → Dados.</p>';
+    return;
+  }
+
+  dom.arquivoList.innerHTML = state.arquivo.slice().reverse().map((e) => {
+    const campeao = e.campeao
+      ? `<span class="arquivo-campeao"><span class="arquivo-cor" style="background:${safeColor(e.campeao.cor)}"></span>${escapeHtml(e.campeao.nome)}</span>`
+      : '<span class="arquivo-campeao">Sem campeão</span>';
+    const tabelas = e.grupos.map((g) =>
+      (e.grupos.length > 1 ? `<div class="arquivo-grupo">${escapeHtml(g.nome)}</div>` : '') +
+      `<table class="standings-table"><thead><tr><th>Pos</th><th style="text-align:left;">Equipa</th><th>J</th><th>DG</th><th>Pts</th></tr></thead><tbody>` +
+      g.tabela.map((t, i) =>
+        `<tr><td><span class="pos-badge">${i + 1}</span></td>` +
+        `<td class="team-cell"><span class="arquivo-cor" style="background:${safeColor(t.cor)}"></span>${escapeHtml(t.nome)}</td>` +
+        `<td class="num">${Number(t.J) || 0}</td><td class="num">${(Number(t.DG) || 0) > 0 ? '+' : ''}${Number(t.DG) || 0}</td><td class="num pts-cell">${Number(t.Pts) || 0}</td></tr>`
+      ).join('') +
+      `</tbody></table>`
+    ).join('');
+    const top = e.jogadores.filter((j) => j.golos || j.assistencias || j.mvp).slice(0, 5);
+    const topHtml = top.length
+      ? `<div class="arquivo-top">${top.map((j) =>
+        `<div>${escapeHtml(j.nome)} — ${Number(j.golos) || 0} ⚽ · ${Number(j.assistencias) || 0} 🅰️ · ${Number(j.mvp) || 0} ⭐</div>`).join('')}</div>`
+      : '';
+    return (
+      `<details class="arquivo-card">` +
+      `<summary><div class="arquivo-head"><div>` +
+      `<div class="arquivo-nome">${escapeHtml(e.nome)}</div>` +
+      `<div class="arquivo-meta">${escapeHtml(fmtDate(e.data))} · ${Number(e.jogos) || 0} jogos · ${Number(e.golos) || 0} golos</div>` +
+      `</div><span>🏆 ${campeao}</span></div></summary>` +
+      tabelas + topHtml +
+      `<button class="btn btn-ghost arquivo-del" data-requires="admin" data-aid="${escapeHtml(e.id)}">🗑️ Apagar do histórico</button>` +
+      `</details>`
+    );
+  }).join('');
+
+  dom.arquivoList.querySelectorAll('.arquivo-del').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      openConfirm('Apagar do Histórico', 'Este torneio arquivado vai ser apagado. Continuar?', async () => {
+        state.arquivo = state.arquivo.filter((x) => x.id !== btn.dataset.aid);
+        await persistArquivo();
+        renderHistorico();
+      });
+    });
+  });
 }

@@ -53,12 +53,31 @@ export function normalizeResults(results) {
     if (r === null || r === undefined) return;
     if (typeof r === 'object') {
       const scorers = r.scorers || {};
-      out[gi] = { ...r, scorers: { home: scorers.home || [], away: scorers.away || [] } };
+      const assists = r.assists || {};
+      const fix = (arr) => Array.from(arr || [], (v) => v || '');
+      out[gi] = {
+        ...r,
+        scorers: { home: scorers.home || [], away: scorers.away || [] },
+        assists: { home: fix(assists.home), away: fix(assists.away) },
+      };
     } else {
       out[gi] = r;
     }
   });
   return out;
+}
+
+/**
+ * Repõe as listas que o Firebase apaga quando estão vazias no arquivo de
+ * torneios (e converte objetos com chaves numéricas em listas).
+ */
+export function normalizeArquivo(arquivo) {
+  const list = (v) => (Array.isArray(v) ? v : Object.values(v || {})).filter(Boolean);
+  return list(arquivo).map((e) => ({
+    ...e,
+    grupos: list(e.grupos).map((g) => ({ ...g, tabela: list(g.tabela) })),
+    jogadores: list(e.jogadores),
+  }));
 }
 
 const SECTION_LABELS = {
@@ -72,6 +91,7 @@ const SECTION_LABELS = {
   players: 'Base de dados de jogadores alterada',
   jogosSingulares: 'Jogos singulares alterados',
   results: 'Resultados alterados',
+  arquivo: 'Histórico de torneios alterado',
   exportedAt: null,
   version: null,
 };
@@ -92,9 +112,13 @@ function teamLabel(snap, idx) {
  */
 export function describeUpdates(updates, snap) {
   const parts = [];
+  const deleted = Object.keys(updates).filter((p) => p.startsWith('results/') && updates[p] == null);
+  if (deleted.length > 1) parts.push(`${deleted.length} resultados apagados`);
+
   Object.keys(updates).forEach((path) => {
     const [section, gi] = path.split('/');
     if (section === 'results' && gi !== undefined) {
+      if (deleted.length > 1 && updates[path] == null) return;
       const game = (snap.schedule || [])[gi];
       const jogo = game
         ? `${teamLabel(snap, game.home)} vs ${teamLabel(snap, game.away)}`

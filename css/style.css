@@ -1066,6 +1066,10 @@
       justify-content: center !important;
     }
 
+    .modal .modal-actions .btn[hidden] {
+      display: none !important;
+    }
+
     /* ---------- Toast ---------- */
     .toast-root {
       position: fixed;
@@ -1793,4 +1797,158 @@
     .user-row select {
       flex-shrink: 0;
       width: auto;
+    }
+
+    /* ---------------------------------------------------------------------
+       Histórico (torneios arquivados)
+       --------------------------------------------------------------------- */
+    .historico-titulos {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .historico-titulo {
+      font-size: 13px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      color: var(--ink);
+    }
+
+    .arquivo-card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      margin-bottom: 10px;
+      background: var(--card);
+    }
+
+    .arquivo-card summary {
+      cursor: pointer;
+      list-style: none;
+    }
+
+    .arquivo-card summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .arquivo-card[open] summary {
+      margin-bottom: 12px;
+    }
+
+    .arquivo-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .arquivo-nome {
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--ink);
+      overflow-wrap: anywhere;
+    }
+
+    .arquivo-meta,
+    .arquivo-grupo {
+      font-size: 12px;
+      color: var(--ink-soft);
+    }
+
+    .arquivo-grupo {
+      font-weight: 700;
+      text-transform: uppercase;
+      margin: 10px 0 6px;
+    }
+
+    .arquivo-campeao {
+      font-weight: 700;
+      color: var(--gold-dark);
+    }
+
+    .arquivo-cor {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+
+    .arquivo-top {
+      margin-top: 12px;
+      font-size: 14px;
+      color: var(--ink);
+      line-height: 1.7;
+    }
+
+    .arquivo-del {
+      margin-top: 12px;
+      font-size: 12px;
+      padding: 4px 10px;
+      border: 1px solid var(--danger);
+      color: var(--danger);
+    }
+
+    /* ---------------------------------------------------------------------
+       Assistências, MVP e partilha
+       --------------------------------------------------------------------- */
+    .stats-half {
+      grid-column: 1 / -1;
+    }
+
+    .fixture-actions {
+      grid-column: 1 / -1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .mini-btn {
+      font: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: var(--paper);
+      color: var(--ink);
+      cursor: pointer;
+      max-width: 180px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .mini-btn:hover {
+      border-color: var(--gold);
+    }
+
+    .draft-mvp-btn {
+      grid-column: 1 / -1;
+      justify-self: center;
+      border: 1px solid var(--line);
+      color: var(--ink);
+    }
+
+    .historico-mvp {
+      font-family: var(--font-body);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--gold-dark);
+      margin-top: 4px;
+    }
+
+    .share-btn {
+      margin-bottom: 14px;
     }

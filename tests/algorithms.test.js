@@ -15,6 +15,12 @@ const {
   buildExtraVolta,
   buildFirstRoundSeeding,
   getPlayoffWinner,
+  balancedDraft,
+  tallyPlayerStats,
+  mergePlayerStats,
+  getChampion,
+  buildArchiveEntry,
+  archiveTally,
   GAME_STATUS,
 } = await import('../js/algorithms.js');
 
@@ -192,5 +198,120 @@ describe('eliminatórias', () => {
     expect(getPlayoffWinner(game, done('1-1', '4-5'))).toBe(5);
     expect(getPlayoffWinner(game, done('1-1'))).toBe(null);
     expect(getPlayoffWinner(game, { score: '2-1', status: GAME_STATUS.DECORRER })).toBe(null);
+  });
+});
+
+describe('equipas equilibradas', () => {
+  const p = (name, v) => ({
+    name,
+    atributos: { velocidade: v, finalizacao: v, passe: v, drible: v, defesa: v, fisico: v },
+  });
+  const sum = (arr) => arr.reduce((s, x) => s + getPlayerRating(x), 0);
+  const gap = ({ equipaA, equipaB }) => Math.round(Math.abs(sum(equipaA) - sum(equipaB)) * 10) / 10;
+
+  it('encontra a divisão perfeita que o snake draft falha', () => {
+    const players = [10, 9, 6, 5, 3, 1].map((v) => p(`p${v}`, v / 2));
+    expect(gap(snakeDraft(players))).toBe(1);
+    const out = balancedDraft(players);
+    expect(gap(out)).toBe(0);
+    expect(out.equipaA.length).toBe(3);
+    expect(out.equipaB.length).toBe(3);
+  });
+
+  it('nunca fica pior que o snake draft e mantém o tamanho das equipas', () => {
+    let seed = 7;
+    const rand = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+    for (let n = 2; n <= 24; n++) {
+      const players = Array.from({ length: n }, (_, i) => p(`p${i}`, Math.round(rand() * 50) / 10));
+      const out = balancedDraft(players);
+      expect(gap(out)).toBeLessThanOrEqual(gap(snakeDraft(players)));
+      expect(Math.abs(out.equipaA.length - out.equipaB.length)).toBeLessThanOrEqual(1);
+      expect(out.equipaA.length + out.equipaB.length).toBe(n);
+    }
+  });
+
+  it('lida com um só jogador', () => {
+    const out = balancedDraft([p('a', 3)]);
+    expect(out.equipaA.length + out.equipaB.length).toBe(1);
+  });
+});
+
+describe('estatísticas de jogadores', () => {
+  const results = {
+    0: {
+      score: '3-1',
+      scorers: { home: ['ana', 'ana', 'auto'], away: ['rui'] },
+      assists: { home: ['rui', '', ''], away: ['ze'] },
+      mvp: 'ana',
+    },
+    1: { score: '1-0', scorers: { home: ['rui'], away: [] } },
+    2: '2-2',
+  };
+  const singulares = [{ scorersA: ['ana'], scorersB: [], assistsA: ['ze'], mvp: 'ze' }];
+
+  it('conta golos, assistências, MVP e recorde, sem autogolos', () => {
+    const t = tallyPlayerStats(results, singulares);
+    expect(t.ana).toEqual({ golos: 3, assistencias: 0, mvp: 1, jogosAMarcar: 2, recorde: 2 });
+    expect(t.rui).toEqual({ golos: 2, assistencias: 1, mvp: 0, jogosAMarcar: 2, recorde: 1 });
+    expect(t.ze).toEqual({ golos: 0, assistencias: 2, mvp: 1, jogosAMarcar: 0, recorde: 0 });
+    expect(t.auto).toBeUndefined();
+  });
+
+  it('dados antigos sem assistências continuam a contar', () => {
+    const t = tallyPlayerStats({ 0: { scorers: { home: ['a'] } } }, [{ scorersA: ['a', 'a'] }]);
+    expect(t.a.golos).toBe(3);
+    expect(t.a.recorde).toBe(2);
+  });
+
+  it('junta contagens somando e mantendo o recorde máximo', () => {
+    const a = { x: { golos: 2, assistencias: 1, mvp: 0, jogosAMarcar: 1, recorde: 2 } };
+    const b = { x: { golos: 1, assistencias: 0, mvp: 1, jogosAMarcar: 1, recorde: 1 }, y: { golos: 1, assistencias: 0, mvp: 0, jogosAMarcar: 1, recorde: 1 } };
+    expect(mergePlayerStats(a, b)).toEqual({
+      x: { golos: 3, assistencias: 1, mvp: 1, jogosAMarcar: 2, recorde: 2 },
+      y: { golos: 1, assistencias: 0, mvp: 0, jogosAMarcar: 1, recorde: 1 },
+    });
+  });
+});
+
+describe('arquivo de torneios', () => {
+  const teams = [{ name: 'Leões', color: '#111111' }, { name: 'Águias', color: '#222222' }, { name: 'Dragões', color: '#333333' }];
+  const schedule = [{ home: 0, away: 1 }, { home: 1, away: 2 }, { home: 2, away: 0 }];
+  const done = (score, extra = {}) => ({ score, status: GAME_STATUS.TERMINADO, scorers: { home: [], away: [] }, ...extra });
+
+  it('campeão é o líder da liga sem eliminatórias', () => {
+    const results = { 0: done('2-0'), 1: done('1-1'), 2: done('0-1') };
+    const groups = computeStandings(teams, schedule, results, config);
+    expect(getChampion(schedule, results, groups)).toBe(0);
+    expect(getChampion(schedule, {}, computeStandings(teams, schedule, {}, config))).toBe(null);
+  });
+
+  it('com eliminatórias, campeão é o vencedor da final', () => {
+    const sch = [...schedule,
+      { home: 0, away: 2, isPlayoff: true, playoffMatchId: 'm1', nextMatchId: 'm2_home' },
+      { home: 0, away: 1, isPlayoff: true, playoffMatchId: 'm2' }];
+    const results = { 0: done('2-0'), 3: done('1-0'), 4: done('1-1', { penalties: '3-4' }) };
+    const groups = computeStandings(teams, sch, results, config);
+    expect(getChampion(sch, results, groups)).toBe(1);
+    expect(getChampion(sch, { 0: done('2-0') }, groups)).toBe(null);
+  });
+
+  it('guarda tabela, campeão e jogadores do torneio', () => {
+    const results = {
+      0: done('2-0', { scorers: { home: ['ana', 'ana'], away: [] }, assists: { home: ['rui', ''], away: [] }, mvp: 'ana' }),
+      1: done('1-1', { scorers: { home: ['rui'], away: ['ze'] } }),
+      2: { score: '0-0', status: GAME_STATUS.AGENDADO },
+    };
+    const entry = buildArchiveEntry(
+      { config: { ...config, nome: 'Verão' }, teams, schedule, results, scheduleTeamCount: 3 },
+      { ana: 'Ana', rui: 'Rui' }, 'id1', '2026-10-02T10:00:00.000Z',
+    );
+    expect(entry.nome).toBe('Verão');
+    expect(entry.campeao).toEqual({ nome: 'Leões', cor: '#111111' });
+    expect(entry.jogos).toBe(2);
+    expect(entry.golos).toBe(4);
+    expect(entry.grupos[0].tabela.map((t) => t.nome)).toEqual(['Leões', 'Dragões', 'Águias']);
+    expect(entry.jogadores[0]).toEqual({ pid: 'ana', nome: 'Ana', golos: 2, assistencias: 0, mvp: 1, jogosAMarcar: 1, recorde: 2 });
+    expect(entry.jogadores.find((j) => j.pid === 'ze').nome).toBe('Jogador Desconhecido');
+    expect(archiveTally(entry).rui).toEqual({ golos: 1, assistencias: 1, mvp: 0, jogosAMarcar: 1, recorde: 1 });
   });
 });
