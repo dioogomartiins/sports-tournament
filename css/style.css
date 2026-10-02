@@ -2333,11 +2333,26 @@
     }
 
     .score-bump {
-      animation: score-bump .6s cubic-bezier(.2, 1.6, .4, 1);
+      animation: score-bump 1.1s cubic-bezier(.2, 1.4, .4, 1);
     }
 
+    /* Salto do número com destaque (--bump-color: cor da equipa ou vermelho) */
     @keyframes score-bump {
-      40% { transform: scale(1.35); }
+      0% { transform: none; }
+      25% {
+        transform: scale(1.45);
+        color: var(--bump-color);
+        text-shadow: 0 0 12px var(--bump-color);
+        box-shadow: 0 0 0 3px var(--bump-color);
+        border-color: var(--bump-color);
+      }
+      70% {
+        transform: none;
+        color: var(--bump-color);
+        box-shadow: 0 0 0 3px var(--bump-color);
+        border-color: var(--bump-color);
+      }
+      100% { transform: none; }
     }
 
     @media (prefers-reduced-motion: reduce) {

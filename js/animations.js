@@ -85,6 +85,10 @@ function overlayHtml(ev) {
     (game && score ? `<div class="anim-sub">${escapeHtml(getTeamName(game.home))} ${escapeHtml(score)} ${escapeHtml(getTeamName(game.away))}</div>` : '');
 }
 
+// O banner começa a desvanecer aos 78% da duração
+const BUMP_DELAY = Math.round(DURATION * 0.85);
+const ANULADO_COLOR = '#D64535';
+
 function play(ev) {
   const targets = document.querySelectorAll(`[data-game="${CSS.escape(String(ev.gi))}"]`);
   if (!targets.length) return;
@@ -109,11 +113,21 @@ function play(ev) {
     }, DURATION);
 
     if (ev.type === 'golo' || ev.type === 'anulado') {
-      target.querySelectorAll(`[data-side="${ev.side}"]:not(button)`).forEach((el) => {
-        el.classList.remove('score-bump');
-        void el.offsetWidth; // reinicia a animação
-        el.classList.add('score-bump');
-      });
+      // O número salta só quando o banner desaparece, destacado na cor da
+      // equipa (golo) ou a vermelho (anulado). Procura os elementos nessa
+      // altura, porque o DOM pode ter sido redesenhado entretanto.
+      const bump = ev.type === 'golo' ? teamColor(ev.gi, ev.side) : ANULADO_COLOR;
+      setTimeout(() => {
+        document.querySelectorAll(`[data-game="${CSS.escape(String(ev.gi))}"]`).forEach((t) => {
+          t.querySelectorAll(`[data-side="${ev.side}"]:not(button):not(.pen-box)`).forEach((el) => {
+            el.classList.remove('score-bump');
+            void el.offsetWidth; // reinicia a animação
+            el.style.setProperty('--bump-color', bump);
+            el.classList.add('score-bump');
+            el.addEventListener('animationend', () => el.classList.remove('score-bump'), { once: true });
+          });
+        });
+      }, BUMP_DELAY);
     }
   });
 }
