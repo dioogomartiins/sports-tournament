@@ -16,6 +16,8 @@ Este guia explica como usar a app no dia a dia: quem pode fazer o quê, como mon
 
 ## Contas e perfis
 
+![Perfis e permissões](assets/illustrations/08-perfis-e-permissoes.jpg)
+
 Qualquer pessoa com o link vê o torneio, sem conta. Para alterar alguma coisa é preciso carregar em **🔑 Entrar**, entrar com Google, e ter um perfil atribuído por um admin.
 
 | Perfil | Pode |
@@ -34,7 +36,7 @@ Os botões que o teu perfil não pode usar ficam escondidos. Mesmo que alguém c
 |---|---|
 | 🏠 Dashboard | Resumo: top 3 da classificação e números do torneio. O botão 🔁 no topo atualiza os números. |
 | 🏆 Classificação | Tabela completa (por grupo) e bracket das eliminatórias. |
-| 📅 Calendário | Jornadas, jogos e folgas; gerar eliminatórias e adicionar voltas. |
+| 📅 Calendário | Jornadas, jogos e folgas; gerar eliminatórias e adicionar voltas. Tocar num jogo abre a janela do jogo. |
 | ⚽ Resultados | Onde se registam os jogos ao vivo. |
 | 📊 Estatísticas | Marcadores, assistências e MVPs do torneio atual e dos jogos singulares. |
 | 🗄️ Histórico | Torneios arquivados e estatísticas de sempre. |
@@ -46,7 +48,7 @@ O botão de tema no topo alterna entre claro e escuro.
 
 ## Montar um torneio
 
-Estes passos são feitos por um **admin**.
+Estes passos são feitos por um **admin**. Quem não é admin vê Equipas, Plantéis e Jogadores só de leitura, sem botões de edição.
 
 1. **Jogadores** (Gestão → 👤 Jogadores): cria cada jogador e dá-lhe de 0 a 5 estrelas em Velocidade, Finalização, Passe, Drible, Defesa e Físico. A média é o rating ★ do jogador. Esta base de dados é comum a todos os torneios e aos jogos singulares.
 2. **Configuração** (⚙️): escolhe o nome, o número de equipas (2 a 32), o número de grupos (1, 2, 4 ou 8), o número de voltas, a pontuação e se há eliminatórias e quantas equipas se apuram.
@@ -60,14 +62,21 @@ Gerar um calendário novo apaga os resultados já introduzidos (a app pede confi
 
 ## Durante os jogos
 
+![Durante os jogos](assets/illustrations/09-durante-os-jogos.jpg)
+
+![Golo ao vivo](assets/illustrations/16-golo-ao-vivo.jpg)
+
 No separador **⚽ Resultados**, cada jogo tem:
 
 - **Estado**: carregar no botão alterna entre *Agendado → A decorrer → Terminado*. Jogos agendados não contam para a classificação.
 - **＋ / −** de cada lado: o ＋ pergunta quem marcou (ou *autogolo*) e depois quem assistiu (ou *sem assistência*; os autogolos não têm). O − retira o último golo dessa equipa. Marcar o primeiro golo põe o jogo *A decorrer*.
-- **MVP**: nos jogos terminados, um botão para escolher o melhor jogador.
-- **📤 Partilhar**: nos jogos terminados, gera uma imagem do resultado.
+- **📋 Jogo**: abre a janela do jogo (ver abaixo).
 
 Também podes escrever o resultado diretamente nas caixas; nesse caso não ficam marcadores associados.
+
+**Janela do jogo.** Abre com **📋 Jogo** nos Resultados, ou tocando no jogo no Calendário. Mostra o resultado e, por equipa, cada golo com o marcador e a assistência. Atualiza-se sozinha quando alguém regista um golo noutro telemóvel. Com o jogo terminado, tem os botões **⭐ Escolher MVP** e **📤 Partilhar imagem** (a imagem do resultado).
+
+**Ao vivo em todos os telemóveis.** Quando um jogo começa, há golo (fundo com a cor da equipa, marcador e assistência), um golo é anulado ou o jogo termina, aparece uma animação curta em todos os dispositivos, e na Classificação as equipas deslizam para o novo lugar. Com *movimento reduzido* ligado no telemóvel, as animações não aparecem.
 
 A classificação, o dashboard e as estatísticas atualizam sozinhos em todos os dispositivos.
 
@@ -79,10 +88,14 @@ Num jogo de eliminatória terminado empatado aparecem as caixas de **Penáltis**
 
 ## Terminar e arquivar
 
+![Terminar e arquivar](assets/illustrations/10-terminar-e-arquivar.jpg)
+
 Quando o torneio acaba, um admin vai a **Gestão → 💾 Dados → 🗄️ Arquivar e Começar Novo**. A app:
 
 1. Guarda no **🗄️ Histórico** a classificação final, o campeão (vencedor da final, ou primeiro da liga quando há um só grupo e sem eliminatórias), o número de jogos e golos, e as estatísticas de cada jogador.
 2. Limpa o calendário e os resultados.
+
+Se ainda houver jogos por terminar, a app avisa antes: o campeão guardado será quem lidera nesse momento, ou nenhum se a final não terminou.
 
 Equipas, plantéis, jogadores, configuração e jogos singulares ficam como estavam, prontos para o próximo torneio.
 
@@ -100,10 +113,12 @@ Os golos, assistências e MVPs dos jogos singulares contam para as estatísticas
 
 ## Estatísticas, ficha de jogador e partilha
 
+![Golos, assistências e MVP](assets/illustrations/11-golos-assistencias-mvp.jpg)
+
 - **📊 Estatísticas**: tabela de marcadores, assistências e MVPs do torneio atual e dos jogos singulares.
 - **🗄️ Histórico**: lista dos torneios arquivados e uma tabela de sempre (torneios arquivados, torneio atual e jogos singulares).
 - **Ficha de jogador**: carrega no nome de um jogador para ver atributos, rating, e golos, assistências e MVPs de sempre.
-- **Partilhar**: **📤 Partilhar Classificação** na Classificação, e 📤 em cada resultado terminado. No telemóvel abre a partilha do sistema (WhatsApp, etc.); no computador descarrega a imagem PNG.
+- **Partilhar**: **📤 Partilhar Classificação** na Classificação, e **📤 Partilhar imagem** na janela de cada jogo terminado. No telemóvel abre a partilha do sistema (WhatsApp, etc.); no computador descarrega a imagem PNG.
 
 ## Dados: exportar, importar e apagar
 

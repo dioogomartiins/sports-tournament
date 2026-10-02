@@ -37,6 +37,8 @@ Deployed to GitHub Pages at `/torneio-ilog/` on every push to `main`.
   Update the matching page in the same PR when behaviour, rules or the state
   shape change.
 - Commit messages follow conventional commits (`feat:`, `fix:`, `refactor:`, ...).
+- Documentation illustrations use the `ian-xiaohei-illustrations` skill (same
+  style as the CarCity docs); the shot list and prompts live in issue #10.
 
 ## Checks
 
@@ -47,7 +49,8 @@ Deployed to GitHub Pages at `/torneio-ilog/` on every push to `main`.
 
 ## Rules
 
-- Pushing to `main` deploys immediately. Work on a branch and open a PR.
+- Pushing to `main` deploys immediately: the workflow tests and publishes
+  `database.rules.json` first, then the site. Work on a branch and open a PR.
 - `.env` is local only and must never be committed, printed or copied into code.
   CI builds it from repository secrets (see `.github/workflows/deploy.yml`).
 - `VITE_*` values end up in the public bundle, so none of them is a real secret.

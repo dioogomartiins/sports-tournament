@@ -16,6 +16,8 @@ Como a app chega aos números que mostra. Toda esta lógica está em `js/algorit
 
 ## Pontuação
 
+![Bónus de goleada](assets/illustrations/03-bonus-de-goleada.jpg)
+
 Configurável em ⚙️ Configuração. Valores por defeito:
 
 | | Pontos |
@@ -30,6 +32,8 @@ O **bónus de goleada** vai para a equipa que ganha marcando pelo menos o númer
 Só contam jogos da fase de liga com resultado e que não estejam *Agendados*. Os jogos das eliminatórias não entram na classificação.
 
 ## Classificação e desempates
+
+![Desempate por confronto direto](assets/illustrations/04-desempate-confronto-direto.jpg)
 
 As equipas ordenam-se por:
 
@@ -49,6 +53,8 @@ Com grupos, cada grupo tem a sua tabela.
 
 ## Calendário (Algoritmo de Berger)
 
+![Algoritmo de Berger](assets/illustrations/02-algoritmo-de-berger.jpg)
+
 Cada volta é um campeonato a uma mão em que todas as equipas se defrontam uma vez. O algoritmo de Berger fixa uma equipa e roda as outras, o que dá jornadas equilibradas e alterna quem joga em casa.
 
 - **Número ímpar de equipas:** em cada jornada uma equipa folga; a folga aparece no calendário.
@@ -62,6 +68,8 @@ Um calendário com N equipas tem N−1 jornadas por volta (N se N for ímpar) e 
 Com 2, 4 ou 8 grupos, as equipas são **sorteadas** pelos grupos sempre que se gera o calendário, em partes o mais iguais possível (os últimos grupos podem ficar com menos equipas). Cada grupo tem o seu próprio calendário de Berger, jogado nas mesmas jornadas.
 
 ## Eliminatórias
+
+![Grupos e seeds](assets/illustrations/05-grupos-e-seeds.jpg)
 
 O número de equipas apuradas é *apuradas por grupo × número de grupos* e tem de ser 2, 4, 8 ou 16. O bracket começa em:
 
@@ -84,9 +92,13 @@ O número de equipas apuradas é *apuradas por grupo × número de grupos* e tem
 
 ## Rating dos jogadores
 
+![Rating do jogador](assets/illustrations/06-rating-do-jogador.jpg)
+
 Cada jogador tem 0 a 5 estrelas em seis atributos: Velocidade, Finalização, Passe, Drible, Defesa e Físico. O **rating ★** é a média dos seis, com uma casa decimal. O rating de uma equipa é a soma dos ratings dos seus jogadores.
 
 ## Equipas equilibradas (Jogo Singular)
+
+![Equipas equilibradas](assets/illustrations/07-equipas-equilibradas.jpg)
 
 O **⚽ Fazer Draft** divide os jogadores presentes em duas equipas:
 
