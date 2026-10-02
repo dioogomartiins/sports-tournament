@@ -15,16 +15,16 @@ Como pôr a app a funcionar: o projeto Firebase, as variáveis de ambiente, o de
 
 - Node.js 20 (a versão usada no CI)
 - Um projeto Firebase com **Realtime Database** e **Authentication**
-- Opcional: [Firebase CLI](https://firebase.google.com/docs/cli) para os emuladores e para publicar as regras
+- Opcional: [Firebase CLI](https://firebase.google.com/docs/cli) e Java 11 ou mais recente, para os emuladores e para `npm run test:rules`
 
 ## Configurar o Firebase (uma vez)
 
 1. **Authentication → Sign-in method:** ativar **Google**.
 2. **Authentication → Settings → Authorized domains:** adicionar `dioogomartiins.github.io` (e `localhost` para desenvolvimento, que costuma já lá estar).
-3. **Realtime Database → Rules:** colar o conteúdo de [`database.rules.json`](../database.rules.json) e publicar.
+3. **Realtime Database → Rules:** não é preciso fazer nada à mão. O deploy publica [`database.rules.json`](../database.rules.json) sozinho (ver [Publicação](#publicação-deploy)); só tens de criar a conta de serviço indicada lá.
 4. **Primeiro admin:** abrir o site, entrar com Google, e depois em **Realtime Database → Data** criar `utilizadores/<o teu uid>/role` com o valor `"admin"` (o uid aparece em Authentication → Users). A partir daí, os outros perfis atribuem-se na própria app, em Gestão → 👮 Utilizadores.
 
-Sempre que `database.rules.json` mudar no repositório, é preciso voltar a publicá-lo na consola (ou com `firebase deploy --only database`). O deploy do site **não** publica as regras.
+As regras são publicadas automaticamente em cada push para `main`, antes do site. Não as edites na consola: a próxima publicação apaga o que lá estiver. Para as publicar à mão (por exemplo, para testar num projeto Firebase teu), usa `npx firebase-tools deploy --only database --project <id>`.
 
 ## Variáveis de ambiente
 
@@ -82,20 +82,32 @@ Carrega `database.rules.json` no emulador para testar os perfis. Para editar pre
 **Antes de abrir um PR:**
 
 ```bash
-npm test         # testes da lógica pura
-npm run build    # tem de passar
+npm test             # testes da lógica pura
+npm run test:rules   # testes das regras no emulador (se mudaste database.rules.json; precisa de Java)
+npm run build        # tem de passar
 ```
 
 E verifica as mudanças de interface numa largura de telemóvel (cerca de 390px) e nos dois temas.
 
 ## Publicação (deploy)
 
-Cada push para `main` publica o site no GitHub Pages pelo workflow [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml): instala dependências, corre os testes, cria o `.env` a partir dos secrets, faz o build e publica `dist/`. Por isso, as mudanças fazem-se num branch com PR.
+Cada push para `main` corre o workflow [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml), em dois passos seguidos:
+
+1. **Regras (`rules`):** testa `database.rules.json` no emulador do Firebase (`npm run test:rules`) e, se passar, publica as regras no Realtime Database com `firebase deploy --only database`.
+2. **Site (`deploy`):** só arranca se as regras foram publicadas. Instala dependências, corre os testes, cria o `.env` a partir dos secrets, faz o build e publica `dist/` no GitHub Pages.
+
+As regras vão primeiro porque o site novo depende delas (por exemplo, o `logRef` do [registo de alterações](arquitetura.md#registo-de-alterações)). Se as regras falharem, o site antigo continua no ar e nada fica a meio. Por isso, as mudanças fazem-se num branch com PR.
+
+Quando as regras mudam de forma incompatível, os telemóveis com a página antiga aberta deixam de conseguir gravar ("A alteração foi recusada pela base de dados") até recarregarem a página.
 
 O que tem de estar configurado no GitHub:
 
 - **Settings → Pages → Source:** *GitHub Actions* (com *Deploy from a branch* o site serve o código-fonte e não funciona).
-- **Settings → Secrets and variables → Actions:** um secret com o mesmo nome para cada `VITE_FIREBASE_*` do `.env.example`. Sem eles o deploy falha com um erro explícito.
+- **Settings → Secrets and variables → Actions → Repository secrets:**
+  - um secret com o mesmo nome para cada `VITE_FIREBASE_*` do `.env.example`;
+  - `FIREBASE_SERVICE_ACCOUNT`: o JSON de uma conta de serviço do projeto Firebase (consola Firebase → ⚙️ Definições do projeto → Contas de serviço → Gerar nova chave privada), É usado só para publicar as regras. A conta `firebase-adminsdk` que a consola cria já tem permissão; se usares outra, dá-lhe o papel *Firebase Realtime Database Admin*.
+
+  Têm de ser secrets do **repositório**, não só do ambiente `github-pages`: o passo das regras não usa esse ambiente e não os vê. Sem eles o deploy falha com um erro explícito.
 
 O site fica em `https://dioogomartiins.github.io/torneio-ilog/` (o caminho vem do `base` em `vite.config.js`).
 
@@ -107,7 +119,9 @@ O site fica em `https://dioogomartiins.github.io/torneio-ilog/` (o caminho vem d
 | Erros do Firebase na consola do browser | `.env` em falta ou URL da base de dados errado |
 | "A tua conta ainda não foi aprovada por um admin." | A conta não tem perfil: um admin tem de o dar em Gestão → 👮 Utilizadores |
 | "Só um admin pode fazer esta alteração." | A conta é Utilizador e a alteração é de admin |
-| A app deixa gravar mas a alteração desaparece | As regras publicadas na consola estão desatualizadas em relação a `database.rules.json` |
+| "A alteração foi recusada pela base de dados (sem permissão). Foi desfeita." | A página está desatualizada em relação às regras publicadas: recarrega. Se continuar, a conta não tem perfil para essa alteração |
 | Login com Google falha no site publicado | `dioogomartiins.github.io` não está nos domínios autorizados |
-| Deploy falha em "Create .env" | Faltam os secrets do repositório |
+| Deploy falha em "Create .env" | Faltam os secrets `VITE_FIREBASE_*` do repositório |
+| Deploy falha em "Test rules in the emulator" | `database.rules.json` partiu um caso de `tests/rules/rules.check.mjs`; corre `npm run test:rules` localmente |
+| Deploy falha em "Deploy database rules" | Falta o secret `FIREBASE_SERVICE_ACCOUNT` (ou está só no ambiente `github-pages`), ou a conta de serviço não tem o papel *Firebase Realtime Database Admin* |
 | Site publicado com `Failed to resolve module specifier` | Pages está em *Deploy from a branch* em vez de *GitHub Actions* |

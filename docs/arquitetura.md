@@ -40,11 +40,13 @@ Como o código está organizado, como os dados são guardados e sincronizados, e
 | `js/sync.js` | Diferenças entre snapshots para o `update()`, normalização de dados guardados pelo Firebase e texto do registo de alterações. |
 | `js/firebase.js` | Ligação ao Firebase: escuta `torneio_state`, envia alterações, login Google, perfil do utilizador, lista de utilizadores e registo. |
 | `js/permissions.js` | Que secções cada perfil pode gravar. Espelha `database.rules.json`. |
-| `js/ui.js` | Desenha todos os ecrãs e modais (classificação, calendário, resultados, fichas, histórico, …). |
+| `js/ui.js` | Desenha todos os ecrãs e modais (classificação, calendário, resultados, janela do jogo, fichas, histórico, …). |
+| `js/animations.js` | Animações ao vivo (jogo começa, golo, golo anulado, jogo termina). Nascem da comparação entre o resultado anterior e o novo, por isso aparecem em todos os dispositivos. Desligadas com *movimento reduzido*. |
 | `js/share.js` | Desenha num `<canvas>` as imagens PNG da classificação e dos resultados, e partilha-as. |
 | `js/utils.js` | Funções pequenas: `escapeHtml`, `safeColor`, nomes de equipas, datas. |
-| `database.rules.json` | Regras de segurança do Realtime Database. |
-| `tests/` | Testes Vitest. |
+| `database.rules.json` | Regras de segurança do Realtime Database, publicadas pelo deploy. |
+| `firebase.json` | Diz ao Firebase CLI onde estão as regras (usado pelo deploy). |
+| `tests/` | Testes Vitest; `tests/rules/` tem os testes das regras no emulador. |
 
 ## Modelo de dados
 
@@ -63,6 +65,7 @@ Todo o estado do torneio vive num só nó, `torneio_state`, com estas secções:
 | `jogosSingulares` | Jogos singulares com as duas equipas, resultado, marcadores, assistências e MVP. |
 | `arquivo` | Torneios arquivados: nome, data, campeão, tabelas finais e estatísticas por jogador. |
 | `version`, `exportedAt` | Versão do formato (`SNAPSHOT_VERSION`) e data da última gravação. |
+| `logRef` | Chave da entrada de `torneio_log` da última gravação (ver [Registo de alterações](#registo-de-alterações)). |
 
 Notas:
 
@@ -95,19 +98,27 @@ As regras do Firebase são a proteção real; o cliente só esconde botões e av
 
 | Caminho | Ler | Escrever |
 |---|---|---|
-| `torneio_state` | Todos | `results`, `schedule`, `jogosSingulares`, `exportedAt`, `version`: Utilizador e Admin. Restantes secções: só Admin. |
+| `torneio_state` | Todos | `results/<jogo>`, `schedule/<jogo>/home` e `away`, `jogosSingulares`, `exportedAt`, `version`: Utilizador e Admin. Restantes secções, e `results` ou `schedule` inteiros: só Admin. |
 | `utilizadores` | Admin (todos); cada um o seu | Cada um o seu nome, email, foto e último acesso; `role` só Admin. |
 | `torneio_log` | Admin | Utilizador e Admin, só entradas novas, com o próprio `uid` e a hora do servidor. |
 
-`schedule` é gravável por utilizadores porque terminar um jogo de eliminatória escreve o vencedor no jogo seguinte do bracket.
+Os utilizadores só podem gravar `home` e `away` de cada jogo do calendário porque terminar um jogo de eliminatória escreve o vencedor no jogo seguinte do bracket. O resto do calendário é só de admins.
 
-**Mudar permissões:** alterar `database.rules.json` e `js/permissions.js` (`USER_SECTIONS`) juntos, atualizar `tests/permissions.test.js`, e publicar as regras na consola Firebase depois do merge (ver [Instalação e Publicação](configuracao.md#configurar-o-firebase-uma-vez)).
+Além de quem pode escrever, as regras validam o que se escreve: resultados no formato `"2-1"`, estados conhecidos (`agendado`, `decorrer`, `terminado`), listas de marcadores e assistências por lado, e textos com tamanho limitado. Qualquer gravação em `torneio_state` tem também de trazer um `logRef` novo (ver [Registo de alterações](#registo-de-alterações)).
+
+Na app, quem não é admin vê Equipas, Plantéis e Jogadores só de leitura, com uma nota a explicar.
+
+**Mudar permissões:** alterar `database.rules.json` e `js/permissions.js` (`USER_SECTIONS`) juntos, atualizar `tests/permissions.test.js` e `tests/rules/rules.check.mjs`, e correr `npm run test:rules`. As regras são publicadas sozinhas no deploy depois do merge (ver [Publicação](configuracao.md#publicação-deploy)).
+
+Se o Firebase recusar uma gravação que o cliente deixou passar, o valor do servidor volta sozinho e a app avisa: "A alteração foi recusada pela base de dados (sem permissão). Foi desfeita."
 
 Quando o cliente percebe antes de enviar que a alteração não é permitida (sem sessão, sem perfil, ou secção só de admin), não envia nada: `state.js` volta ao último snapshot sincronizado e mostra o motivo.
 
 ## Registo de alterações
 
 `describeUpdates` (em `sync.js`) transforma cada `update()` numa frase legível (por exemplo, "Equipas alteradas", ou o jogo cujo resultado mudou). A entrada `{ uid, nome, acao, quando }` vai para `torneio_log`. Os admins veem as últimas 200 em Gestão → 👮 Utilizadores.
+
+O registo é obrigatório, não só uma convenção do cliente: o mesmo `update()` grava `torneio_state/logRef` com a chave da entrada nova, e as regras só aceitam a gravação se essa entrada for nova, for do próprio utilizador e o `logRef` mudar. Uma gravação sem registo é recusada.
 
 ## Alterar a forma do estado
 
@@ -127,10 +138,11 @@ Qualquer pessoa com a configuração pública pode tentar escrever no Firebase, 
 ## Testes
 
 ```bash
-npm test
+npm test             # lógica pura
+npm run test:rules   # regras do Firebase no emulador (precisa de Java)
 ```
 
-Os testes cobrem só a lógica pura, sem browser nem Firebase:
+`npm test` cobre só a lógica pura, sem browser nem Firebase:
 
 | Ficheiro | Cobre |
 |---|---|
@@ -139,4 +151,8 @@ Os testes cobrem só a lógica pura, sem browser nem Firebase:
 | `tests/permissions.test.js` | `canWritePath`, `blockedPaths`, `roleLabel` |
 | `tests/utils.test.js` | `escapeHtml`, `safeColor` |
 
-`algorithms.js` importa `state.js` e `utils.js`, que carregam a interface e o Firebase; os testes substituem-nos com `vi.mock` e depois fazem `await import` do módulo. A interface e o Firebase verificam-se à mão (ver [Correr localmente](configuracao.md#correr-localmente)). O CI corre os testes antes de cada deploy.
+`algorithms.js` importa `state.js` e `utils.js`, que carregam a interface e o Firebase; os testes substituem-nos com `vi.mock` e depois fazem `await import` do módulo. A interface verifica-se à mão (ver [Correr localmente](configuracao.md#correr-localmente)).
+
+`npm run test:rules` arranca o emulador do Realtime Database com `database.rules.json` e corre `tests/rules/rules.check.mjs`: quem pode gravar cada caminho, as validações e o `logRef`. Usa a configuração de `tests/rules/firebase.json`, separada da da raiz.
+
+O CI corre os dois antes de cada deploy: as regras no passo `rules`, a lógica no passo `deploy`.

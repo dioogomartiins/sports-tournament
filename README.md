@@ -9,7 +9,7 @@ Aplicação web para organizar torneios de futebol entre amigos: equipas, plant�
 ![Do calendário ao campeão](docs/assets/illustrations/01-do-calendario-ao-campeao.jpg)
 
 - **Calendário automático** pelo Algoritmo de Berger, com 1 a 8 grupos, várias voltas e volta extra.
-- **Resultados ao vivo**: estado do jogo (agendado, a decorrer, terminado), marcadores, assistências e MVP.
+- **Resultados ao vivo**: estado do jogo (agendado, a decorrer, terminado), marcadores, assistências e MVP, com uma janela por jogo e animações de golo em todos os telemóveis.
 - **Classificação** com pontos configuráveis, bónus por goleada e desempate por confronto direto.
 - **Eliminatórias** (mata-mata) geradas a partir da classificação, com penáltis.
 - **Jogo Singular**: escolhes quem está presente e a app divide os jogadores em duas equipas equilibradas pelo rating.
@@ -25,7 +25,7 @@ Aplicação web para organizar torneios de futebol entre amigos: equipas, plant�
 |---|---|---|
 | [Guia de Utilização](docs/guia.md) | Quem usa a app | Perfis, como montar e jogar um torneio, jogo singular, histórico, dados |
 | [Regras e Cálculos](docs/regras.md) | Quem quer perceber os números | Pontuação, desempates, calendário, eliminatórias, ratings, equipas equilibradas |
-| [Instalação e Publicação](docs/configuracao.md) | Quem mantém a app | Firebase, `.env`, correr localmente sem tocar no torneio real, deploy |
+| [Instalação e Publicação](docs/configuracao.md) | Quem mantém a app | Firebase, `.env`, correr localmente sem tocar no torneio real, deploy do site e das regras |
 | [Arquitetura](docs/arquitetura.md) | Quem altera o código | Módulos, modelo de dados, sincronização, permissões, testes |
 
 ## 🚀 Início rápido (desenvolvimento)
@@ -46,6 +46,7 @@ Abre `http://localhost:5173/torneio-ilog/`.
 |---|---|
 | `npm run dev` | Servidor de desenvolvimento com *hot reload* |
 | `npm test` | Testes (Vitest) da lógica pura |
+| `npm run test:rules` | Testes das regras do Firebase no emulador (precisa de Java) |
 | `npm run build` | Build de produção para `dist/` |
 | `npm run preview` | Serve o `dist/` como no GitHub Pages |
 
