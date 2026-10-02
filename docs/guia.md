@@ -35,7 +35,7 @@ Os botões que o teu perfil não pode usar ficam escondidos. Mesmo que alguém c
 | Separador | Para quê |
 |---|---|
 | 🏠 Dashboard | Resumo: top 3 da classificação e números do torneio. O botão 🔁 no topo atualiza os números. |
-| 🏆 Classificação | Tabela completa (por grupo) e bracket das eliminatórias. |
+| 🏆 Classificação | Tabela completa (por grupo, com os pontos logo a seguir à equipa) e bracket das eliminatórias. |
 | 📅 Calendário | Jornadas, jogos e folgas; gerar eliminatórias e adicionar voltas. Tocar num jogo abre a janela do jogo. |
 | ⚽ Resultados | Onde se registam os jogos ao vivo. |
 | 📊 Estatísticas | Marcadores, assistências e MVPs do torneio atual e dos jogos singulares. |
@@ -76,7 +76,7 @@ Também podes escrever o resultado diretamente nas caixas; nesse caso não ficam
 
 **Janela do jogo.** Abre com **📋 Jogo** nos Resultados, ou tocando no jogo no Calendário. Mostra o resultado e, por equipa, cada golo com o marcador e a assistência. Atualiza-se sozinha quando alguém regista um golo noutro telemóvel. Com o jogo terminado, tem os botões **⭐ Escolher MVP** e **📤 Partilhar imagem** (a imagem do resultado).
 
-**Ao vivo em todos os telemóveis.** Quando um jogo começa, há golo (fundo com a cor da equipa, marcador e assistência), um golo é anulado ou o jogo termina, aparece uma animação curta em todos os dispositivos, e na Classificação as equipas deslizam para o novo lugar. Com *movimento reduzido* ligado no telemóvel, as animações não aparecem.
+**Ao vivo em todos os telemóveis.** Quando um jogo começa, há golo (fundo com a cor da equipa, marcador e assistência), um golo é anulado ou o jogo termina, aparece uma animação curta em todos os dispositivos, e na Classificação as equipas deslizam para o novo lugar. Se a classificação mudou enquanto estavas noutro separador, ao abri-la vês por um instante a ordem da última vez que a viste e depois as equipas deslizam para a posição atual. Ao lado da posição, uma seta verde (▲) ou vermelha (▼) mostra quantos lugares cada equipa ganhou ou perdeu desde essa vez, e fica até a ordem voltar a mudar. Com *movimento reduzido* ligado no telemóvel, as animações não aparecem.
 
 A classificação, o dashboard e as estatísticas atualizam sozinhos em todos os dispositivos.
 
@@ -118,7 +118,7 @@ Os golos, assistências e MVPs dos jogos singulares contam para as estatísticas
 - **📊 Estatísticas**: tabela de marcadores, assistências e MVPs do torneio atual e dos jogos singulares.
 - **🗄️ Histórico**: lista dos torneios arquivados e uma tabela de sempre (torneios arquivados, torneio atual e jogos singulares).
 - **Ficha de jogador**: carrega no nome de um jogador para ver atributos, rating, e golos, assistências e MVPs de sempre.
-- **Partilhar**: **📤 Partilhar Classificação** na Classificação, e **📤 Partilhar imagem** na janela de cada jogo terminado. No telemóvel abre a partilha do sistema (WhatsApp, etc.); no computador descarrega a imagem PNG.
+- **Partilhar**: o botão **📤** no canto do título da Classificação, e **📤 Partilhar imagem** na janela de cada jogo terminado. No telemóvel abre a partilha do sistema (WhatsApp, etc.); no computador descarrega a imagem PNG.
 
 ## Dados: exportar, importar e apagar
 
