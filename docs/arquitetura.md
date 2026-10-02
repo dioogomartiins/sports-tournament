@@ -33,7 +33,7 @@ Como o código está organizado, como os dados são guardados e sincronizados, e
 | Ficheiro | Papel |
 |---|---|
 | `index.html` | Estrutura de todos os separadores e modais. |
-| `css/style.css` | Estilos, com variáveis para os temas claro e escuro. |
+| `css/` | Estilos partidos por área (`base.css` tem as variáveis dos temas claro e escuro). `style.css` só faz `@import` dos outros, pela ordem da cascata; o Vite junta tudo num ficheiro no build. Estilos novos vão para o ficheiro da área. |
 | `js/main.js` | Liga os eventos da interface às ações (gerar calendário, registar golos, arquivar, …) e arranca a app. Os botões e campos das equipas, calendário e resultados, redesenhados com `innerHTML`, têm um só listener no contentor (delegação). |
 | `js/state.js` | Estado global, valores por defeito, snapshots (`buildSnapshot` / `applySnapshot`), persistência no localStorage e envio para o Firebase. Desfaz alterações locais que o Firebase não aceitaria. Não importa o `ui.js`: os avisos e o `renderAll` chegam por `setStateHooks`, chamado pelo `main.js` no arranque. |
 | `js/algorithms.js` | Lógica pura: Berger, calendário, classificação, desempates, eliminatórias, ratings, equipas equilibradas, estatísticas de jogadores, arquivo. Ver [Regras e Cálculos](regras.md). |

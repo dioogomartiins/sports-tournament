@@ -1,0 +1,221 @@
+/* ---------- Rounds (calendar/results) ---------- */
+.round-card {
+  margin-bottom: 14px;
+}
+
+.round-head {
+  font-family: var(--font-display);
+  font-size: 13px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: #fff;
+  background: var(--pitch-600);
+  padding: 6px 12px;
+  border-radius: 6px 6px 0 0;
+  display: inline-block;
+}
+
+.round-games {
+  border: 1px solid var(--line);
+  border-top: none;
+  border-radius: 0 8px 8px 8px;
+  background: var(--card);
+}
+
+.fixture {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--line);
+  font-size: 14px;
+}
+
+.fixture:last-child {
+  border-bottom: none;
+}
+
+.fx-home {
+  text-align: right;
+  font-weight: 600;
+}
+
+.fx-away {
+  text-align: left;
+  font-weight: 600;
+}
+
+.fx-vs {
+  color: var(--ink-faint);
+  font-size: 11px;
+  font-family: var(--font-display);
+  letter-spacing: .05em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-direction: column;
+}
+
+.fixture-bye {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  color: var(--ink-faint);
+  font-style: italic;
+  font-size: 13px;
+}
+
+.result-split {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-self: center;
+}
+
+.res-box {
+  width: 40px;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 15px;
+  padding: 6px 4px;
+  border: 1.5px solid var(--line);
+  border-radius: 6px;
+  -moz-appearance: textfield;
+  background: var(--card);
+  color: var(--ink);
+}
+
+.res-box::-webkit-outer-spin-button,
+.res-box::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.res-sep {
+  color: var(--ink-faint);
+  font-weight: 600;
+}
+
+.penalties-split {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  grid-column: 1 / span 3;
+  margin-top: 4px;
+  padding: 6px 12px;
+  background: rgba(203, 161, 53, 0.1);
+  border: 1px solid rgba(203, 161, 53, 0.3);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  color: var(--pitch-800);
+}
+
+[data-theme="dark"] .penalties-split {
+  color: var(--gold);
+}
+
+.pen-box {
+  width: 32px;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 13px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  -moz-appearance: textfield;
+  background: var(--card);
+  color: var(--ink);
+}
+
+.pen-box::-webkit-outer-spin-button,
+.pen-box::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.pen-label {
+  font-weight: 600;
+  margin-right: 4px;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+}
+
+.score-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.1s;
+  padding: 0;
+  line-height: 1;
+}
+
+.score-btn:active {
+  background: var(--line);
+  transform: scale(0.95);
+}
+
+/* Estado da Partida Badge */
+.status-badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.status-agendado {
+  background: var(--paper);
+  color: var(--ink-soft);
+  border-color: var(--line);
+}
+
+.status-decorrer {
+  background: rgba(203, 161, 53, .15);
+  color: var(--gold-dark);
+  border-color: rgba(203, 161, 53, .3);
+  animation: pulse 2s infinite;
+}
+
+.status-terminado {
+  background: rgba(47, 122, 79, .15);
+  color: var(--pitch-500);
+  border-color: rgba(47, 122, 79, .3);
+}
+
+[data-theme="dark"] .status-decorrer {
+  color: var(--gold);
+}
+
+[data-theme="dark"] .status-terminado {
+  color: #7dd8a0;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.6;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
