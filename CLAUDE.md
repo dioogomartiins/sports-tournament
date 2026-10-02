@@ -11,8 +11,13 @@ Deployed to GitHub Pages at `/torneio-ilog/` on every push to `main`.
 - Module roles:
   - `js/state.js` owns global state and persistence (localStorage + Firebase push).
   - `js/algorithms.js` holds pure logic: Berger schedule, standings, head-to-head
-    tiebreaks, ratings, snake draft. Keep logic here so it stays testable.
-  - `js/ui.js` renders; `js/main.js` wires event handlers; `js/firebase.js` syncs.
+    tiebreaks, ratings, balanced team split (`balancedDraft`, which starts from `snakeDraft`
+    and swaps pairs above 20 players), player stats (goals, assists, MVP) and
+    tournament archive entries. Keep logic here so it stays testable.
+  - `js/sync.js` diffs snapshots for `update()`, normalizes older saved data
+    and describes changes for the log; `js/permissions.js` mirrors the rules.
+  - `js/ui.js` renders; `js/main.js` wires event handlers; `js/firebase.js`
+    syncs and handles Google sign-in; `js/share.js` draws the PNG share images.
 - All state lives in one Firebase node, `torneio_state`. Saves send only what
   changed since the last sync with `update()` (`js/sync.js`): results per game,
   other sections whole (last write wins within a section). Any change to the state shape must bump `SNAPSHOT_VERSION`
@@ -26,6 +31,11 @@ Deployed to GitHub Pages at `/torneio-ilog/` on every push to `main`.
   writable by anyone with the public config, so it is untrusted input.
 - The app is used live on phones during matches: check mobile widths and both
   light and dark themes when touching UI.
+- Docs live in `README.md` and `docs/` (in Portuguese): `guia.md` (using the
+  app), `regras.md` (scoring, tiebreaks, draft), `configuracao.md` (Firebase,
+  env, deploy), `arquitetura.md` (modules, data model, sync, permissions).
+  Update the matching page in the same PR when behaviour, rules or the state
+  shape change.
 - Commit messages follow conventional commits (`feat:`, `fix:`, `refactor:`, ...).
 
 ## Checks

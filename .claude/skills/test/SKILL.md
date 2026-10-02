@@ -12,11 +12,17 @@ npm run build       # must also pass
 
 ## What is covered
 
-`tests/algorithms.test.js` covers the pure logic in `js/algorithms.js`:
-Berger rounds (even and odd team counts, byes), home/away mirroring across
-voltas, group index mapping, points with the goleada bonus, head-to-head
-tiebreaks, playoff games excluded from standings, player ratings and the
-snake draft order.
+- `tests/algorithms.test.js`: pure logic in `js/algorithms.js`. Berger rounds
+  (even and odd team counts, byes), home/away mirroring across voltas, the
+  extra volta, group index mapping, points with the goleada bonus, head-to-head
+  tiebreaks, playoff games excluded from standings and playoff winners, player
+  ratings, snake draft and balanced teams, player stats (goals, assists, MVP)
+  and tournament archive entries.
+- `tests/sync.test.js`: `diffSnapshot`, `normalizeResults`,
+  `normalizeArquivo` and `describeUpdates` in `js/sync.js`.
+- `tests/permissions.test.js`: `canWritePath`, `blockedPaths` and `roleLabel`.
+  Keep these in step with `database.rules.json`.
+- `tests/utils.test.js`: `escapeHtml` and `safeColor`.
 
 ## Adding tests
 
