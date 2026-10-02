@@ -28,7 +28,7 @@ async function fontsReady() {
       document.fonts.load(`700 48px ${DISPLAY}`),
       document.fonts.load(`600 32px ${BODY}`),
     ]);
-  } catch (e) { /* usa as fontes de recurso */ }
+  } catch { /* usa as fontes de recurso */ }
 }
 
 function makeCanvas(height) {

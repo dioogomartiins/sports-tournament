@@ -30,7 +30,7 @@ export function fmtTimestamp(iso) {
     const date = d.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit' });
     const time = d.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
     return `${date} ${time}`;
-  } catch (e) {
+  } catch {
     return iso;
   }
 }

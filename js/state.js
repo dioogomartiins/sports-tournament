@@ -122,7 +122,7 @@ export async function storageGet(key) {
   try {
     const result = window.localStorage.getItem(STORAGE_PREFIX + key);
     return result !== null ? { value: result } : null;
-  } catch (e) {
+  } catch {
     return null;
   }
 }
@@ -137,7 +137,7 @@ export async function storageSet(key, value) {
   try {
     window.localStorage.setItem(STORAGE_PREFIX + key, value);
     return { value };
-  } catch (e) {
+  } catch {
     ui.flashError();
     return null;
   }
@@ -358,12 +358,12 @@ export function applyGeneratedSchedule(numEquipas, numVoltas, randomizeGroups) {
 // Carregamento do estado a partir do localStorage
 // ---------------------------------------------------------------------------
 export async function loadState() {
-  let ct = null;
-  let sc = null;
-  let rs = null;
-  let bk = null;
-  let pl = null;
-  let js = null;
+  let ct;
+  let sc;
+  let rs;
+  let bk;
+  let pl;
+  let js;
 
   try { const r = await storageGet('config-teams'); ct = r ? JSON.parse(r.value) : null; } catch { ct = null; }
   try { const r = await storageGet('schedule'); sc = r ? JSON.parse(r.value) : null; } catch { sc = null; }
@@ -371,7 +371,7 @@ export async function loadState() {
   try { const r = await storageGet('backup'); bk = r ? JSON.parse(r.value) : null; } catch { bk = null; }
   try { const r = await storageGet('players'); pl = r ? JSON.parse(r.value) : null; } catch { pl = null; }
   try { const r = await storageGet('jogos-singulares'); js = r ? JSON.parse(r.value) : null; } catch { js = null; }
-  let ar = null;
+  let ar;
   try { const r = await storageGet('arquivo'); ar = r ? JSON.parse(r.value) : null; } catch { ar = null; }
 
   const hasIndividualData = ct && ct.config && ct.teams;
@@ -420,7 +420,7 @@ export function exportJSON() {
   const snap = buildSnapshot();
   const blob = new Blob([JSON.stringify(snap, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
-  const safeName = (state.config.nome || 'torneio').replace(/[^a-z0-9_\-]/gi, '_').toLowerCase();
+  const safeName = (state.config.nome || 'torneio').replace(/[^a-z0-9_-]/gi, '_').toLowerCase();
   const ts = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
 
   const a = document.createElement('a');

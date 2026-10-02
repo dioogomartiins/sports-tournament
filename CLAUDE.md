@@ -42,6 +42,7 @@ Deployed to GitHub Pages at `/torneio-ilog/` on every push to `main`.
 
 ## Checks
 
+- `npm run lint` runs ESLint (`eslint.config.mjs`); CI runs it before the tests.
 - `npm test` runs the Vitest suite in `tests/` (pure logic only).
 - `npm run build` must pass.
 - See `.claude/skills/run` before starting the dev server: it talks to the live

@@ -82,6 +82,7 @@ Carrega `database.rules.json` no emulador para testar os perfis. Para editar pre
 **Antes de abrir um PR:**
 
 ```bash
+npm run lint         # ESLint
 npm test             # testes da lógica pura
 npm run test:rules   # testes das regras no emulador (se mudaste database.rules.json; precisa de Java)
 npm run build        # tem de passar
@@ -96,7 +97,7 @@ E verifica as mudanças de interface numa largura de telemóvel (cerca de 390px)
 Cada push para `main` corre o workflow [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml), em dois passos seguidos:
 
 1. **Regras (`rules`):** testa `database.rules.json` no emulador do Firebase (`npm run test:rules`) e, se passar, publica as regras no Realtime Database com `firebase deploy --only database`.
-2. **Site (`deploy`):** só arranca se as regras foram publicadas. Instala dependências, corre os testes, cria o `.env` a partir dos secrets, faz o build e publica `dist/` no GitHub Pages.
+2. **Site (`deploy`):** só arranca se as regras foram publicadas. Instala dependências, corre o ESLint e os testes, cria o `.env` a partir dos secrets, faz o build e publica `dist/` no GitHub Pages.
 
 As regras vão primeiro porque o site novo depende delas (por exemplo, o `logRef` do [registo de alterações](arquitetura.md#registo-de-alterações)). Se as regras falharem, o site antigo continua no ar e nada fica a meio. Por isso, as mudanças fazem-se num branch com PR.
 

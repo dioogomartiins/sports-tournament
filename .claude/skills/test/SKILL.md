@@ -6,6 +6,7 @@ description: Run and extend the Torneio ILOG test suite. Use before committing a
 # Testing Torneio ILOG
 
 ```bash
+npm run lint        # ESLint, also run by CI
 npm test            # vitest run, all tests in tests/
 npm run build       # must also pass
 ```

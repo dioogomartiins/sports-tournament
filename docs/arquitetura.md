@@ -140,6 +140,7 @@ Qualquer pessoa com a configuração pública pode tentar escrever no Firebase, 
 ## Testes
 
 ```bash
+npm run lint         # ESLint (eslint.config.mjs)
 npm test             # lógica pura
 npm run test:rules   # regras do Firebase no emulador (precisa de Java)
 ```
@@ -157,4 +158,4 @@ npm run test:rules   # regras do Firebase no emulador (precisa de Java)
 
 `npm run test:rules` arranca o emulador do Realtime Database com `database.rules.json` e corre `tests/rules/rules.check.mjs`: quem pode gravar cada caminho, as validações e o `logRef`. Usa a configuração de `tests/rules/firebase.json`, separada da da raiz.
 
-O CI corre os dois antes de cada deploy: as regras no passo `rules`, a lógica no passo `deploy`.
+O CI corre tudo antes de cada deploy: as regras no passo `rules`, o ESLint e a lógica no passo `deploy`.
