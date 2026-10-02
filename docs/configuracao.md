@@ -91,6 +91,8 @@ E verifica as mudanças de interface numa largura de telemóvel (cerca de 390px)
 
 ## Publicação (deploy)
 
+![Deploy: regras primeiro, depois o site](assets/illustrations/15-deploy-regras-e-site.jpg)
+
 Cada push para `main` corre o workflow [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml), em dois passos seguidos:
 
 1. **Regras (`rules`):** testa `database.rules.json` no emulador do Firebase (`npm run test:rules`) e, se passar, publica as regras no Realtime Database com `firebase deploy --only database`.

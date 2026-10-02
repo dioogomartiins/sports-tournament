@@ -116,6 +116,8 @@ Quando o cliente percebe antes de enviar que a alteração não é permitida (se
 
 ## Registo de alterações
 
+![Registo de alterações](assets/illustrations/14-registo-de-alteracoes.jpg)
+
 `describeUpdates` (em `sync.js`) transforma cada `update()` numa frase legível (por exemplo, "Equipas alteradas", ou o jogo cujo resultado mudou). A entrada `{ uid, nome, acao, quando }` vai para `torneio_log`. Os admins veem as últimas 200 em Gestão → 👮 Utilizadores.
 
 O registo é obrigatório, não só uma convenção do cliente: o mesmo `update()` grava `torneio_state/logRef` com a chave da entrada nova, e as regras só aceitam a gravação se essa entrada for nova, for do próprio utilizador e o `logRef` mudar. Uma gravação sem registo é recusada.

@@ -64,6 +64,8 @@ Gerar um calendário novo apaga os resultados já introduzidos (a app pede confi
 
 ![Durante os jogos](assets/illustrations/09-durante-os-jogos.jpg)
 
+![Golo ao vivo](assets/illustrations/16-golo-ao-vivo.jpg)
+
 No separador **⚽ Resultados**, cada jogo tem:
 
 - **Estado**: carregar no botão alterna entre *Agendado → A decorrer → Terminado*. Jogos agendados não contam para a classificação.
