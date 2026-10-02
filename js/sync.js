@@ -34,12 +34,43 @@ export function diffSnapshot(prev, next) {
       new Set([...Object.keys(a), ...Object.keys(b)]).forEach((gi) => {
         if (!same(a[gi], b[gi])) updates[`results/${gi}`] = b[gi] ?? null;
       });
+    } else if (key === 'schedule' && Array.isArray(prev.schedule) && Array.isArray(next.schedule)) {
+      diffSchedule(prev.schedule, next.schedule, updates);
     } else if (!same(prev[key], next[key])) {
       updates[key] = next[key] ?? null;
     }
   });
 
   return updates;
+}
+
+/**
+ * O calendário é gravado campo a campo de cada jogo: assim um utilizador que
+ * passa o vencedor de uma eliminatória ao jogo seguinte só grava
+ * `schedule/<jogo>/home` ou `away` (o resto do calendário é só para admins).
+ */
+function diffSchedule(a, b, updates) {
+  const n = Math.max(a.length, b.length);
+  for (let i = 0; i < n; i++) {
+    if (same(a[i], b[i])) continue;
+    const ga = a[i];
+    const gb = b[i];
+    if (ga && gb && typeof ga === 'object' && typeof gb === 'object') {
+      new Set([...Object.keys(ga), ...Object.keys(gb)]).forEach((k) => {
+        if (!same(ga[k], gb[k])) updates[`schedule/${i}/${k}`] = gb[k] ?? null;
+      });
+    } else {
+      updates[`schedule/${i}`] = gb ?? null;
+    }
+  }
+}
+
+/** Secções que só guardam metadados: sozinhas não justificam uma gravação. */
+const META_SECTIONS = ['exportedAt', 'version'];
+
+/** O `update()` só mexe em metadados (data de exportação, versão)? */
+export function onlyMetadata(updates) {
+  return Object.keys(updates).every((p) => META_SECTIONS.includes(p));
 }
 
 /**
@@ -117,6 +148,10 @@ export function describeUpdates(updates, snap) {
 
   Object.keys(updates).forEach((path) => {
     const [section, gi] = path.split('/');
+    if (section === 'schedule' && gi !== undefined) {
+      if (!parts.includes('Calendário alterado')) parts.push('Calendário alterado');
+      return;
+    }
     if (section === 'results' && gi !== undefined) {
       if (deleted.length > 1 && updates[path] == null) return;
       const game = (snap.schedule || [])[gi];
