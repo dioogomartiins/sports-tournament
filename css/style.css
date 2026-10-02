@@ -2194,6 +2194,30 @@
       font-size: 13px;
     }
 
+    .gm-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .gm-action {
+      flex: 1 1 160px;
+      justify-content: center;
+      background: var(--card);
+      color: var(--ink);
+      border: 1px solid var(--line);
+    }
+
+    .gm-action strong {
+      margin-left: 4px;
+    }
+
+    /* As escolhas (MVP) abrem por cima da janela do jogo */
+    #modalOverlay {
+      z-index: 1100;
+    }
+
     .gm-empty {
       text-align: center;
     }

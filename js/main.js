@@ -1,7 +1,7 @@
 import { state, persistConfigTeams, loadState, persistSchedule, persistResults, persistBackup, persistPlayers, persistJogosSingulares, persistArquivo, storeAllLayers, notifyPushError, currentTheme, setCurrentTheme, exportJSON, importJSON, applyGeneratedSchedule, applySnapshot, buildSnapshot, defaultTeams, defaultSquads } from './state.js';
 import { closeGameModal, dom, cacheDom, renderAll, refreshComputed, renderScheduleHint, renderSquadList, renderSquadsDropdown, renderCalendar, renderResults, showToast, flashSaved, openConfirm, closeConfirm, openDangerConfirm, switchTab, confirmCallback, openScorerModal, openPlayerProfile, computeStatsSummary, renderPlayersList, openPlayerModal, renderSquadPlayerFromDBDropdown, renderDraftPlayerList, renderDraftTeams, renderSingularHistorico, currentDraft, renderAuth, renderUsers, renderLog, buildPlayerIndex, openPickPlayerModal, squadPickList } from './ui.js';
 import { clamp, numOr, escapeHtml } from './utils.js';
-import { shareStandings } from './share.js';
+import { shareStandings, shareResult } from './share.js';
 import { animateResultChanges } from './animations.js';
 import { bergerRounds, balancedDraft, buildFirstRoundSeeding, buildExtraVolta, getPlayoffWinner, buildArchiveEntry, countPlayedGames, GAME_STATUS, alignAssists, addGoal, removeGoal, setGameStatus } from './algorithms.js';
 import { initFirebaseListener, onFirebaseStateChange, onFirebasePushError, setSyncedSnapshot, initAuth, signInWithGoogle, signOutUser, getCurrentUser, listenUsers, listenLog, setUserRole } from './firebase.js';
@@ -716,6 +716,13 @@ export function bindEvents() {
   // Janela do jogo
   const gameOverlay = document.getElementById('gameOverlay');
   document.getElementById('gameModalClose').addEventListener('click', closeGameModal);
+  document.getElementById('gameModalContent').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-action]');
+    const head = document.querySelector('#gameModalContent [data-game]');
+    if (!btn || !head) return;
+    if (btn.dataset.action === 'mvp') onMvpClick(head.dataset.game);
+    else if (btn.dataset.action === 'share') shareResult(head.dataset.game);
+  });
   gameOverlay.addEventListener('click', (e) => { if (e.target === gameOverlay) closeGameModal(); });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !gameOverlay.hidden) closeGameModal(); });
 

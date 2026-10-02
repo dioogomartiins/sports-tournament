@@ -1,8 +1,7 @@
 import { state, MAX_TEAMS, normalizePlayer, persistPlayers, persistConfigTeams, persistJogosSingulares, persistArquivo } from './state.js';
 import { getTeamName, getTeamDisplay, escapeHtml, fmtTimestamp, clamp, safeColor } from './utils.js';
 import { computeStandings, GAME_STATUS, getPlayerRating, getTeamTotalRating, tallyPlayerStats, mergePlayerStats, archiveTally, gameGoals } from './algorithms.js';
-import { onStatusBtnClick, onScoreBtnClick, onResultCommit, onTeamPropChange, onSquadListClick, onMvpClick } from './main.js';
-import { shareResult } from './share.js';
+import { onStatusBtnClick, onScoreBtnClick, onResultCommit, onTeamPropChange, onSquadListClick } from './main.js';
 import { ROLES, isKnownRole, roleLabel } from './permissions.js';
 
 // ---------------------------------------------------------------------------
@@ -376,11 +375,7 @@ export function renderResults() {
         `<span class="fx-away">${getTeamDisplay(g.away)}</span>` +
         penaltiesHtml +
         `<div class="fixture-actions">${getStatusBadge(status, gi)}` +
-        `<button class="mini-btn game-open-btn" data-gi="${gi}" title="Ver golos e assistências">📋 Jogo</button>` +
-        (isTerminado
-          ? `<button class="mini-btn mvp-btn" data-gi="${gi}" title="Escolher o MVP do jogo">⭐ ${val && val.mvp ? escapeHtml(playerName(val.mvp)) : 'MVP'}</button>` +
-            `<button class="mini-btn share-result-btn" data-gi="${gi}" title="Partilhar resultado">📤</button>`
-          : '') +
+        `<button class="mini-btn game-open-btn" data-gi="${gi}" title="Ver golos, assistências e MVP">📋 Jogo</button>` +
         `</div>` +
         `</div>`
       );
@@ -391,16 +386,8 @@ export function renderResults() {
 
   dom.resultsList.innerHTML = parts.join('');
 
-  Array.from(dom.resultsList.querySelectorAll('.mvp-btn')).forEach((btn) => {
-    btn.addEventListener('click', () => onMvpClick(btn.dataset.gi));
-  });
-
   Array.from(dom.resultsList.querySelectorAll('.game-open-btn')).forEach((btn) => {
     btn.addEventListener('click', () => openGameModal(btn.dataset.gi));
-  });
-
-  Array.from(dom.resultsList.querySelectorAll('.share-result-btn')).forEach((btn) => {
-    btn.addEventListener('click', () => shareResult(btn.dataset.gi));
   });
 
   Array.from(dom.resultsList.querySelectorAll('.res-box, .pen-box')).forEach((inp) => {
@@ -1690,9 +1677,15 @@ function gameModalHtml(gi) {
       `</div>`
     : '';
 
-  const mvp = val && val.mvp
-    ? `<div class="gm-mvp">⭐ MVP: <strong>${escapeHtml(playerName(val.mvp))}</strong></div>`
-    : '';
+  // MVP e partilha só fazem sentido com o jogo terminado
+  const terminado = val && (typeof val !== 'object' || val.status === GAME_STATUS.TERMINADO);
+  const mvpNome = val && val.mvp ? escapeHtml(playerName(val.mvp)) : '';
+  const mvp = terminado && typeof val === 'object'
+    ? `<div class="gm-actions">` +
+      `<button class="btn gm-action" data-action="mvp" title="Escolher o MVP do jogo">⭐ ${mvpNome ? `MVP: <strong>${mvpNome}</strong>` : 'Escolher MVP'}</button>` +
+      `<button class="btn gm-action" data-action="share" title="Partilhar a imagem do resultado">📤 Partilhar imagem</button>` +
+      `</div>`
+    : (mvpNome ? `<div class="gm-mvp">⭐ MVP: <strong>${mvpNome}</strong></div>` : '');
 
   return (
     `<div class="gm-head" data-game="${escapeHtml(gi)}">` +
