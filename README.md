@@ -1,6 +1,8 @@
 # Torneio ILOG 🏆⚽
 
-Aplicação web para organizar torneios de futebol entre amigos: equipas, plantéis, calendário, resultados ao vivo, eliminatórias, estatísticas de jogadores e jogos singulares. Todos os telemóveis ligados veem as alterações no mesmo instante, sem recarregar a página.
+Aplicação web para organizar torneios desportivos entre amigos: equipas, plantéis, calendário, resultados ao vivo, eliminatórias, estatísticas de jogadores e jogos singulares. Todos os telemóveis ligados veem as alterações no mesmo instante, sem recarregar a página.
+
+Atualmente focada em futebol, com um [plano para suportar qualquer desporto](docs/novas-funcionalidades.md) — padel 🎾, basquetebol 🏀, andebol 🤾, voleibol 🏐 e outros — através de perfis de desporto.
 
 **App:** <https://dioogomartiins.github.io/torneio-ilog/>
 
@@ -27,6 +29,7 @@ Aplicação web para organizar torneios de futebol entre amigos: equipas, plant�
 | [Regras e Cálculos](docs/regras.md) | Quem quer perceber os números | Pontuação, desempates, calendário, eliminatórias, ratings, equipas equilibradas |
 | [Instalação e Publicação](docs/configuracao.md) | Quem mantém a app | Firebase, `.env`, correr localmente sem tocar no torneio real, deploy do site e das regras |
 | [Arquitetura](docs/arquitetura.md) | Quem altera o código | Módulos, modelo de dados, sincronização, permissões, testes |
+| [Novas Funcionalidades](docs/novas-funcionalidades.md) | Quem quer contribuir | Plano multi-desporto: perfis de desporto, comparação entre modalidades, fases de implementação |
 
 ## 🚀 Início rápido (desenvolvimento)
 
