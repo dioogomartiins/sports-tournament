@@ -1,30 +1,32 @@
 {
-    "name": "torneio-ilog",
-    "version": "1.0.0",
-    "main": "index.js",
-    "scripts": {
-        "preview": "vite preview",
-        "build": "vite build",
-        "dev": "vite",
-        "test": "vitest run"
-    },
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/dioogomartiins/torneio-ilog.git"
-    },
-    "keywords": [],
-    "author": "",
-    "license": "ISC",
-    "bugs": {
-        "url": "https://github.com/dioogomartiins/torneio-ilog/issues"
-    },
-    "homepage": "https://github.com/dioogomartiins/torneio-ilog#readme",
-    "description": "",
-    "devDependencies": {
-        "vite": "^8.1.5",
-        "vitest": "^5.0.2"
-    },
-    "dependencies": {
-        "firebase": "^12.16.0"
-    }
+  "name": "torneio-ilog",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "preview": "vite preview",
+    "build": "vite build",
+    "dev": "vite",
+    "test": "vitest run",
+    "test:rules": "npx -y firebase-tools@15 emulators:exec --config tests/rules/firebase.json --only database --project demo-torneio \"node tests/rules/rules.check.mjs\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dioogomartiins/torneio-ilog.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/dioogomartiins/torneio-ilog/issues"
+  },
+  "homepage": "https://github.com/dioogomartiins/torneio-ilog#readme",
+  "description": "",
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2",
+    "vite": "^8.1.5",
+    "vitest": "^5.0.2"
+  },
+  "dependencies": {
+    "firebase": "^12.16.0"
+  }
 }

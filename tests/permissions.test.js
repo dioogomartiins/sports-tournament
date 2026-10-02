@@ -9,7 +9,8 @@ describe('canWritePath', () => {
 
   it('utilizador grava resultados, calendário e jogos singulares', () => {
     expect(canWritePath('user', 'results/3')).toBe(true);
-    expect(canWritePath('user', 'schedule')).toBe(true);
+    expect(canWritePath('user', 'schedule/4/home')).toBe(true);
+    expect(canWritePath('user', 'schedule/4/away')).toBe(true);
     expect(canWritePath('user', 'jogosSingulares')).toBe(true);
     expect(canWritePath('user', 'exportedAt')).toBe(true);
   });
@@ -20,6 +21,12 @@ describe('canWritePath', () => {
     expect(canWritePath('user', 'squads')).toBe(false);
     expect(canWritePath('user', 'players')).toBe(false);
     expect(canWritePath('user', 'roundsMeta')).toBe(false);
+  });
+
+  it('utilizador não apaga nem reescreve o calendário', () => {
+    expect(canWritePath('user', 'schedule')).toBe(false);
+    expect(canWritePath('user', 'schedule/4')).toBe(false);
+    expect(canWritePath('user', 'schedule/4/jornada')).toBe(false);
   });
 
   it('pendentes e visitantes não gravam nada', () => {

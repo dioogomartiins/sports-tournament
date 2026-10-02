@@ -6,7 +6,7 @@ import { normalizeResults, normalizeArquivo } from './sync.js';
 // ---------------------------------------------------------------------------
 // Constantes
 // ---------------------------------------------------------------------------
-export const SNAPSHOT_VERSION = 6;
+export const SNAPSHOT_VERSION = 7;
 export const MAX_TEAMS = 32;
 const DEFAULT_COLOR = '#2F7A4F';
 
@@ -202,6 +202,24 @@ const REJECT_MESSAGES = {
   'sem-sessao': 'Entra com a tua conta Google para fazer alterações.',
 };
 
+let lastErrorToast = { msg: '', at: 0 };
+
+/** Mostra um erro de gravação, sem repetir o mesmo aviso quando uma ação grava várias secções. */
+function showSaveError(msg) {
+  const now = Date.now();
+  if (msg === lastErrorToast.msg && now - lastErrorToast.at < 2000) return;
+  lastErrorToast = { msg, at: now };
+  showToast(msg, 'error');
+}
+
+/** O Firebase recusou uma gravação já aplicada localmente (o valor do servidor volta sozinho). */
+export function notifyPushError(err) {
+  const denied = err && /permission/i.test(String(err.code || err.message || ''));
+  showSaveError(denied
+    ? 'A alteração foi recusada pela base de dados (sem permissão). Foi desfeita.'
+    : 'Não foi possível gravar a alteração na base de dados. Foi desfeita.');
+}
+
 /** Desfaz uma alteração local que não pode ser gravada no Firebase. */
 async function rejectLocalChange(reason) {
   let msg = REJECT_MESSAGES[reason];
@@ -210,7 +228,7 @@ async function rejectLocalChange(reason) {
       ? 'Só um admin pode fazer esta alteração.'
       : 'A tua conta ainda não foi aprovada por um admin.';
   }
-  showToast(msg, 'error');
+  showSaveError(msg);
 
   const synced = getSyncedSnapshot();
   if (!validateSnapshot(synced)) return;
@@ -264,8 +282,8 @@ export async function persistArquivo() {
   await persistBackup();
 }
 
-/** Grava todas as camadas no localStorage (usado após restaurar ou importar um snapshot). */
-async function storeAllLayers() {
+/** Grava todas as camadas no localStorage (após restaurar, importar ou receber dados do Firebase). */
+export async function storeAllLayers() {
   await storageSet('config-teams', JSON.stringify({ config: state.config, teams: state.teams, squads: state.squads }));
   await storageSet('schedule', JSON.stringify({ schedule: state.schedule, roundsMeta: state.roundsMeta, scheduleTeamCount: state.scheduleTeamCount, scheduleVoltas: state.scheduleVoltas }));
   await storageSet('results', JSON.stringify(state.results));
