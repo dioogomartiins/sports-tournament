@@ -36,7 +36,9 @@ Como o código está organizado, como os dados são guardados e sincronizados, e
 | `css/` | Estilos partidos por área (`base.css` tem as variáveis dos temas claro e escuro). `style.css` só faz `@import` dos outros, pela ordem da cascata; o Vite junta tudo num ficheiro no build. Estilos novos vão para o ficheiro da área. |
 | `src/main.js` | Liga os eventos da interface às ações (gerar calendário, registar golos, arquivar, …) e arranca a app. Os botões e campos das equipas, calendário e resultados, redesenhados com `innerHTML`, têm um só listener no contentor (delegação). |
 | `src/state.js` | Estado global, valores por defeito, snapshots (`buildSnapshot` / `applySnapshot`), persistência no localStorage e envio para o Firebase. Desfaz alterações locais que o Firebase não aceitaria. Não importa o `ui.js`: os avisos e o `renderAll` chegam por `setStateHooks`, chamado pelo `main.js` no arranque. |
-| `src/algorithms.js` | Lógica pura: Berger, calendário, classificação, desempates, eliminatórias, ratings, equipas equilibradas, estatísticas de jogadores, arquivo. Ver [Regras e Cálculos](regras.md). |
+| `src/core/` | Lógica central do torneio em TypeScript: Berger, calendário, volta extra, eliminatórias (`schedule.ts`), ratings e draft (`draft.ts`), arquivo (`archive.ts`). |
+| `src/sports/` | Arquitetura multi-desporto: classe abstrata `Sport.ts`, registo de modalidades (`registry.ts`), e perfil de futebol (`football/Football.ts`) com classificação, desempates, eliminatórias, estatísticas e golos. |
+| `src/algorithms.ts` | Re-exporta funções do core e de futebol para compatibilidade com os módulos existentes. |
 | `src/sync.js` | Diferenças entre snapshots para o `update()`, normalização de dados guardados pelo Firebase e texto do registo de alterações. |
 | `src/firebase.js` | Ligação ao Firebase: escuta `torneio_state`, envia alterações, login Google, perfil do utilizador, lista de utilizadores e registo. |
 | `src/permissions.ts` | Que secções cada perfil pode gravar. Espelha `database.rules.json`. |
@@ -151,12 +153,13 @@ npm run test:rules   # regras do Firebase no emulador (precisa de Java)
 
 | Ficheiro | Cobre |
 |---|---|
-| `tests/algorithms.test.js` | Berger, calendário, volta extra, classificação, desempates, eliminatórias, ratings, snake draft, equipas equilibradas, estatísticas de jogadores, arquivo |
+| `tests/football.test.ts` | Lógica de futebol: classificação, confronto direto, vencedor de playoff, estatísticas de jogadores, golos |
+| `tests/core/` | Lógica central: `schedule.test.ts` (Berger, voltas, seeding), `draft.test.ts` (ratings, drafts), `archive.test.ts` (arquivo) |
 | `tests/sync.test.js` | `diffSnapshot`, `normalizeResults`, `normalizeArquivo`, `describeUpdates` |
 | `tests/permissions.test.js` | `canWritePath`, `blockedPaths`, `roleLabel` |
 | `tests/utils.test.js` | `escapeHtml`, `safeColor` |
 
-`algorithms.js` não importa nenhum outro módulo, por isso os testes importam-no diretamente. Não há importações circulares: `ui.js` não importa `main.js` e `state.js` não importa `ui.js`; mantém assim ao acrescentar código. A interface verifica-se à mão (ver [Correr localmente](configuracao.md#correr-localmente)).
+Os módulos do core e desportos não dependem da UI nem do Firebase, por isso os testes importam-nos diretamente. Não há importações circulares: `ui.js` não importa `main.js` e `state.js` não importa `ui.js`; mantém assim ao acrescentar código. A interface verifica-se à mão (ver [Correr localmente](configuracao.md#correr-localmente)).
 
 `npm run test:rules` arranca o emulador do Realtime Database com `database.rules.json` e corre `tests/rules/rules.check.mjs`: quem pode gravar cada caminho, as validações e o `logRef`. Usa a configuração de `tests/rules/firebase.json`, separada da da raiz.
 

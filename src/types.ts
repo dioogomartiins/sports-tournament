@@ -6,6 +6,28 @@ export type Role = 'admin' | 'user';
 
 export type GameStatus = 'agendado' | 'decorrer' | 'terminado';
 
+export const GAME_STATUS = Object.freeze({
+  AGENDADO: 'agendado',
+  DECORRER: 'decorrer',
+  TERMINADO: 'terminado',
+} as const);
+
+export interface GameEvent {
+  type: 'inicio' | 'golo' | 'anulado' | 'fim';
+  gi: string;
+  side?: 'home' | 'away';
+  pid?: string;
+  aid?: string;
+}
+
+export interface PlayerStats {
+  golos: number;
+  assistencias: number;
+  mvp: number;
+  jogosAMarcar: number;
+  recorde: number;
+}
+
 export interface PlayerAttributes {
   velocidade: number;
   finalizacao: number;
@@ -64,13 +86,13 @@ export interface Match {
 }
 
 export interface GameScorers {
-  home: string[];
-  away: string[];
+  home?: string[];
+  away?: string[];
 }
 
 export interface GameAssists {
-  home: string[];
-  away: string[];
+  home?: string[];
+  away?: string[];
 }
 
 export interface Score {
