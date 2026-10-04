@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { canWritePath, blockedPaths, roleLabel } from '../js/permissions.js';
+import { canWritePath, blockedPaths, roleLabel } from '../src/permissions.js';
 
 describe('canWritePath', () => {
   it('admin pode gravar tudo', () => {

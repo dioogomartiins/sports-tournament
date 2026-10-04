@@ -34,16 +34,16 @@ Como o código está organizado, como os dados são guardados e sincronizados, e
 |---|---|
 | `index.html` | Estrutura de todos os separadores e modais. |
 | `css/` | Estilos partidos por área (`base.css` tem as variáveis dos temas claro e escuro). `style.css` só faz `@import` dos outros, pela ordem da cascata; o Vite junta tudo num ficheiro no build. Estilos novos vão para o ficheiro da área. |
-| `js/main.js` | Liga os eventos da interface às ações (gerar calendário, registar golos, arquivar, …) e arranca a app. Os botões e campos das equipas, calendário e resultados, redesenhados com `innerHTML`, têm um só listener no contentor (delegação). |
-| `js/state.js` | Estado global, valores por defeito, snapshots (`buildSnapshot` / `applySnapshot`), persistência no localStorage e envio para o Firebase. Desfaz alterações locais que o Firebase não aceitaria. Não importa o `ui.js`: os avisos e o `renderAll` chegam por `setStateHooks`, chamado pelo `main.js` no arranque. |
-| `js/algorithms.js` | Lógica pura: Berger, calendário, classificação, desempates, eliminatórias, ratings, equipas equilibradas, estatísticas de jogadores, arquivo. Ver [Regras e Cálculos](regras.md). |
-| `js/sync.js` | Diferenças entre snapshots para o `update()`, normalização de dados guardados pelo Firebase e texto do registo de alterações. |
-| `js/firebase.js` | Ligação ao Firebase: escuta `torneio_state`, envia alterações, login Google, perfil do utilizador, lista de utilizadores e registo. |
-| `js/permissions.js` | Que secções cada perfil pode gravar. Espelha `database.rules.json`. |
-| `js/ui.js` e `js/ui/` | Desenham todos os ecrãs e modais. Cada secção tem o seu módulo em `js/ui/` (`classificacao.js`, `calendario.js`, `jogo.js`, `jogadores.js`, `historico.js`, `modais.js`, …); `dom.js` guarda os elementos e `avisos.js` os toasts. `ui.js` tem o `renderAll`/`refreshComputed` e reexporta o resto, por isso os outros módulos importam tudo de `./ui.js`. Os módulos de `js/ui/` nunca importam `ui.js`. |
-| `js/animations.js` | Animações ao vivo (jogo começa, golo, golo anulado, jogo termina). Nascem da comparação entre o resultado anterior e o novo, por isso aparecem em todos os dispositivos. Desligadas com *movimento reduzido*. |
-| `js/share.js` | Desenha num `<canvas>` as imagens PNG da classificação e dos resultados, e partilha-as. |
-| `js/utils.js` | Funções pequenas: `escapeHtml`, `safeColor`, nomes de equipas e de jogadores (`playerName`, `buildPlayerIndex`), datas, `prefersReducedMotion`. |
+| `src/main.js` | Liga os eventos da interface às ações (gerar calendário, registar golos, arquivar, …) e arranca a app. Os botões e campos das equipas, calendário e resultados, redesenhados com `innerHTML`, têm um só listener no contentor (delegação). |
+| `src/state.js` | Estado global, valores por defeito, snapshots (`buildSnapshot` / `applySnapshot`), persistência no localStorage e envio para o Firebase. Desfaz alterações locais que o Firebase não aceitaria. Não importa o `ui.js`: os avisos e o `renderAll` chegam por `setStateHooks`, chamado pelo `main.js` no arranque. |
+| `src/algorithms.js` | Lógica pura: Berger, calendário, classificação, desempates, eliminatórias, ratings, equipas equilibradas, estatísticas de jogadores, arquivo. Ver [Regras e Cálculos](regras.md). |
+| `src/sync.js` | Diferenças entre snapshots para o `update()`, normalização de dados guardados pelo Firebase e texto do registo de alterações. |
+| `src/firebase.js` | Ligação ao Firebase: escuta `torneio_state`, envia alterações, login Google, perfil do utilizador, lista de utilizadores e registo. |
+| `src/permissions.js` | Que secções cada perfil pode gravar. Espelha `database.rules.json`. |
+| `src/ui.js` e `src/ui/` | Desenham todos os ecrãs e modais. Cada secção tem o seu módulo em `src/ui/` (`classificacao.js`, `calendario.js`, `jogo.js`, `jogadores.js`, `historico.js`, `modais.js`, …); `dom.js` guarda os elementos e `avisos.js` os toasts. `ui.js` tem o `renderAll`/`refreshComputed` e reexporta o resto, por isso os outros módulos importam tudo de `./ui.js`. Os módulos de `src/ui/` nunca importam `ui.js`. |
+| `src/animations.js` | Animações ao vivo (jogo começa, golo, golo anulado, jogo termina). Nascem da comparação entre o resultado anterior e o novo, por isso aparecem em todos os dispositivos. Desligadas com *movimento reduzido*. |
+| `src/share.js` | Desenha num `<canvas>` as imagens PNG da classificação e dos resultados, e partilha-as. |
+| `src/utils.js` | Funções pequenas: `escapeHtml`, `safeColor`, nomes de equipas e de jogadores (`playerName`, `buildPlayerIndex`), datas, `prefersReducedMotion`. |
 | `database.rules.json` | Regras de segurança do Realtime Database, publicadas pelo deploy. |
 | `firebase.json` | Diz ao Firebase CLI onde estão as regras (usado pelo deploy). |
 | `tests/` | Testes Vitest; `tests/rules/` tem os testes das regras no emulador. |
@@ -108,7 +108,7 @@ Além de quem pode escrever, as regras validam o que se escreve: resultados no f
 
 Na app, quem não é admin vê Equipas, Plantéis e Jogadores só de leitura, com uma nota a explicar.
 
-**Mudar permissões:** alterar `database.rules.json` e `js/permissions.js` (`USER_SECTIONS`) juntos, atualizar `tests/permissions.test.js` e `tests/rules/rules.check.mjs`, e correr `npm run test:rules`. As regras são publicadas sozinhas no deploy depois do merge (ver [Publicação](configuracao.md#publicação-deploy)).
+**Mudar permissões:** alterar `database.rules.json` e `src/permissions.js` (`USER_SECTIONS`) juntos, atualizar `tests/permissions.test.js` e `tests/rules/rules.check.mjs`, e correr `npm run test:rules`. As regras são publicadas sozinhas no deploy depois do merge (ver [Publicação](configuracao.md#publicação-deploy)).
 
 Se o Firebase recusar uma gravação que o cliente deixou passar, o valor do servidor volta sozinho e a app avisa: "A alteração foi recusada pela base de dados (sem permissão). Foi desfeita."
 
@@ -126,7 +126,7 @@ O registo é obrigatório, não só uma convenção do cliente: o mesmo `update(
 
 Qualquer mudança na forma do estado (campo novo, secção nova, formato diferente) tem de:
 
-1. Subir `SNAPSHOT_VERSION` em `js/state.js`.
+1. Subir `SNAPSHOT_VERSION` em `src/state.js`.
 2. Continuar a carregar dados guardados com versões anteriores, que já estão no Firebase e nos telemóveis (valores por defeito em `applySnapshot`, normalização em `sync.js`).
 3. Se for uma secção nova em `torneio_state`, decidir quem a pode escrever (ver [Permissões](#permissões)). Por defeito fica só para admins.
 
@@ -141,6 +141,7 @@ Qualquer pessoa com a configuração pública pode tentar escrever no Firebase, 
 
 ```bash
 npm run lint         # ESLint (eslint.config.mjs)
+npm run typecheck    # Verificação de tipos TypeScript (tsc --noEmit)
 npm test             # lógica pura
 npm run test:rules   # regras do Firebase no emulador (precisa de Java)
 ```

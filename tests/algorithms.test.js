@@ -23,7 +23,7 @@ import {
   standingsOrder,
   rankMoves,
   GAME_STATUS,
-} from '../js/algorithms.js';
+} from '../src/algorithms.js';
 
 const config = {
   numGrupos: 1,

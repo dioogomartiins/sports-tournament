@@ -48,7 +48,8 @@ Abre `http://localhost:5173/torneio-ilog/`.
 | Comando | O que faz |
 |---|---|
 | `npm run dev` | Servidor de desenvolvimento com *hot reload* |
-| `npm run lint` | ESLint em `js/`, `tests/` e configuração |
+| `npm run lint` | ESLint em `src/`, `tests/` e configuração |
+| `npm run typecheck` | Verificação de tipos TypeScript (`tsc --noEmit`) |
 | `npm test` | Testes (Vitest) da lógica pura |
 | `npm run test:rules` | Testes das regras do Firebase no emulador (precisa de Java) |
 | `npm run build` | Build de produção para `dist/` |

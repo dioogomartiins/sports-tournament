@@ -17,10 +17,10 @@ A infraestrutura de calendário (Berger), grupos, eliminatórias, sincronizaçã
 
 ## Perfis de Desporto
 
-A ideia central: cada modalidade é **um ficheiro** em `js/sports/` que exporta um objeto com toda a lógica e configuração que varia. O motor da app delega a esse perfil em vez de ter `if/else` espalhados.
+A ideia central: cada modalidade é **um ficheiro** em `src/sports/` que exporta um objeto com toda a lógica e configuração que varia. O motor da app delega a esse perfil em vez de ter `if/else` espalhados.
 
 ```
-js/sports/
+src/sports/
 ├── index.js          # registry: getSport(id) → perfil
 ├── futebol.js        # ⚽ perfil actual (extraído do código existente)
 ├── padel.js          # 🎾
@@ -138,7 +138,7 @@ export default {
 
 ### 🆕 Novo
 
-- `js/sports/*.js` — perfis de desporto
+- `src/sports/*.js` — perfis de desporto
 - `getSport(config.tipoDesporto)` — registry
 - Seletor de desporto na configuração
 - Input de sets (grelha) para padel e voleibol
@@ -148,8 +148,8 @@ export default {
 
 ### Fase 1 — Fundação (sem quebrar nada)
 
-1. Criar `js/sports/futebol.js` — extrair a lógica actual para o perfil.
-2. Criar `js/sports/index.js` — registry com `getSport(id)`.
+1. Criar `src/sports/futebol.js` — extrair a lógica actual para o perfil.
+2. Criar `src/sports/index.js` — registry com `getSport(id)`.
 3. Adicionar `tipoDesporto: 'futebol'` ao `defaultConfig` (valor por defeito = comportamento actual inalterado).
 4. Refactorizar `computeStandings` e `tallyPlayerStats` para delegarem ao perfil.
 5. Testes — garantir que **nada muda** com o futebol.
@@ -172,14 +172,14 @@ export default {
 
 | Ficheiro | Mudança | Esforço |
 |---|---|---|
-| `js/sports/*.js` | 🆕 Perfis de desporto | 🟡 Médio |
-| `js/algorithms.js` | 🔄 Delegar standings e stats ao perfil | 🟡 Médio |
-| `js/state.js` | 🔄 `config.tipoDesporto`, atributos dinâmicos | 🟢 Baixo |
-| `js/ui.js` | 🔄 Labels, ícones, colunas condicionais | 🔴 Alto |
-| `js/main.js` | 🔄 Input de resultado delegado ao perfil | 🟡 Médio |
-| `js/animations.js` | 🔄 Eventos lidos do perfil | 🟢 Baixo |
-| `js/share.js` | 🔄 Colunas e labels do perfil | 🟡 Médio |
-| `js/sync.js` | 🔄 `normalizeResults` condicional | 🟢 Baixo |
+| `src/sports/*.js` | 🆕 Perfis de desporto | 🟡 Médio |
+| `src/algorithms.js` | 🔄 Delegar standings e stats ao perfil | 🟡 Médio |
+| `src/state.js` | 🔄 `config.tipoDesporto`, atributos dinâmicos | 🟢 Baixo |
+| `src/ui.js` | 🔄 Labels, ícones, colunas condicionais | 🔴 Alto |
+| `src/main.js` | 🔄 Input de resultado delegado ao perfil | 🟡 Médio |
+| `src/animations.js` | 🔄 Eventos lidos do perfil | 🟢 Baixo |
+| `src/share.js` | 🔄 Colunas e labels do perfil | 🟡 Médio |
+| `src/sync.js` | 🔄 `normalizeResults` condicional | 🟢 Baixo |
 | `index.html` | 🔄 Seletor de desporto, labels dinâmicos | 🟡 Médio |
 | `database.rules.json` | 🔄 Validação flexível do score | 🟡 Médio |
 | `tests/*.test.js` | 🔄 Fixtures parametrizadas por desporto | 🟡 Médio |

@@ -1,31 +1,38 @@
 # Torneio ILOG
 
-Vite + vanilla JS single-page app (no framework) for running friendly football
-tournaments, synced live across devices through Firebase Realtime Database.
-Deployed to GitHub Pages at `/torneio-ilog/` on release tags (`release/*`) or manual dispatch.
+Vite + vanilla TypeScript single-page app (no framework) for running friendly
+football tournaments, synced live across devices through Firebase Realtime
+Database. Deployed to GitHub Pages at `/torneio-ilog/` on release tags (`release/*`) or manual dispatch.
+
+## Language policy
+
+- **Code, comments, commit messages and documentation** are in **English**.
+- **UI-facing text** (labels, toasts, button captions shown to the user) stays
+  in **European Portuguese** (the app's audience). Keep new user-visible strings
+  consistent with the existing ones.
 
 ## Conventions
 
-- UI text, code comments and identifiers are in European Portuguese ("equipas",
-  "jogos singulares", "mata-mata"). Keep new strings consistent with that.
 - Module roles:
-  - `js/state.js` owns global state and persistence (localStorage + Firebase push).
-  - `js/algorithms.js` holds pure logic: Berger schedule, standings, head-to-head
+  - `src/state.js` owns global state and persistence (localStorage + Firebase push).
+  - `src/algorithms.js` holds pure logic: Berger schedule, standings, head-to-head
     tiebreaks, ratings, balanced team split (`balancedDraft`, which starts from `snakeDraft`
     and swaps pairs above 20 players), player stats (goals, assists, MVP) and
     tournament archive entries. Keep logic here so it stays testable.
-  - `js/sync.js` diffs snapshots for `update()`, normalizes older saved data
-    and describes changes for the log; `js/permissions.js` mirrors the rules.
-  - `js/ui.js` renders (one module per section in `js/ui/`, re-exported by
-    `ui.js`; `js/ui/` modules never import `ui.js`); `js/main.js` wires event handlers; `js/firebase.js`
-    syncs and handles Google sign-in; `js/share.js` draws the PNG share images.
+  - `src/sync.js` diffs snapshots for `update()`, normalizes older saved data
+    and describes changes for the log; `src/permissions.js` mirrors the rules.
+  - `src/ui.js` renders (one module per section in `src/ui/`, re-exported by
+    `ui.js`; `src/ui/` modules never import `ui.js`); `src/main.js` wires event
+    handlers; `src/firebase.js` syncs and handles Google sign-in; `src/share.js`
+    draws the PNG share images.
 - All state lives in one Firebase node, `torneio_state`. Saves send only what
-  changed since the last sync with `update()` (`js/sync.js`): results per game,
-  other sections whole (last write wins within a section). Any change to the state shape must bump `SNAPSHOT_VERSION`
-  in `js/state.js` and still load data already saved on other devices.
+  changed since the last sync with `update()` (`src/sync.js`): results per game,
+  other sections whole (last write wins within a section). Any change to the
+  state shape must bump `SNAPSHOT_VERSION` in `src/state.js` and still load data
+  already saved on other devices.
 - Who may write what is enforced by `database.rules.json` (Google sign-in;
   roles in `utilizadores/<uid>/role`: `admin` or `user`, none = read-only).
-  `js/permissions.js` mirrors those rules client-side; change both together.
+  `src/permissions.js` mirrors those rules client-side; change both together.
   Every save also appends an entry to `torneio_log` (who changed what).
 - When building HTML strings, pass every value that comes from state through
   `escapeHtml` (and team colours through `safeColor`). The Firebase data is
@@ -43,7 +50,8 @@ Deployed to GitHub Pages at `/torneio-ilog/` on release tags (`release/*`) or ma
 
 ## Checks
 
-- `npm run lint` runs ESLint (`eslint.config.mjs`); CI runs it before the tests.
+- `npm run lint` runs ESLint (`eslint.config.mjs`) with `typescript-eslint`.
+- `npm run typecheck` runs `tsc --noEmit` (strict, `allowJs`).
 - `npm test` runs the Vitest suite in `tests/` (pure logic only).
 - `npm run build` must pass.
 - See `.claude/skills/run` before starting the dev server: it talks to the live
