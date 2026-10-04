@@ -14,12 +14,10 @@ npm run build       # must also pass
 
 ## What is covered
 
-- `tests/algorithms.test.js`: pure logic in `src/algorithms.js`. Berger rounds
-  (even and odd team counts, byes), home/away mirroring across voltas, the
-  extra volta, group index mapping, points with the goleada bonus, head-to-head
-  tiebreaks, playoff games excluded from standings and playoff winners, player
-  ratings, snake draft and balanced teams, player stats (goals, assists, MVP)
-  and tournament archive entries.
+- `tests/football.test.ts`: football sport logic in `src/sports/football/Football.ts`
+  (standings, head-to-head tiebreak, playoff winner, player stats, and goal handling).
+- `tests/core/`: core tournament logic in `src/core/` (schedule, Berger rounds,
+  draft ratings and balanced teams, archive entries).
 - `tests/sync.test.js`: `diffSnapshot`, `normalizeResults`,
   `normalizeArquivo` and `describeUpdates` in `src/sync.js`.
 - `tests/permissions.test.js`: `canWritePath`, `blockedPaths` and `roleLabel`.
