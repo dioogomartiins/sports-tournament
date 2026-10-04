@@ -24,7 +24,7 @@ Como pôr a app a funcionar: o projeto Firebase, as variáveis de ambiente, o de
 3. **Realtime Database → Rules:** não é preciso fazer nada à mão. O deploy publica [`database.rules.json`](../database.rules.json) sozinho (ver [Publicação](#publicação-deploy)); só tens de criar a conta de serviço indicada lá.
 4. **Primeiro admin:** abrir o site, entrar com Google, e depois em **Realtime Database → Data** criar `utilizadores/<o teu uid>/role` com o valor `"admin"` (o uid aparece em Authentication → Users). A partir daí, os outros perfis atribuem-se na própria app, em Gestão → 👮 Utilizadores.
 
-As regras são publicadas automaticamente em cada push para `main`, antes do site. Não as edites na consola: a próxima publicação apaga o que lá estiver. Para as publicar à mão (por exemplo, para testar num projeto Firebase teu), usa `npx firebase-tools deploy --only database --project <id>`.
+As regras são publicadas automaticamente em cada release tag (`release/*`) antes do site (ou via workflow_dispatch). Não as edites na consola: a próxima publicação apaga o que lá estiver. Para as publicar à mão (por exemplo, para testar num projeto Firebase teu), usa `npx firebase-tools deploy --only database --project <id>`.
 
 ## Variáveis de ambiente
 
@@ -94,7 +94,7 @@ E verifica as mudanças de interface numa largura de telemóvel (cerca de 390px)
 
 ![Deploy: regras primeiro, depois o site](assets/illustrations/15-deploy-regras-e-site.jpg)
 
-Cada push para `main` corre o workflow [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml), em dois passos seguidos:
+O deploy corre com o workflow [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml) ao publicar uma release tag (`release/*`) ou manualmente via *workflow_dispatch*, em dois passos seguidos:
 
 1. **Regras (`rules`):** testa `database.rules.json` no emulador do Firebase (`npm run test:rules`) e, se passar, publica as regras no Realtime Database com `firebase deploy --only database`.
 2. **Site (`deploy`):** só arranca se as regras foram publicadas. Instala dependências, corre o ESLint e os testes, cria o `.env` a partir dos secrets, faz o build e publica `dist/` no GitHub Pages.
