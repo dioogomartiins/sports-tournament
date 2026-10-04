@@ -2,7 +2,7 @@
 
 Vite + vanilla TypeScript single-page app (no framework) for running friendly
 football tournaments, synced live across devices through Firebase Realtime
-Database. Deployed to GitHub Pages at `/torneio-ilog/` on every push to `main`.
+Database. Deployed to GitHub Pages at `/torneio-ilog/` on release tags (`release/*`) or manual dispatch.
 
 ## Language policy
 
@@ -59,8 +59,8 @@ Database. Deployed to GitHub Pages at `/torneio-ilog/` on every push to `main`.
 
 ## Rules
 
-- Pushing to `main` deploys immediately: the workflow tests and publishes
-  `database.rules.json` first, then the site. Work on a branch and open a PR.
+- Deployment runs on release tags (`release/*`) or manual workflow dispatch: the workflow tests and
+  publishes `database.rules.json` first, then the site. Work on a branch and open a PR.
 - `.env` is local only and must never be committed, printed or copied into code.
   CI builds it from repository secrets (see `.github/workflows/deploy.yml`).
 - `VITE_*` values end up in the public bundle, so none of them is a real secret.
