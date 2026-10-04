@@ -2,7 +2,7 @@
 
 [← Voltar ao README](../README.md)
 
-Como a app chega aos números que mostra. Toda esta lógica está em `js/algorithms.js` e tem testes em `tests/algorithms.test.js`.
+Como a app chega aos números que mostra. Toda esta lógica está em `src/algorithms.js` e tem testes em `tests/algorithms.test.js`.
 
 - [Pontuação](#pontuação)
 - [Classificação e desempates](#classificação-e-desempates)

@@ -1,17 +1,19 @@
 import js from '@eslint/js';
 import globals from 'globals';
+import tseslint from 'typescript-eslint';
 
-export default [
+export default tseslint.config(
   { ignores: ['dist/', 'node_modules/'] },
   js.configs.recommended,
+  ...tseslint.configs.recommended,
   {
-    // Código da app: corre no navegador
-    files: ['js/**/*.js'],
+    // App code: runs in the browser
+    files: ['src/**/*.{js,ts}'],
     languageOptions: { globals: globals.browser },
   },
   {
-    // Testes, regras e configuração: correm no Node
-    files: ['tests/**/*.{js,mjs}', '*.{js,mjs}'],
+    // Tests, rules and config: runs in Node
+    files: ['tests/**/*.{js,mjs,ts}', '*.{js,mjs,ts}'],
     languageOptions: { globals: globals.node },
   },
-];
+);

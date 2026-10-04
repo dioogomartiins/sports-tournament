@@ -10,8 +10,8 @@ import { renderPlayersList } from './ui/jogadores.js';
 import { renderDraftPlayerList, renderSingularHistorico } from './ui/singular.js';
 import { renderHistorico } from './ui/historico.js';
 
-// O resto da interface vive em js/ui/, um módulo por secção; este ficheiro
-// junta tudo para quem importa de './ui.js'.
+// The rest of the interface lives in src/ui/, one module per section; this file
+// brings everything together for modules importing from './ui.js'.
 export * from './ui/dom.js';
 export * from './ui/avisos.js';
 export * from './ui/navegacao.js';

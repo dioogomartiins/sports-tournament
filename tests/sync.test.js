@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { diffSnapshot, normalizeResults, normalizeArquivo, describeUpdates, onlyMetadata } from '../js/sync.js';
+import { diffSnapshot, normalizeResults, normalizeArquivo, describeUpdates, onlyMetadata } from '../src/sync.js';
 
 describe('diffSnapshot', () => {
   const base = {

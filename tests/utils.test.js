@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
 
-vi.mock('../js/state.js', () => ({ state: { teams: [] } }));
+vi.mock('../src/state.js', () => ({ state: { teams: [] } }));
 
-const { escapeHtml, safeColor } = await import('../js/utils.js');
+const { escapeHtml, safeColor } = await import('../src/utils.js');
 
 describe('escapeHtml', () => {
   it('escapa os caracteres especiais de HTML', () => {
