@@ -14,11 +14,11 @@ Database. Deployed to GitHub Pages at `/torneio-ilog/` on release tags (`release
 ## Conventions
 
 - Module roles:
-  - `src/state.js` owns global state and persistence (localStorage + Firebase push).
+  - `src/state.ts` owns global state and persistence (localStorage + Firebase push).
   - `src/core/` holds pure tournament logic (Berger schedule, snake/balanced draft, archive).
   - `src/sports/` defines the abstract `Sport` class, `registry.ts` (`getSport(id)`), and sport implementations (`src/sports/football/Football.ts` for standings, head-to-head, playoff winner, player stats and goal handling).
   - `src/algorithms.ts` re-exports core and football sport methods for backward compatibility.
-  - `src/sync.js` diffs snapshots for `update()`, normalizes older saved data
+  - `src/sync.ts` diffs snapshots for `update()`, normalizes older saved data
     and describes changes for the log; `src/permissions.ts` mirrors the rules.
   - `src/types.ts` defines domain models (`Tournament`, `Config`, `Match`, `Score`, `Player`, `Team`).
   - `src/utils.ts` provides shared utility functions (`escapeHtml`, `safeColor`, `playerName`, `clamp`, etc.).
@@ -27,9 +27,9 @@ Database. Deployed to GitHub Pages at `/torneio-ilog/` on release tags (`release
     handlers; `src/firebase.js` syncs and handles Google sign-in; `src/share.js`
     draws the PNG share images.
 - All state lives in one Firebase node, `torneio_state`. Saves send only what
-  changed since the last sync with `update()` (`src/sync.js`): results per game,
+  changed since the last sync with `update()` (`src/sync.ts`): results per game,
   other sections whole (last write wins within a section). Any change to the
-  state shape must bump `SNAPSHOT_VERSION` in `src/state.js` and still load data
+  state shape must bump `SNAPSHOT_VERSION` in `src/state.ts` and still load data
   already saved on other devices.
 - Who may write what is enforced by `database.rules.json` (Google sign-in;
   roles in `utilizadores/<uid>/role`: `admin` or `user`, none = read-only).

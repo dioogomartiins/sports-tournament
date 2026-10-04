@@ -1,0 +1,242 @@
+// ---------------------------------------------------------------------------
+// Synchronization — snapshot diffing for Firebase updates and data normalization
+// ---------------------------------------------------------------------------
+
+import type {
+  Tournament,
+  Config,
+  Score,
+  ArchiveEntry,
+  ArchiveStandingRow,
+  ArchivePlayer,
+} from './types.js';
+
+function same(a: unknown, b: unknown): boolean {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
+/**
+ * Computes the delta between the last synchronized snapshot and the current one,
+ * in Firebase `update()` format (path -> value, where null deletes).
+ *
+ * Results are saved game-by-game so that two people entering results for different
+ * matches simultaneously do not overwrite each other. Other sections are only sent
+ * when changed.
+ *
+ * @param prev - Last synchronized snapshot (null if none)
+ * @param next - Current snapshot
+ * @returns Map of Firebase paths to values
+ */
+export function diffSnapshot(
+  prev: Partial<Tournament> | null,
+  next: Partial<Tournament>,
+): Record<string, unknown> {
+  const updates: Record<string, unknown> = {};
+
+  if (!prev) {
+    Object.keys(next).forEach((key) => {
+      updates[key] = (next as Record<string, unknown>)[key] ?? null;
+    });
+    return updates;
+  }
+
+  const keys = new Set([...Object.keys(prev), ...Object.keys(next)]);
+  keys.forEach((key) => {
+    if (key === 'results') {
+      const a = (prev.results || {}) as Record<string, unknown>;
+      const b = (next.results || {}) as Record<string, unknown>;
+      new Set([...Object.keys(a), ...Object.keys(b)]).forEach((gi) => {
+        if (!same(a[gi], b[gi])) updates[`results/${gi}`] = b[gi] ?? null;
+      });
+    } else if (key === 'schedule' && Array.isArray(prev.schedule) && Array.isArray(next.schedule)) {
+      diffSchedule(prev.schedule, next.schedule, updates);
+    } else if (!same((prev as Record<string, unknown>)[key], (next as Record<string, unknown>)[key])) {
+      updates[key] = (next as Record<string, unknown>)[key] ?? null;
+    }
+  });
+
+  return updates;
+}
+
+/**
+ * Schedule is saved field-by-field for each game: this allows a user advancing
+ * a knockout stage winner to only save `schedule/<game>/home` or `away`
+ * (the rest of the schedule is admin-only).
+ */
+function diffSchedule(a: unknown[], b: unknown[], updates: Record<string, unknown>): void {
+  const n = Math.max(a.length, b.length);
+  for (let i = 0; i < n; i++) {
+    if (same(a[i], b[i])) continue;
+    const ga = a[i];
+    const gb = b[i];
+    if (ga && gb && typeof ga === 'object' && typeof gb === 'object') {
+      const gaObj = ga as Record<string, unknown>;
+      const gbObj = gb as Record<string, unknown>;
+      new Set([...Object.keys(gaObj), ...Object.keys(gbObj)]).forEach((k) => {
+        if (!same(gaObj[k], gbObj[k])) updates[`schedule/${i}/${k}`] = gbObj[k] ?? null;
+      });
+    } else {
+      updates[`schedule/${i}`] = gb ?? null;
+    }
+  }
+}
+
+/** Sections that store only metadata: alone, they do not justify a database save. */
+const META_SECTIONS: readonly string[] = ['exportedAt', 'version'];
+
+/** Checks whether the update only modifies metadata (export timestamp, version). */
+export function onlyMetadata(updates: Record<string, unknown>): boolean {
+  return Object.keys(updates).every((p) => META_SECTIONS.includes(p));
+}
+
+/**
+ * Normalizes a tournament configuration, applying default values and ensuring
+ * the sport is defined. If no sport is specified (e.g. from version <= 7 snapshots),
+ * it defaults to 'football'.
+ */
+export function normalizeConfig(config?: Partial<Config> | null): Config {
+  const raw = config || {};
+  return {
+    nome: typeof raw.nome === 'string' ? raw.nome : 'Futebol ILOG',
+    numEquipas: typeof raw.numEquipas === 'number' ? raw.numEquipas : 8,
+    numGrupos: typeof raw.numGrupos === 'number' ? raw.numGrupos : 1,
+    numVoltas: typeof raw.numVoltas === 'number' ? raw.numVoltas : 2,
+    pontosVitoria: typeof raw.pontosVitoria === 'number' ? raw.pontosVitoria : 3,
+    pontosEmpate: typeof raw.pontosEmpate === 'number' ? raw.pontosEmpate : 1,
+    pontosDerrota: typeof raw.pontosDerrota === 'number' ? raw.pontosDerrota : 0,
+    bonusGoleada: typeof raw.bonusGoleada === 'number' ? raw.bonusGoleada : 1,
+    golosGoleada: typeof raw.golosGoleada === 'number' ? raw.golosGoleada : 3,
+    mataMata: Boolean(raw.mataMata),
+    numPlayoffTeams: typeof raw.numPlayoffTeams === 'number' ? raw.numPlayoffTeams : 4,
+    ...raw,
+    sport: typeof raw.sport === 'string' && raw.sport ? raw.sport : 'football',
+  };
+}
+
+/**
+ * Firebase removes empty arrays and converts objects with numeric keys into
+ * sparse arrays (with null holes). Restores the expected structure for match results.
+ */
+export function normalizeResults(
+  results?: Record<string | number, unknown> | unknown[] | null,
+): Record<string, Score | string> {
+  const out: Record<string, Score | string> = {};
+  if (!results || typeof results !== 'object') return out;
+
+  Object.keys(results).forEach((gi) => {
+    const r = (results as Record<string, unknown>)[gi];
+    if (r === null || r === undefined) return;
+    if (typeof r === 'object') {
+      const rObj = r as Record<string, unknown>;
+      const scorers = (rObj.scorers || {}) as { home?: unknown[]; away?: unknown[] };
+      const assists = (rObj.assists || {}) as { home?: unknown[]; away?: unknown[] };
+      const fix = (arr?: unknown[]) => Array.from(arr || [], (v) => (v ? String(v) : ''));
+      out[gi] = {
+        ...rObj,
+        scorers: {
+          home: (scorers.home || []) as string[],
+          away: (scorers.away || []) as string[],
+        },
+        assists: {
+          home: fix(assists.home),
+          away: fix(assists.away),
+        },
+      } as Score;
+    } else {
+      out[gi] = String(r);
+    }
+  });
+  return out;
+}
+
+/**
+ * Restores empty lists that Firebase removes in tournament archives
+ * (and converts objects with numeric keys back to arrays).
+ */
+export function normalizeArquivo(arquivo?: unknown): ArchiveEntry[] {
+  const list = <T>(v: unknown): T[] => {
+    if (Array.isArray(v)) return v.filter(Boolean);
+    if (v && typeof v === 'object') return Object.values(v).filter(Boolean) as T[];
+    return [];
+  };
+
+  return list<Record<string, unknown>>(arquivo).map((e) => ({
+    ...e,
+    grupos: list<Record<string, unknown>>(e.grupos).map((g) => ({
+      ...g,
+      tabela: list<ArchiveStandingRow>(g.tabela),
+    })),
+    jogadores: list<ArchivePlayer>(e.jogadores),
+  })) as unknown as ArchiveEntry[];
+}
+
+const SECTION_LABELS: Record<string, string | null> = {
+  config: 'Configuração alterada',
+  teams: 'Equipas alteradas',
+  squads: 'Plantéis alterados',
+  schedule: 'Calendário alterado',
+  roundsMeta: null,
+  scheduleTeamCount: null,
+  scheduleVoltas: null,
+  players: 'Base de dados de jogadores alterada',
+  jogosSingulares: 'Jogos singulares alterados',
+  results: 'Resultados alterados',
+  arquivo: 'Histórico de torneios alterado',
+  exportedAt: null,
+  version: null,
+};
+
+function teamLabel(snap: Partial<Tournament>, idx: number | string): string {
+  if (typeof idx === 'string') return idx;
+  const t = snap.teams && snap.teams[idx];
+  return t && t.name ? t.name : `Equipa ${Number(idx) + 1}`;
+}
+
+/**
+ * Formats a human-readable description of Firebase updates for the audit log
+ * (who changed what).
+ *
+ * @param updates - Path map returned by diffSnapshot
+ * @param snap - Snapshot after the change
+ * @returns Description, or '' if only metadata changed
+ */
+export function describeUpdates(
+  updates: Record<string, unknown>,
+  snap: Partial<Tournament>,
+): string {
+  const parts: string[] = [];
+  const deleted = Object.keys(updates).filter(
+    (p) => p.startsWith('results/') && updates[p] == null,
+  );
+  if (deleted.length > 1) parts.push(`${deleted.length} resultados apagados`);
+
+  Object.keys(updates).forEach((path) => {
+    const [section, gi] = path.split('/');
+    if (section === 'schedule' && gi !== undefined) {
+      if (!parts.includes('Calendário alterado')) parts.push('Calendário alterado');
+      return;
+    }
+    if (section === 'results' && gi !== undefined) {
+      if (deleted.length > 1 && updates[path] == null) return;
+      const game = (snap.schedule || [])[Number(gi)];
+      const jogo = game
+        ? `${teamLabel(snap, game.home)} vs ${teamLabel(snap, game.away)}`
+        : `jogo ${Number(gi) + 1}`;
+      const r = updates[path] as Score | string | null | undefined;
+      if (r === null || r === undefined) {
+        parts.push(`Resultado apagado: ${jogo}`);
+      } else {
+        const score = typeof r === 'object' ? r.score : r;
+        const pen = typeof r === 'object' && r && r.penalties ? ` (g.p. ${r.penalties})` : '';
+        const status = typeof r === 'object' && r && r.status ? `, ${r.status}` : '';
+        parts.push(`Resultado ${jogo}: ${score}${pen}${status}`);
+      }
+      return;
+    }
+    const label = Object.prototype.hasOwnProperty.call(SECTION_LABELS, section)
+      ? SECTION_LABELS[section]
+      : `${section} alterado`;
+    if (label && !parts.includes(label)) parts.push(label);
+  });
+  return parts.join('; ').slice(0, 500);
+}

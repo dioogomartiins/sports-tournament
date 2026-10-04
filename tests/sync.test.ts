@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { diffSnapshot, normalizeResults, normalizeArquivo, describeUpdates, onlyMetadata } from '../src/sync.js';
+import {
+  diffSnapshot,
+  normalizeResults,
+  normalizeArquivo,
+  describeUpdates,
+  onlyMetadata,
+  normalizeConfig,
+} from '../src/sync.js';
 
 describe('diffSnapshot', () => {
   const base = {
@@ -119,3 +126,31 @@ describe('normalizeArquivo', () => {
     expect(normalizeArquivo(fb)[0].jogadores).toEqual([{ pid: 'x' }]);
   });
 });
+
+describe('normalizeConfig', () => {
+  it('applies defaults and sets sport to football when undefined', () => {
+    const cfg = normalizeConfig();
+    expect(cfg.sport).toBe('football');
+    expect(cfg.nome).toBe('Futebol ILOG');
+    expect(cfg.numEquipas).toBe(8);
+  });
+
+  it('sets sport to football when config lacks sport (version <= 7)', () => {
+    const cfg = normalizeConfig({ nome: 'Torneio Teste', numEquipas: 6 });
+    expect(cfg.sport).toBe('football');
+    expect(cfg.nome).toBe('Torneio Teste');
+    expect(cfg.numEquipas).toBe(6);
+  });
+
+  it('preserves existing sport if present', () => {
+    const cfg = normalizeConfig({ sport: 'padel', nome: 'Open Padel' });
+    expect(cfg.sport).toBe('padel');
+    expect(cfg.nome).toBe('Open Padel');
+  });
+
+  it('normalizes empty sport string to football', () => {
+    const cfg = normalizeConfig({ sport: '' });
+    expect(cfg.sport).toBe('football');
+  });
+});
+

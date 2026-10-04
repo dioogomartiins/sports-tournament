@@ -35,11 +35,11 @@ Como o código está organizado, como os dados são guardados e sincronizados, e
 | `index.html` | Estrutura de todos os separadores e modais. |
 | `css/` | Estilos partidos por área (`base.css` tem as variáveis dos temas claro e escuro). `style.css` só faz `@import` dos outros, pela ordem da cascata; o Vite junta tudo num ficheiro no build. Estilos novos vão para o ficheiro da área. |
 | `src/main.js` | Liga os eventos da interface às ações (gerar calendário, registar golos, arquivar, …) e arranca a app. Os botões e campos das equipas, calendário e resultados, redesenhados com `innerHTML`, têm um só listener no contentor (delegação). |
-| `src/state.js` | Estado global, valores por defeito, snapshots (`buildSnapshot` / `applySnapshot`), persistência no localStorage e envio para o Firebase. Desfaz alterações locais que o Firebase não aceitaria. Não importa o `ui.js`: os avisos e o `renderAll` chegam por `setStateHooks`, chamado pelo `main.js` no arranque. |
+| `src/state.ts` | Estado global, valores por defeito, snapshots (`buildSnapshot` / `applySnapshot`), persistência no localStorage e envio para o Firebase. Desfaz alterações locais que o Firebase não aceitaria. Não importa o `ui.js`: os avisos e o `renderAll` chegam por `setStateHooks`, chamado pelo `main.js` no arranque. |
 | `src/core/` | Lógica central do torneio em TypeScript: Berger, calendário, volta extra, eliminatórias (`schedule.ts`), ratings e draft (`draft.ts`), arquivo (`archive.ts`). |
 | `src/sports/` | Arquitetura multi-desporto: classe abstrata `Sport.ts`, registo de modalidades (`registry.ts`), e perfil de futebol (`football/Football.ts`) com classificação, desempates, eliminatórias, estatísticas e golos. |
 | `src/algorithms.ts` | Re-exporta funções do core e de futebol para compatibilidade com os módulos existentes. |
-| `src/sync.js` | Diferenças entre snapshots para o `update()`, normalização de dados guardados pelo Firebase e texto do registo de alterações. |
+| `src/sync.ts` | Diferenças entre snapshots para o `update()`, normalização de dados guardados pelo Firebase e texto do registo de alterações. |
 | `src/firebase.js` | Ligação ao Firebase: escuta `torneio_state`, envia alterações, login Google, perfil do utilizador, lista de utilizadores e registo. |
 | `src/permissions.ts` | Que secções cada perfil pode gravar. Espelha `database.rules.json`. |
 | `src/types.ts` | Tipos TypeScript de domínio (`Tournament`, `Config`, `Match`, `Score`, `Player`, `Team`, etc.). |
@@ -57,7 +57,7 @@ Todo o estado do torneio vive num só nó, `torneio_state`, com estas secções:
 
 | Secção | Conteúdo |
 |---|---|
-| `config` | Nome, número de equipas, grupos, voltas, pontuação, eliminatórias. |
+| `config` | Nome, desporto ('football'), número de equipas, grupos, voltas, pontuação, eliminatórias. |
 | `teams` | 32 posições `{ name, color, group }` (as não usadas ficam com nome vazio). |
 | `squads` | 32 listas de jogadores por equipa `{ id, num, name }`. |
 | `schedule` | Lista de jogos `{ jornada, home, away, group }`; os de eliminatória têm `isPlayoff`, `playoffMatchId` e `nextMatchId`. |
@@ -67,7 +67,7 @@ Todo o estado do torneio vive num só nó, `torneio_state`, com estas secções:
 | `players` | Base de dados de jogadores `{ id, nome, atributos }`. |
 | `jogosSingulares` | Jogos singulares com as duas equipas, resultado, marcadores, assistências e MVP. |
 | `arquivo` | Torneios arquivados: nome, data, campeão, tabelas finais e estatísticas por jogador. |
-| `version`, `exportedAt` | Versão do formato (`SNAPSHOT_VERSION`) e data da última gravação. |
+| `version`, `exportedAt` | Versão do formato (`SNAPSHOT_VERSION`, atualmente 8) e data da última gravação. |
 | `logRef` | Chave da entrada de `torneio_log` da última gravação (ver [Registo de alterações](#registo-de-alterações)). |
 
 Notas:
@@ -115,13 +115,13 @@ Na app, quem não é admin vê Equipas, Plantéis e Jogadores só de leitura, co
 
 Se o Firebase recusar uma gravação que o cliente deixou passar, o valor do servidor volta sozinho e a app avisa: "A alteração foi recusada pela base de dados (sem permissão). Foi desfeita."
 
-Quando o cliente percebe antes de enviar que a alteração não é permitida (sem sessão, sem perfil, ou secção só de admin), não envia nada: `state.js` volta ao último snapshot sincronizado e mostra o motivo.
+Quando o cliente percebe antes de enviar que a alteração não é permitida (sem sessão, sem perfil, ou secção só de admin), não envia nada: `state.ts` volta ao último snapshot sincronizado e mostra o motivo.
 
 ## Registo de alterações
 
 ![Registo de alterações](assets/illustrations/14-registo-de-alteracoes.jpg)
 
-`describeUpdates` (em `sync.js`) transforma cada `update()` numa frase legível (por exemplo, "Equipas alteradas", ou o jogo cujo resultado mudou). A entrada `{ uid, nome, acao, quando }` vai para `torneio_log`. Os admins veem as últimas 200 em Gestão → 👮 Utilizadores.
+`describeUpdates` (em `sync.ts`) transforma cada `update()` numa frase legível (por exemplo, "Equipas alteradas", ou o jogo cujo resultado mudou). A entrada `{ uid, nome, acao, quando }` vai para `torneio_log`. Os admins veem as últimas 200 em Gestão → 👮 Utilizadores.
 
 O registo é obrigatório, não só uma convenção do cliente: o mesmo `update()` grava `torneio_state/logRef` com a chave da entrada nova, e as regras só aceitam a gravação se essa entrada for nova, for do próprio utilizador e o `logRef` mudar. Uma gravação sem registo é recusada.
 
@@ -129,8 +129,8 @@ O registo é obrigatório, não só uma convenção do cliente: o mesmo `update(
 
 Qualquer mudança na forma do estado (campo novo, secção nova, formato diferente) tem de:
 
-1. Subir `SNAPSHOT_VERSION` em `src/state.js`.
-2. Continuar a carregar dados guardados com versões anteriores, que já estão no Firebase e nos telemóveis (valores por defeito em `applySnapshot`, normalização em `sync.js`).
+1. Subir `SNAPSHOT_VERSION` em `src/state.ts`.
+2. Continuar a carregar dados guardados com versões anteriores, que já estão no Firebase e nos telemóveis (valores por defeito em `applySnapshot`, normalização em `sync.ts`).
 3. Se for uma secção nova em `torneio_state`, decidir quem a pode escrever (ver [Permissões](#permissões)). Por defeito fica só para admins.
 
 ## Segurança do HTML
@@ -155,7 +155,8 @@ npm run test:rules   # regras do Firebase no emulador (precisa de Java)
 |---|---|
 | `tests/football.test.ts` | Lógica de futebol: classificação, confronto direto, vencedor de playoff, estatísticas de jogadores, golos |
 | `tests/core/` | Lógica central: `schedule.test.ts` (Berger, voltas, seeding), `draft.test.ts` (ratings, drafts), `archive.test.ts` (arquivo) |
-| `tests/sync.test.js` | `diffSnapshot`, `normalizeResults`, `normalizeArquivo`, `describeUpdates` |
+| `tests/sync.test.ts` | `diffSnapshot`, `normalizeConfig`, `normalizeResults`, `normalizeArquivo`, `describeUpdates` |
+| `tests/state.test.ts` | `applySnapshot` (retrocompatibilidade v7), `buildSnapshot`, `defaultConfig` |
 | `tests/permissions.test.js` | `canWritePath`, `blockedPaths`, `roleLabel` |
 | `tests/utils.test.js` | `escapeHtml`, `safeColor` |
 

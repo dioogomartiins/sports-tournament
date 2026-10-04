@@ -69,7 +69,7 @@ export interface Config {
   golosGoleada: number;
   mataMata: boolean;
   numPlayoffTeams: number;
-  sport?: string;
+  sport: string;
   [key: string]: unknown;
 }
 
