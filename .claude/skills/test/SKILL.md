@@ -18,8 +18,10 @@ npm run build       # must also pass
   (standings, head-to-head tiebreak, playoff winner, player stats, and goal handling).
 - `tests/core/`: core tournament logic in `src/core/` (schedule, Berger rounds,
   draft ratings and balanced teams, archive entries).
-- `tests/sync.test.js`: `diffSnapshot`, `normalizeResults`,
-  `normalizeArquivo` and `describeUpdates` in `src/sync.js`.
+- `tests/sync.test.ts`: `diffSnapshot`, `normalizeConfig`, `normalizeResults`,
+  `normalizeArquivo` and `describeUpdates` in `src/sync.ts`.
+- `tests/state.test.ts`: `applySnapshot` (v7 backwards compatibility), `buildSnapshot`,
+  `defaultConfig` in `src/state.ts`.
 - `tests/permissions.test.js`: `canWritePath`, `blockedPaths` and `roleLabel`.
   Keep these in step with `database.rules.json`.
 - `tests/utils.test.js`: `escapeHtml` and `safeColor`.
