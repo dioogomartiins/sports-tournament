@@ -20,7 +20,9 @@ Database. Deployed to GitHub Pages at `/torneio-ilog/` on release tags (`release
     and swaps pairs above 20 players), player stats (goals, assists, MVP) and
     tournament archive entries. Keep logic here so it stays testable.
   - `src/sync.js` diffs snapshots for `update()`, normalizes older saved data
-    and describes changes for the log; `src/permissions.js` mirrors the rules.
+    and describes changes for the log; `src/permissions.ts` mirrors the rules.
+  - `src/types.ts` defines domain models (`Tournament`, `Config`, `Match`, `Score`, `Player`, `Team`).
+  - `src/utils.ts` provides shared utility functions (`escapeHtml`, `safeColor`, `playerName`, `clamp`, etc.).
   - `src/ui.js` renders (one module per section in `src/ui/`, re-exported by
     `ui.js`; `src/ui/` modules never import `ui.js`); `src/main.js` wires event
     handlers; `src/firebase.js` syncs and handles Google sign-in; `src/share.js`
