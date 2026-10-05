@@ -108,16 +108,6 @@
   line-height: 1.4em;
 }
 
-.sets-line {
-  grid-column: 1 / -1;
-  text-align: center;
-  font-family: var(--font-display);
-  font-size: 13px;
-  letter-spacing: .04em;
-  color: var(--ink-soft);
-  font-variant-numeric: tabular-nums;
-}
-
 .res-sep {
   color: var(--ink-faint);
   font-weight: 600;
@@ -286,5 +276,141 @@ button.status-badge:active {
 
   100% {
     opacity: 1;
+  }
+}
+
+/* ---------- Racket scoreboard (padel, tennis) ----------
+   One line per side, like a broadcast scoreboard: the side, the games of
+   each set, the sets won and, for admins in Results, − / +. */
+.fixture-racket {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.racket-board {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.rb-line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 4px 0 10px;
+  border-radius: var(--radius-sm, 6px);
+  background: var(--paper);
+}
+
+.rb-team {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+.rb-won .rb-team {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.rb-sets {
+  display: flex;
+  gap: 2px;
+}
+
+.rb-set {
+  width: 24px;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+  border-radius: 4px;
+}
+
+.rb-set.rb-lost {
+  color: var(--ink-faint);
+  font-weight: 500;
+}
+
+.rb-set.rb-current {
+  background: var(--gold);
+  color: #0F2A1C;
+}
+
+.rb-total {
+  min-width: 30px;
+  padding: 2px 6px;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 700;
+  border-radius: 4px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  color: var(--ink);
+}
+
+.rb-won .rb-total {
+  background: var(--pitch-500);
+  border-color: transparent;
+  color: #fff;
+}
+
+.rb-steps {
+  display: flex;
+  gap: 6px;
+}
+
+.rb-note {
+  text-align: center;
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+.rb-status {
+  display: flex;
+  justify-content: center;
+}
+
+.fixture-racket .fixture-actions {
+  margin-top: 4px;
+}
+
+/* Phone: the name wraps instead of being cut by the − / + buttons */
+@media (max-width: 480px) {
+  .rb-line {
+    gap: 6px;
+    padding-left: 8px;
+  }
+
+  .rb-team {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.2;
+    padding: 4px 0;
+  }
+
+  /* teamLabel() sets nowrap inline on the name */
+  .rb-team > span {
+    white-space: normal !important;
+  }
+
+  .rb-set {
+    width: 20px;
+  }
+
+  .rb-steps {
+    gap: 4px;
   }
 }

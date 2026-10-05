@@ -2,8 +2,8 @@
 // <results-list> — a result row per match, by round (Results tab)
 // ---------------------------------------------------------------------------
 // Football rows have score boxes and − / + per side (penalties in a tied
-// playoff); racket rows show sets won with − / + one game, and the games of
-// each set below. Without `editable` (signed out, or not an admin of the
+// playoff); racket rows are a scoreboard (racketBoard.ts) with − / + one game
+// per side. Without `editable` (signed out, or not an admin of the
 // sport) the scores are read-only: no − / + and the status pill is a label.
 // Events (detail always has the match `gi`):
 //   score-step   { gi, side, action: 'add' | 'sub' }   a − / + button
@@ -21,6 +21,7 @@ import { en } from '../i18n/en.js';
 import { LightElement } from './LightElement.js';
 import { sideLabel } from './templates.js';
 import { groupRounds, statusBadge, statusOf } from './rounds.js';
+import { racketBoard } from './racketBoard.js';
 import type { Round } from './rounds.js';
 
 export type ScoreSide = 'home' | 'away';
@@ -121,34 +122,26 @@ export class ResultsList extends LightElement {
   }
 
   /**
-   * Sets won with − / + one game per side; scores are typed game by game only.
-   * In a match played to points (Americano), the points with − / + one point.
+   * A scoreboard line per side (games of every set, sets won) with − / + one
+   * game; in a match played to points (Americano), the points with − / + one
+   * point. Scores are not typed.
    */
   private racketRow(sport: RacketSport, game: Match, gi: number): TemplateResult {
     const val = this.results[gi];
-    const toPoints = !!sport.pointsPerMatch(this.config);
-    const sets = toPoints ? [] : sport.setsOf(val);
-    const shown = sport.shownScore(val, this.config);
-    const titles = toPoints
-      ? { sub: en.racketScore.cancelPointTitle, add: en.racketScore.addPointTitle }
-      : { sub: en.racketScore.cancelGameTitle, add: en.racketScore.addGameTitle };
-    const side = (s: ScoreSide) => html`
-      ${this.stepButton(gi, s, 'sub', titles.sub)}
-      <span class="res-box res-static" data-side=${s}>${shown ? shown[s] : ''}</span>
-      ${this.stepButton(gi, s, 'add', titles.add)}`;
     return html`
-      <div class="fixture fixture-input" data-game=${gi}>
-        <span class="fx-home">${sideLabel(this.teams, game, 'home')}</span>
-        <div class="result-split">${side('home')}<span class="res-sep">-</span>${side('away')}</div>
-        <span class="fx-away">${sideLabel(this.teams, game, 'away')}</span>
-        ${sets.length ? html`<div class="sets-line">${sport.formatSets(sets)}</div>` : nothing}
+      <div class="fixture fixture-input fixture-racket" data-game=${gi}>
+        ${racketBoard({
+          sport, config: this.config, result: val,
+          label: (side) => sideLabel(this.teams, game, side),
+          onStep: this.editable ? (side, action) => this.emit<ScoreStep>('score-step', { gi: String(gi), side, action }) : undefined,
+        })}
         ${this.actionsTemplate(gi, statusOf(val))}
       </div>`;
   }
 
-  private stepButton(gi: number, side: ScoreSide, action: 'add' | 'sub', title?: string): TemplateResult | typeof nothing {
+  private stepButton(gi: number, side: ScoreSide, action: 'add' | 'sub'): TemplateResult | typeof nothing {
     if (!this.editable) return nothing;
-    return html`<button class="score-btn" data-side=${side} title=${title ?? nothing}
+    return html`<button class="score-btn" data-side=${side}
       @click=${() => this.emit<ScoreStep>('score-step', { gi: String(gi), side, action })}>${action === 'add' ? '+' : '-'}</button>`;
   }
 

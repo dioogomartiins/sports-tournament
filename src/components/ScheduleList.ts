@@ -8,6 +8,8 @@ import { html, nothing } from 'lit';
 import type { TemplateResult } from 'lit';
 import type { Config, Match, MatchResult, RoundMeta, Team } from '../types.js';
 import type { Sport } from '../sports/Sport.js';
+import { RacketSport } from '../sports/RacketSport.js';
+import { racketBoard } from './racketBoard.js';
 import { en } from '../i18n/en.js';
 import { LightElement } from './LightElement.js';
 import { teamLabel, sideLabel } from './templates.js';
@@ -53,7 +55,7 @@ export class ScheduleList extends LightElement {
   private roundTemplate(round: Round): TemplateResult {
     return html`
       <div class="round-card"><div class="round-head">${round.title}</div><div class="round-games">
-        ${round.games.map(({ game, gi }) => html`
+        ${round.games.map(({ game, gi }) => this.sport instanceof RacketSport ? this.racketRow(this.sport, game, gi) : html`
           <div class="fixture fixture-open" data-game=${gi} title=${en.schedule.viewMatchTitle}
             @click=${() => this.emit('open-match', String(gi))}>
             <span class="fx-home">${sideLabel(this.teams, game, 'home')}</span>
@@ -62,6 +64,16 @@ export class ScheduleList extends LightElement {
           </div>`)}
         ${round.bye !== null ? html`<div class="fixture fixture-bye">${en.schedule.byeRound(teamLabel(this.teams, round.bye))}</div>` : nothing}
       </div></div>`;
+  }
+
+  /** Padel and tennis: the scoreboard, read-only, and the status below. */
+  private racketRow(sport: RacketSport, game: Match, gi: number): TemplateResult {
+    return html`
+      <div class="fixture fixture-open fixture-racket" data-game=${gi} title=${en.schedule.viewMatchTitle}
+        @click=${() => this.emit('open-match', String(gi))}>
+        ${racketBoard({ sport, config: this.config, result: this.results[gi], label: (side) => sideLabel(this.teams, game, side) })}
+        <div class="rb-status">${this.statusTemplate(gi)}</div>
+      </div>`;
   }
 
   private statusTemplate(gi: number): TemplateResult {
