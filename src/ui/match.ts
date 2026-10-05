@@ -16,6 +16,10 @@ import { en } from '../i18n/en.js';
 // Match window — hosts the sport's score panel and plays match events everywhere
 // ---------------------------------------------------------------------------
 let openGameGi: string | null = null;
+/** Where the open match window was opened from: Pick MVP only from Results. */
+let openedFrom: MatchSource = 'schedule';
+
+export type MatchSource = 'schedule' | 'results';
 
 /** Score panel class per sport id; sports without one use football's. */
 const SCORE_PANELS: Record<string, new () => ScoreBase> = { football: FootballScore, padel: PadelScore, tennis: TennisScore };
@@ -57,11 +61,12 @@ function openPanel(): ScoreBase | null {
   return panel instanceof ScoreBase ? panel : null;
 }
 
-export function openGameModal(gi: string | number): void {
+export function openGameModal(gi: string | number, from: MatchSource = 'schedule'): void {
   const overlay = document.getElementById('gameOverlay');
   const content = document.getElementById('gameModalContent');
   if (!overlay || !content) return;
   openGameGi = String(gi);
+  openedFrom = from;
   content.replaceChildren(newScorePanel());
   refreshGameModal();
   overlay.hidden = false;
@@ -81,6 +86,7 @@ export function refreshGameModal(): void {
   if (openGameGi === null || !panel) return;
   panel.match = matchView(openGameGi);
   panel.canEdit = isAdminView();
+  if (panel instanceof FootballScore) panel.canPickMvp = openedFrom === 'results' && isAdminView();
 }
 
 // ---------------------------------------------------------------------------

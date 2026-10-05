@@ -717,8 +717,9 @@ export function bindEvents(): void {
   // Lit components emit their events to the container element
   onEvent<TeamChange>(dom.teamsList, 'team-change', onTeamChange);
   // <schedule-list> and <results-list> (detail: the match gi, or an object with it)
+  onEvent<string>(dom.calendarList, 'open-match', (gi) => openGameModal(gi, 'schedule'));
+  onEvent<string>(dom.resultsList, 'open-match', (gi) => openGameModal(gi, 'results'));
   [dom.calendarList, dom.resultsList].forEach((list) => {
-    onEvent<string>(list, 'open-match', openGameModal);
     onEvent<string>(list, 'status-click', (gi) => onStatusClick(Number(gi)));
   });
   onEvent<ScoreStep>(dom.resultsList, 'score-step', onScoreStep);

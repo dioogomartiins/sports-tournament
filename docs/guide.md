@@ -39,7 +39,7 @@ Buttons your role cannot use are hidden. Even if someone bypasses the app, Fireb
 | 🏠 Dashboard | List of active tournaments (to switch between them), plus a summary of the one being viewed: top 3 of the standings and the tournament numbers. The 🔁 button at the top refreshes the numbers. |
 | 🏆 Standings | Full table (per group, with the points right after the team) and the playoff bracket. |
 | 📅 Schedule | Rounds, matches and byes, with each match's status and score; generate playoffs and add rounds. Tapping a match opens the match window. |
-| ⚽ Results | Where matches are recorded live. |
+| ⚽ Results | Where matches are recorded live. Only shown to admins of the tournament's sport and the Master Admin; everyone else follows the scores in the Schedule. |
 | 📊 Stats | Scorers, assists and MVPs of the current tournament and its single matches. |
 | 🗄️ History | Archived tournaments and all-time stats. |
 | ⚙️ Settings | Name, format and scoring (admins only). |
@@ -48,7 +48,7 @@ Buttons your role cannot use are hidden. Even if someone bypasses the app, Fireb
 
 The header shows the tournament name and its sport. The theme button switches between light and dark.
 
-On a phone, the header is a single line pinned to the top: on the left the tournament name and the round, on the right 🔁 (refresh), the theme and the account (👤 when signed in; tapping it shows which account and role you are using before confirming the sign-out). At the bottom there is a floating navigation pill with 🏠 Home, ⚽ Results, 🏆 Standings, 📅 Schedule and ☰ More (the open tab shows its name); **More** opens a panel with the remaining tabs (Stats, History, Settings, Manage and Single Match). The "Saved ✓" notice only appears at the top right after a save or if there is an error.
+On a phone, the header is a single line pinned to the top: on the left the tournament name and the round, on the right 🔁 (refresh), the theme and the account (👤 when signed in; tapping it shows which account and role you are using before confirming the sign-out). At the bottom there is a floating navigation pill with 🏠 Home, ⚽ Results, 🏆 Standings, 📅 Schedule and ☰ More (the open tab shows its name; ⚽ Results only for admins); **More** opens a panel with the remaining tabs (Stats, History, Settings, Manage and Single Match). The "Saved ✓" notice only appears at the top right after a save or if there is an error.
 
 ## Tournaments
 
@@ -94,11 +94,11 @@ In the **⚽ Results** tab, each match has:
 
 You can also type the score straight into the boxes; in that case no scorers are attached.
 
-Only admins of the tournament's sport (and the Master Admin) see the ＋ / − buttons and can type scores or change the status. Everyone else sees the score and the status read-only.
+Only admins of the tournament's sport (and the Master Admin) see the Results tab. In the Schedule everyone sees each match's status and score; only admins can tap the status to change it.
 
 **Padel.** ＋ / − add or remove **one game** for that pair, with no scorer to pick. The boxes show the sets won and the games of every set are written underneath (e.g. `6-4 3-2`). When a set ends the next one starts on its own, and in the deciding set the super tie-break points are entered the same way. The match window shows a grid with each set's games and the set being played highlighted, and the animations say *GAME* and *SET!* instead of *GOAL*. Scores cannot be typed in padel. **Tennis** works the same way; by default its deciding set is a normal set, not a super tie-break.
 
-**Match window.** Opens with **📋 Match** in Results, or by tapping the match in the Schedule. It shows the score and, per team, each goal with the scorer and the assist. It updates by itself when someone records a goal on another phone. Once the match is finished, it has the **⭐ Pick MVP** and **📤 Share image** buttons (the result image).
+**Match window.** Opens with **📋 Match** in Results, or by tapping the match in the Schedule. It shows the score and, per team, each goal with the scorer and the assist. It updates by itself when someone records a goal on another phone. Once the match is finished, it has the **📤 Share image** button (the result image) and, when opened from Results, **⭐ Pick MVP**. From the Schedule the MVP is only shown, never picked.
 
 **Live on every phone.** When a match kicks off, a goal is scored (background in the team colour, scorer and assist), a goal is cancelled or the match ends, a short animation appears on every device, and in the Standings the teams slide to their new place. If the standings changed while you were on another tab, when you open it you briefly see the order from the last time you looked and then the teams slide to their current position. Next to the position, a green (▲) or red (▼) arrow shows how many places each team gained or lost since then, and stays until the order changes again. With *reduced motion* turned on in the phone, the animations do not play.
 

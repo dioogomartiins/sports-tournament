@@ -45,7 +45,7 @@
       <button class="tab active" data-tab="dashboard">🏠 Dashboard</button>
       <button class="tab" data-tab="standings">🏆 Standings</button>
       <button class="tab" data-tab="calendar">📅 Schedule</button>
-      <button class="tab" data-tab="results">⚽ Results</button>
+      <button class="tab" data-requires="admin" data-tab="results">⚽ Results</button>
       <button class="tab" data-tab="stats">📊 Stats</button>
       <button class="tab" data-tab="historico">🗄️ History</button>
       <button class="tab" data-tab="config" data-requires="admin">⚙️ Settings</button>
@@ -68,7 +68,7 @@
     <!-- NAVIGATION PILL (mobile only): match tabs and "More" for the rest -->
     <nav class="bottom-nav" aria-label="Main navigation">
       <button class="tab" data-tab="dashboard" aria-label="Home"><span class="bn-icon" aria-hidden="true">🏠</span><span class="bn-label">Home</span></button>
-      <button class="tab" data-tab="results" aria-label="Results"><span class="bn-icon" aria-hidden="true">⚽</span><span class="bn-label">Results</span></button>
+      <button class="tab" data-requires="admin" data-tab="results" aria-label="Results"><span class="bn-icon" aria-hidden="true">⚽</span><span class="bn-label">Results</span></button>
       <button class="tab" data-tab="standings" aria-label="Standings"><span class="bn-icon" aria-hidden="true">🏆</span><span class="bn-label">Standings</span></button>
       <button class="tab" data-tab="calendar" aria-label="Schedule"><span class="bn-icon" aria-hidden="true">📅</span><span class="bn-label">Schedule</span></button>
       <button class="bn-more" id="btnMobileMenu" aria-label="More" aria-controls="tabs" aria-expanded="false"><span class="bn-icon" aria-hidden="true">☰</span><span class="bn-label">More</span></button>

@@ -163,7 +163,7 @@ The Firebase rules are the real protection; the client only hides buttons and wa
 
 Besides who can write, the rules validate what is written: scores in the `"2-1"` format, known statuses (`agendado`, `decorrer`, `terminado`), per-side lists of scorers and assists, the fields of `meta`, and length-limited text. Every write to a tournament's sections (other than `exportedAt` and `version`) must also bring a new `logRef` (see [Activity log](#activity-log)).
 
-In the app, anyone who is not an admin of the tournament's sport sees Teams, Squads and Players read-only, with a note explaining why, and sees scores and match status read-only in Results, Schedule and the match window (no − / +, typed scores or status changes); the 👮 Users tab is only shown to the Master Admin.
+In the app, anyone who is not an admin of the tournament's sport sees Teams, Squads and Players read-only, with a note explaining why, and does not see the Results tab, sees scores and match status read-only in the Schedule and the match window, and cannot pick the MVP; Pick MVP only appears when an admin opens the match from Results; the 👮 Users tab is only shown to the Master Admin.
 
 **Changing permissions:** change `database.rules.json` and `src/permissions.ts` (`USER_SECTIONS`, `canWritePath`) together, update `tests/permissions.test.js` and `tests/rules/rules.check.mjs`, and run `npm run test:rules`. The rules are published by the next deployment (see [Deployment](configuration.md#deployment)).
 
