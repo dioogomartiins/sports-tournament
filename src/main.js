@@ -1,6 +1,7 @@
 import { state, persistConfigTeams, loadState, persistSchedule, persistResults, persistJogosSingulares, storeAllLayers, notifyPushError, currentTheme, setCurrentTheme, exportJSON, importJSON, applyGeneratedSchedule, applySnapshot, buildSnapshot, defaultTeams, defaultSquads, setStateHooks, setCurrentTournamentId, getCurrentTournamentId } from './state.js';
-import { closeGameModal, openGameModal, animateResultChanges, dom, cacheDom, renderAll, refreshComputed, renderScheduleHint, renderSquadList, renderSquadsDropdown, flashError, flashBackup, renderCalendar, renderResults, showToast, flashSaved, openConfirm, closeConfirm, openDangerConfirm, switchTab, confirmCallback, openScorerModal, openPlayerProfile, computeStatsSummary, renderPlayersList, openPlayerModal, renderSquadPlayerFromDBDropdown, renderDraftTeams, renderSingularHistorico, currentDraft, renderAuth, renderUsers, renderLog, openPickPlayerModal, squadPickList, renderTournamentsList, openNovoTorneioModal, openDrawPairsModal, bindHistoryEvents } from './ui.js';
-import { clamp, numOr, escapeHtml, buildPlayerIndex } from './utils.js';
+import { closeGameModal, openGameModal, animateResultChanges, dom, cacheDom, renderAll, refreshComputed, renderScheduleHint, renderSquadList, renderSquadsDropdown, flashError, flashBackup, renderCalendar, renderResults, showToast, flashSaved, openConfirm, closeConfirm, runConfirm, openDangerConfirm, switchTab, openScorerModal, openPlayerProfile, computeStatsSummary, renderPlayersList, openPlayerModal, renderSquadPlayerFromDBDropdown, renderDraftTeams, renderSingularHistorico, currentDraft, renderAuth, renderUsers, renderLog, openPickPlayerModal, squadPickList, renderTournamentsList, openNovoTorneioModal, openDrawPairsModal, bindHistoryEvents, bindPlayersEvents } from './ui.js';
+import { html } from 'lit';
+import { clamp, numOr, buildPlayerIndex } from './utils.js';
 import { shareStandings, shareResult } from './share.js';
 import { bergerRounds, balancedDraft, balancedPairs, buildFirstRoundSeeding, buildExtraVolta, buildArchiveEntry, GAME_STATUS, alignAssists } from './algorithms.js';
 import { getSport } from './sports/registry.js';
@@ -44,10 +45,9 @@ export function onFormatFieldChange() {
 // ---------------------------------------------------------------------------
 // Handlers de equipas e plantéis
 // ---------------------------------------------------------------------------
-function onTeamPropChange(inp) {
-  const idx = parseInt(inp.dataset.idx, 10);
-  const prop = inp.dataset.prop;
-  state.teams[idx][prop] = inp.value.trim();
+/** A team's name or colour changed in <teams-editor> (detail: { idx, prop, value }). */
+function onTeamChange({ idx, prop, value }) {
+  state.teams[idx][prop] = value;
   persistConfigTeams();
   renderSquadsDropdown();
   renderCalendar();
@@ -103,19 +103,12 @@ function onDrawPairs() {
   });
 }
 
-function onSquadListClick(e) {
-  const btnDel = e.target.closest('.player-del');
-  const btnStats = e.target.closest('.player-stats-btn');
-
-  if (btnDel) {
-    const tIdx = btnDel.dataset.idx;
-    const pid = btnDel.dataset.pid;
-    state.squads[tIdx] = state.squads[tIdx].filter((p) => p.id !== pid);
-    persistConfigTeams();
-    renderSquadList();
-  } else if (btnStats) {
-    openPlayerProfile(btnStats.dataset.pid, Number(btnStats.dataset.idx));
-  }
+function onSquadRemove(pid) {
+  const tIdx = dom.squadTeamSelect.value;
+  state.squads[tIdx] = state.squads[tIdx].filter((p) => p.id !== pid);
+  persistConfigTeams();
+  renderSquadList();
+  renderSquadPlayerFromDBDropdown();
 }
 
 // ---------------------------------------------------------------------------
@@ -410,7 +403,7 @@ export function onTerminarTorneio(tid = getCurrentTournamentId()) {
 
   openConfirm(
     en.tournaments.finishTitle,
-    en.tournaments.finishPrompt(escapeHtml(tourneyName)) + aviso,
+    html`${en.tournaments.finishPrompt(tourneyName)}${aviso}`,
     async () => {
       const index = buildPlayerIndex();
       const names = {};
@@ -704,7 +697,7 @@ export function onContaClick() {
   }
   // No telemóvel o botão só mostra 👤, por isso a confirmação diz quem tem a sessão
   const user = getCurrentUser();
-  const quem = `${escapeHtml(user.displayName || user.email || '')} (${escapeHtml(roleLabel(getCurrentRole(), getCurrentUserAdmin()))})`;
+  const quem = `${user.displayName || user.email || ''} (${roleLabel(getCurrentRole(), getCurrentUserAdmin())})`;
   openConfirm(en.modals.signOutTitle, en.modals.signOutPrompt(quem), () => {
     signOutUser();
   });
@@ -782,6 +775,7 @@ function bindMenuDrawer() {
 export function bindEvents() {
   bindMenuDrawer();
   bindHistoryEvents();
+  bindPlayersEvents();
 
   Array.from(document.querySelectorAll('.tab')).forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -830,17 +824,13 @@ export function bindEvents() {
   });
   dom.btnAddPlayerFromDB.addEventListener('click', onAddPlayerFromDB);
   dom.btnDrawPairs.addEventListener('click', onDrawPairs);
-  dom.squadList.addEventListener('click', onSquadListClick);
+  dom.squadList.addEventListener('squad-remove', (e) => onSquadRemove(e.detail));
+  dom.squadList.addEventListener('player-stats', (e) => openPlayerProfile(e.detail, Number(dom.squadTeamSelect.value)));
 
   // Equipas, calendário e resultados são redesenhados com innerHTML: um listener
   // por contentor em vez de um por elemento a cada render.
   // (focusout porque o blur não sobe até ao contentor)
-  dom.teamsList.addEventListener('focusout', (e) => {
-    if (e.target.matches('.team-prop')) onTeamPropChange(e.target);
-  });
-  dom.teamsList.addEventListener('change', (e) => {
-    if (e.target.matches('.team-prop[type="color"]')) onTeamPropChange(e.target);
-  });
+  dom.teamsList.addEventListener('team-change', (e) => onTeamChange(e.detail));
   // <schedule-list> and <results-list> (detail: the match gi, or an object with it)
   [dom.calendarList, dom.resultsList].forEach((list) => {
     list.addEventListener('open-match', (e) => openGameModal(e.detail));
@@ -888,11 +878,7 @@ export function bindEvents() {
 
   // Modal
   dom.modalCancel.addEventListener('click', closeConfirm);
-  dom.modalConfirm.addEventListener('click', () => {
-    const cb = confirmCallback;
-    closeConfirm();
-    if (cb) cb();
-  });
+  dom.modalConfirm.addEventListener('click', runConfirm);
   dom.modalOverlay.addEventListener('click', (e) => { if (e.target === dom.modalOverlay) closeConfirm(); });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !dom.modalOverlay.hidden) closeConfirm(); });
 

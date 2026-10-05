@@ -212,7 +212,7 @@
           <div class="section-title">👥 Teams (Colors)</div>
           <p class="section-sub" data-requires="admin">Change names and pick the primary color for each team freely.</p>
           <p class="section-sub readonly-note" data-hide-for="admin">🔒 Only an admin can change team names and colors.</p>
-          <div class="teams-grid" id="teamsList"></div>
+          <div class="teams-grid"><teams-editor id="teamsList"></teams-editor></div>
         </div>
       </section>
 
@@ -242,9 +242,7 @@
               <div class="field" style="grid-column: span 1; width: 100%;">
                 <label for="squadPlayerFromDB">Add Player from Database</label>
                 <div style="display: flex; gap: 8px;">
-                  <select id="squadPlayerFromDB" class="input" style="flex:1;">
-                    <option value="">-- Select player --</option>
-                  </select>
+                  <select id="squadPlayerFromDB" class="input" style="flex:1;"></select>
                   <button class="btn btn-gold" id="btnAddPlayerFromDB">Add</button>
                 </div>
               </div>
@@ -259,7 +257,7 @@
             </p>
             </div>
 
-            <div id="squadList"></div>
+            <squad-list id="squadList"></squad-list>
           </div>
         </div>
       </section>
@@ -283,7 +281,7 @@
               style="max-width:320px;">
           </div>
 
-          <div id="playersList"></div>
+          <player-cards id="playersList"></player-cards>
         </div>
       </section>
 

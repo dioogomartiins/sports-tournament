@@ -1,10 +1,10 @@
 import { state } from '../state.js';
 import { escapeHtml, fmtTimestamp } from '../utils.js';
 import { ROLES, isKnownRole, roleLabel } from '../permissions.js';
-import { dom, isAdminView } from './dom.js';
+import { dom } from './dom.js';
 import { switchTab } from './navigation.js';
-import { renderSquadList } from './equipas.js';
-import { renderPlayersList } from './jogadores.js';
+import { renderTeams, renderSquadList } from './teams.js';
+import { renderPlayersList } from './players.js';
 import { en } from '../i18n/en.js';
 
 // ---------------------------------------------------------------------------
@@ -29,11 +29,8 @@ export function renderAuth(user, role, userAdmin = null) {
   document.body.dataset.role = effectiveRole;
   document.body.dataset.master = role === 'master' ? 'true' : 'false';
 
-  if (dom.teamsList) {
-    dom.teamsList.querySelectorAll('.team-prop').forEach((inp) => { inp.disabled = !isAdminView(); });
-  }
-  // Empty list messages depend on permissions
-  if (state.config) { renderSquadList(); renderPlayersList(); }
+  // Editable fields and empty list messages depend on permissions
+  if (state.config) { renderTeams(); renderSquadList(); renderPlayersList(); }
 
   if (dom.btnConta) {
     if (user) {

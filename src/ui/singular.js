@@ -2,7 +2,7 @@ import { state, persistJogosSingulares } from '../state.js';
 import { getTeamName, escapeHtml, fmtTimestamp, playerName } from '../utils.js';
 import { getPlayerRating, getTeamTotalRating } from '../algorithms.js';
 import { dom } from './dom.js';
-import { openConfirm, openPickPlayerModal } from './modais.js';
+import { openConfirm, openPickPlayerModal } from './modals.js';
 import { en } from '../i18n/en.js';
 
 // ---------------------------------------------------------------------------

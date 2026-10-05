@@ -8,7 +8,6 @@ import { getSport } from '../sports/registry.js';
 export type PlayerWithAttributes = Partial<Player> & {
   ratings?: Record<string, Record<string, unknown>>;
   atributos?: Record<string, unknown>;
-  [key: string]: unknown;
 };
 
 /**
