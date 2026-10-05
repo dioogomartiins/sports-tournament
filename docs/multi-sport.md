@@ -1,6 +1,6 @@
 # 🏟️ Multi-Sport Architecture
 
-> **Status:** original proposal, kept for reference. The plan is now tracked in issue [#23](https://github.com/dioogomartiins/torneio-ilog/issues/23), and its phases 1 to 4 are implemented: the abstract `Sport` class (`src/sports/Sport.ts`), the registry (`src/sports/registry.ts`, `getSport(id)`) and the football implementation (`src/sports/football/Football.ts`); multiple tournaments with a sport fixed at creation (`meta.sport`), global players with per-sport ratings, and per-sport admins. Padel has its own `Sport` class, score panel, standings and ratings. See [What exists today](#what-exists-today).
+> **Status:** original proposal, kept for reference. The plan is now tracked in issue [#23](https://github.com/dioogomartiins/sports-tournament/issues/23), and its phases 1 to 4 are implemented: the abstract `Sport` class (`src/sports/Sport.ts`), the registry (`src/sports/registry.ts`, `getSport(id)`) and the football implementation (`src/sports/football/Football.ts`); multiple tournaments with a sport fixed at creation (`meta.sport`), global players with per-sport ratings, and per-sport admins. Padel has its own `Sport` class, score panel, standings and ratings. See [What exists today](#what-exists-today).
 
 Torneio ILOG started as a football-only app. This document describes the plan to make it **sport-agnostic**, supporting football, padel, basketball, handball, volleyball or any other sport — all in the same codebase.
 
@@ -150,7 +150,7 @@ export default {
 
 ## Implementation plan
 
-The phases below are the original ones. The current phases (TypeScript and `Sport` class; multiple tournaments, global players and per-sport admins; English UI and Lit components; padel; the rest) are in issue [#23](https://github.com/dioogomartiins/torneio-ilog/issues/23).
+The phases below are the original ones. The current phases (TypeScript and `Sport` class; multiple tournaments, global players and per-sport admins; English UI and Lit components; padel; the rest) are in issue [#23](https://github.com/dioogomartiins/sports-tournament/issues/23).
 
 ### Phase 1 — Foundation (without breaking anything)
 

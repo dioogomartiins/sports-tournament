@@ -2,7 +2,7 @@
 
 Vite + vanilla TypeScript single-page app (no framework) for running friendly
 football tournaments, synced live across devices through Firebase Realtime
-Database. Deployed to GitHub Pages at `/torneio-ilog/` on release tags (`release/*`) or manual dispatch.
+Database. Deployed to GitHub Pages at `/sports-tournament/` on release tags (`release/*`) or manual dispatch.
 
 ## Language policy
 

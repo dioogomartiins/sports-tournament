@@ -39,7 +39,7 @@ npm run dev -- --host --port 5173
 ```
 
 The app is served under the Pages base path: open
-`http://localhost:5173/torneio-ilog/` (the root URL is blank).
+`http://localhost:5173/sports-tournament/` (the root URL is blank).
 
 ## 3. Check what you changed
 
