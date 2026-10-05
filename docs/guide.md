@@ -146,7 +146,7 @@ Single matches are saved with the tournament being viewed. Their goals, assists 
   - **🎾 Padel & Tennis:** stat cards highlighting games played, games per match, most games won, fewest games lost, biggest win (by game difference), and most match wins. There are no individual scorer tables because matches are tracked game by game without player goal events.
   - **🎾 Americano & Mexicano:** rankings and stats are strictly per individual player (points won, point difference, and matches won) rather than team pairs.
 - **🗄️ History**: list of archived tournaments and an all-time table (archived tournaments, the current tournament and single matches).
-- **Player profile**: tap a player's name to see their attributes, rating, and all-time goals, assists and MVPs.
+- **Player profile**: tap a player's name to see their attributes and rating for the tournament's sport, the matches they played and won in that sport (finished matches only; a draw is played, not won), and the sport's own stats: in football, goals, assists, MVPs, scoring matches and the single match record.
 - **Share**: the **📤** button next to the Standings title, and **📤 Share image** in the window of each finished match. The standings image uses the sport's columns (Pts in football, GW in padel); a padel result image shows the sets won with the games of each set. On a phone it opens the system share sheet (WhatsApp, etc.); on a computer it downloads the PNG image.
 
 ## Data: export, import and delete

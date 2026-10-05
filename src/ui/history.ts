@@ -2,6 +2,8 @@ import { state, persistArquivo } from '../state.js';
 import { buildPlayerIndex } from '../utils.js';
 import { tallyPlayerStats, mergePlayerStats, archiveTally } from '../algorithms.js';
 import type { PlayerStats } from '../types.js';
+import { archiveRecords } from '../core/archive.js';
+import type { PlayerRecord, Sport } from '../sports/Sport.js';
 import type { AllTimeRow, AllTimeStats, TitleCount } from '../components/AllTimeStats.js';
 import type { ArchiveList } from '../components/ArchiveList.js';
 import '../components/AllTimeStats.js';
@@ -20,6 +22,25 @@ export function computeAllTimeStats(): Record<string, PlayerStats> {
     ...state.arquivo.map(archiveTally),
     tallyPlayerStats(state.results, state.jogosSingulares),
   );
+}
+
+/**
+ * Matches played and won per player in one sport: its archived tournaments
+ * plus the tournament on screen and its single matches.
+ */
+export function computeAllTimeRecords(sport: Sport): Record<string, PlayerRecord> {
+  const out: Record<string, PlayerRecord> = Object.create(null);
+  [
+    ...state.arquivo.filter((e) => e.sport === sport.id).map(archiveRecords),
+    sport.playerRecords(state.schedule, state.results, state.squads, state.jogosSingulares, state.config),
+  ].forEach((records) => {
+    Object.keys(records).forEach((pid) => {
+      const r = out[pid] || (out[pid] = { played: 0, won: 0 });
+      r.played += records[pid].played;
+      r.won += records[pid].won;
+    });
+  });
+  return out;
 }
 
 /** Players with any goal, assist or MVP, best first, and titles per champion. */

@@ -218,6 +218,8 @@ export const en = {
     createPlayer: '✅ Create Player',
     profileTitle: 'Player Profile',
     jerseyTeamLabel: (num: string | number, team: string) => `Jersey ${num} • ${team}`,
+    matchesPlayed: 'Matches',
+    wins: 'Wins',
     totalGoals: 'Total Goals',
     assists: 'Assists',
     mvp: 'MVP',

@@ -1,3 +1,4 @@
+import { GAME_STATUS } from '../types.js';
 import type {
   Config,
   GameEvent,
@@ -8,6 +9,7 @@ import type {
   PlayerStats,
   Score,
   SingleMatch,
+  SquadPlayer,
   StandingsRow,
   Team,
 } from '../types.js';
@@ -28,6 +30,22 @@ export interface PlayerStatColumn {
   unit: string;
   /** Shown when nobody has any yet. */
   empty: string;
+}
+
+/** Matches a player played and won (finished matches only). */
+export interface PlayerRecord {
+  played: number;
+  won: number;
+}
+
+/** One card of the player profile. */
+export interface ProfileStat {
+  label: string;
+  value: string | number;
+  /** Small text after the value, e.g. "goals". */
+  unit?: string;
+  /** Takes the full width of the two-column grid. */
+  wide?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -158,6 +176,69 @@ export abstract class Sport {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   shownScore(res: MatchResult | undefined, config?: Config | null): { home: number; away: number } | null {
     return this.scoreTotals(res && typeof res === 'object' ? res.score : res);
+  }
+
+  /** Is the match finished? A legacy result saved as plain text counts as finished. */
+  isFinished(res: MatchResult | undefined): boolean {
+    if (!res) return false;
+    return typeof res === 'string' ? !!res.trim() : res.status === GAME_STATUS.TERMINADO;
+  }
+
+  /** Side that won a finished match, or null (not finished yet, or a draw). */
+  winnerSide(res: MatchResult | undefined, config?: Config | null): 'home' | 'away' | null {
+    if (!this.isFinished(res)) return null;
+    const score = this.shownScore(res, config);
+    if (!score || score.home === score.away) return null;
+    return score.home > score.away ? 'home' : 'away';
+  }
+
+  /**
+   * Matches played and won per player id, the same for every sport: a side's
+   * players are its squad (and, in Americano, the partner's), and single
+   * matches count with their two teams.
+   */
+  playerRecords(
+    schedule: Match[],
+    results: Record<string | number, MatchResult>,
+    squads: SquadPlayer[][] | null | undefined,
+    singleMatches: SingleMatch[] = [],
+    config?: Config | null
+  ): Record<string, PlayerRecord> {
+    const out: Record<string, PlayerRecord> = Object.create(null);
+    const count = (ids: string[], won: boolean) => {
+      new Set(ids.filter(Boolean)).forEach((id) => {
+        const r = out[id] || (out[id] = { played: 0, won: 0 });
+        r.played++;
+        if (won) r.won++;
+      });
+    };
+    const squadIds = (idx: unknown) => (typeof idx === 'number' ? (squads?.[idx] || []).map((p) => p?.id) : []);
+
+    (schedule || []).forEach((game, gi) => {
+      const res = results?.[gi];
+      if (!this.isFinished(res)) return;
+      const winner = this.winnerSide(res, config);
+      (['home', 'away'] as const).forEach((side) => {
+        count([...squadIds(game[side]), ...squadIds(game.partners?.[side])], winner === side);
+      });
+    });
+
+    (singleMatches || []).forEach((m) => {
+      const score = this.scoreTotals(m.resultado ?? undefined);
+      if (!score) return;
+      count(m.equipaA || [], score.home > score.away);
+      count(m.equipaB || [], score.away > score.home);
+    });
+    return out;
+  }
+
+  /**
+   * The sport's own cards in the player profile, after matches and wins
+   * (goals, assists… in football). None by default.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  profileStats(totals: PlayerStats): ProfileStat[] {
+    return [];
   }
 
   /**

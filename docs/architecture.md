@@ -110,7 +110,7 @@ Each tournament lives in its own node, `tournaments/<id>` (`default` for the tou
 | `scheduleTeamCount`, `scheduleVoltas` | Teams and rounds the schedule was generated with. |
 | `results` | By the match's index in `schedule`: `{ score: "2-1", status, scorers: { home, away }, assists: { home, away }, mvp, penalties }`. In padel and tennis `score` holds the games of each set (`"6-4 3-6 10-7"`) and there are no scorers, assists or penalties; the rules only accept that format in tournaments whose `meta.sport` is `padel` or `tennis`. |
 | `jogosSingulares` | The tournament's single matches, with both teams, score, scorers, assists and MVP. |
-| `version`, `exportedAt` | Format version (`SNAPSHOT_VERSION`, currently 11) and date of the last save. |
+| `version`, `exportedAt` | Format version (`SNAPSHOT_VERSION`, currently 12) and date of the last save. |
 | `logRef` | Key of the `tournament_log/<id>` entry of the last save (see [Activity log](#activity-log)). |
 
 Shared by every tournament, at the root of the database:

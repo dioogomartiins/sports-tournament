@@ -13,6 +13,7 @@ Every tournament has one sport, chosen when it is created and fixed afterwards (
 | **Ranked by** | Pts → GD → GF → head-to-head | Games won → game difference → head-to-head | Points won → point difference → wins | Games won → game difference → head-to-head |
 | **Team** | A squad with jersey numbers | A pair, fixed or drawn by rating | One player; partners rotate every round | One player (singles) or two (doubles) |
 | **Player stats** | Goals, assists, MVP | Games (no player events) | The standings are per player | Games (no player events) |
+| **Player profile** | Matches, wins, goals, assists, MVP, scoring matches, record | Matches, wins | Matches, wins | Matches, wins |
 | **Ratings** | Pace, Shooting, Passing, Dribbling, Defending, Physical | Volley, Smash, Lob, Wall play, Defense, Fitness | Padel ratings | Serve, Return, Forehand, Backhand, Volley, Fitness |
 | **Match window** | `<football-score>` | `<padel-score>` | `<padel-score>` (points) | `<tennis-score>` |
 | **Rules** | [Rules](rules.md#scoring) | [Padel](rules.md#padel) | [Americano and Mexicano](rules.md#americano-and-mexicano) | [Tennis](rules.md#tennis) |

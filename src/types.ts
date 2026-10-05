@@ -192,6 +192,9 @@ export interface ArchivePlayer {
   mvp: number;
   jogosAMarcar: number;
   recorde: number;
+  /** Finished matches played and won (entries archived before v12 have none). */
+  played?: number;
+  won?: number;
 }
 
 export type TournamentStatus = 'active' | 'finished';

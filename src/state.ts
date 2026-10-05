@@ -35,7 +35,7 @@ import { en } from './i18n/en.js';
 // ---------------------------------------------------------------------------
 // 10: config.setFormat (padel) and per-sport rating attribute keys
 // 11: padel Americano / Mexicano (config.padelFormat, config.matchPoints, schedule[].partners)
-export const SNAPSHOT_VERSION = 11;
+export const SNAPSHOT_VERSION = 12;
 export const MAX_TEAMS = 32;
 const DEFAULT_COLOR = '#2F7A4F';
 

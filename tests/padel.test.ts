@@ -194,3 +194,22 @@ describe('live events', () => {
     expect(ev({ score: '6-4 6-4', status: 'decorrer' }, { score: '6-4 6-4', status: 'terminado' })).toEqual([{ type: 'fim', gi: '0' }]);
   });
 });
+
+describe('player records', () => {
+  it('counts matches played and won per player from the pairs', () => {
+    const schedule: Match[] = [
+      { jornada: 1, home: 0, away: 1 },
+      { jornada: 1, home: 0, away: 1 },
+      { jornada: 2, home: 1, away: 0 },
+    ];
+    const squads = [[{ id: 'a', num: '', name: 'A' }, { id: 'b', num: '', name: 'B' }], [{ id: 'c', num: '', name: 'C' }]];
+    const results: Record<number, MatchResult> = {
+      0: { score: '6-4 6-3', status: 'terminado' },
+      1: { score: '6-4 2-1', status: 'decorrer' },
+      2: { score: '4-6 7-5 10-8', status: 'terminado' },
+    };
+    expect(padel.playerRecords(schedule, results, squads, [], config({ setFormat: { sets: 3, gamesPerSet: 6, superTieBreak: true } })))
+      .toEqual({ a: { played: 2, won: 1 }, b: { played: 2, won: 1 }, c: { played: 2, won: 1 } });
+    expect(padel.profileStats({ golos: 0, assistencias: 0, mvp: 0, jogosAMarcar: 0, recorde: 0 })).toEqual([]);
+  });
+});
