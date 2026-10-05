@@ -1,122 +1,68 @@
-import { getTeamDisplay, escapeHtml, prefersReducedMotion } from '../utils.js';
+import { state } from '../state.js';
+import { prefersReducedMotion } from '../utils.js';
 import { standingsOrder, rankMoves } from '../algorithms.js';
+import { getSport } from '../sports/registry.js';
+import { StandingsTable } from '../components/StandingsTable.js';
 import { dom } from './dom.js';
-import { en } from '../i18n/en.js';
 
 // ---------------------------------------------------------------------------
-// Render — Standings
+// Render — Standings (<standings-table>)
 // ---------------------------------------------------------------------------
+// The arrows show places gained or lost since the standings were last seen,
+// and opening the tab replays the change: the old table holds for a moment
+// and then the teams slide to their new places.
+const STANDINGS_HOLD = 600;
 
-/** Vertical position of each row in the standings table (by team) before re-rendering. */
-function rowPositions(container) {
-  const pos = new Map();
-  container.querySelectorAll('tr[data-team]').forEach((r) => {
-    const top = r.getBoundingClientRect().top;
-    if (top) pos.set(r.dataset.team, top);
-  });
-  return pos;
-}
-
-/** Slides teams that moved places from old position to new position. */
-function slideRows(container, before, duration = 450) {
-  if (!before.size || prefersReducedMotion()) return;
-  container.querySelectorAll('tr[data-team]').forEach((r) => {
-    const old = before.get(r.dataset.team);
-    const now = r.getBoundingClientRect().top;
-    if (old === undefined || !now || Math.abs(old - now) < 1 || !r.animate) return;
-    r.animate(
-      [{ transform: `translateY(${old - now}px)`, background: 'rgba(203,161,53,.22)' }, { transform: 'none' }],
-      { duration, easing: 'cubic-bezier(.2,.8,.2,1)' },
-    );
-  });
-}
-
-/** Arrow indicator for gained (green) or lost (red) positions. */
-function moveBadge(team) {
-  const n = standingsMoves.get(String(team));
-  if (!n) return '';
-  const up = n > 0;
-  const label = up ? en.standings.movedUp(Math.abs(n)) : en.standings.movedDown(Math.abs(n));
-  return `<span class="pos-move ${up ? 'up' : 'down'}" title="${label}" aria-label="${label}">${up ? '▲' : '▼'}${Math.abs(n)}</span>`;
-}
-
-function standingsHtml(groupsData) {
-  if (!groupsData || !groupsData.length || !groupsData[0].standings.length) {
-    return `<table class="standings-table"><tr><td colspan="10" class="empty">${en.standings.noTeams}</td></tr></table>`;
-  }
-
-  const html = groupsData.map((group) => {
-    const rows = group.standings.map((s, i) => {
-      const cls = i === 0 ? 'pos-gold' : i === 1 ? 'pos-silver' : i === 2 ? 'pos-bronze' : '';
-      const dgTxt = (s.DG > 0 ? '+' : '') + s.DG;
-      return (
-        `<tr class="${cls}" data-team="${escapeHtml(s.idx)}">` +
-        `<td class="pos-cell"><span class="pos-badge">${i + 1}</span>${moveBadge(s.idx)}</td>` +
-        `<td class="team-cell">${getTeamDisplay(s.idx)}</td>` +
-        `<td class="num pts-cell">${s.Pts}</td>` +
-        `<td class="num">${s.J}</td><td class="num">${s.V}</td><td class="num">${s.E}</td><td class="num">${s.D}</td>` +
-        `<td class="num">${s.GM}</td><td class="num">${s.GS}</td><td class="num">${dgTxt}</td>` +
-        `</tr>`
-      );
-    });
-
-    const titleHtml = groupsData.length > 1
-      ? `<h3 style="margin-top:20px; margin-bottom:10px; color:var(--pitch-800); font-weight:600;">${escapeHtml(group.name)}</h3>`
-      : '';
-
-    return (
-      titleHtml +
-      `<table class="standings-table">` +
-      `<thead><tr>` +
-      `<th>${en.standings.cols.pos}</th><th class="team-cell">${en.standings.cols.team}</th><th>${en.standings.cols.pts}</th>` +
-      `<th>${en.standings.cols.p}</th><th>${en.standings.cols.w}</th><th>${en.standings.cols.d}</th><th>${en.standings.cols.l}</th><th>${en.standings.cols.gf}</th><th>${en.standings.cols.ga}</th><th>${en.standings.cols.gd}</th>` +
-      `</tr></thead>` +
-      `<tbody>${rows.join('')}</tbody>` +
-      `</table>`
-    );
-  });
-  return html.join('');
-}
-
-let seenStandingsHtml = null;
-let seenStandingsOrder = null;
+let seen = null; // { groups, moves, key } last shown with the tab visible
+let seenOrder = null;
 let standingsMoves = new Map();
 let lastGroupsData = null;
-let standingsReplayTimer = null;
-const STANDINGS_HOLD = 600;
+let replayTimer = null;
+
+function standingsTable() {
+  let table = dom.standingsWrapper.querySelector('standings-table');
+  if (!table) {
+    table = new StandingsTable();
+    dom.standingsWrapper.replaceChildren(table);
+  }
+  table.sport = getSport(state.meta?.sport);
+  table.teams = state.teams || [];
+  return table;
+}
 
 function noteStandingsSeen(groupsData) {
   const order = standingsOrder(groupsData);
-  const moves = rankMoves(seenStandingsOrder, order);
+  const moves = rankMoves(seenOrder, order);
   if (moves.size) standingsMoves = moves;
-  seenStandingsOrder = order;
+  seenOrder = order;
+}
+
+function snapshot(groups) {
+  const moves = standingsMoves;
+  return { groups, moves, key: JSON.stringify([groups, [...moves]]) };
 }
 
 export function renderStandingsWrapper(groupsData) {
   lastGroupsData = groupsData;
-  clearTimeout(standingsReplayTimer);
+  clearTimeout(replayTimer);
   const visible = !!dom.standingsWrapper.offsetParent;
   if (visible) noteStandingsSeen(groupsData);
-  const before = rowPositions(dom.standingsWrapper);
-  dom.standingsWrapper.innerHTML = standingsHtml(groupsData);
-  slideRows(dom.standingsWrapper, before);
-  if (visible) seenStandingsHtml = dom.standingsWrapper.innerHTML;
+  standingsTable().show(groupsData, standingsMoves, 450);
+  if (visible) seen = snapshot(groupsData);
 }
 
 export function replayStandings() {
-  const wrapper = dom.standingsWrapper;
-  if (!wrapper || !lastGroupsData) return;
-  clearTimeout(standingsReplayTimer);
-  const previous = seenStandingsHtml;
+  if (!dom.standingsWrapper || !lastGroupsData) return;
+  clearTimeout(replayTimer);
+  const previous = seen;
   noteStandingsSeen(lastGroupsData);
-  wrapper.innerHTML = standingsHtml(lastGroupsData);
-  const current = wrapper.innerHTML;
-  seenStandingsHtml = current;
-  if (previous === null || previous === current || prefersReducedMotion()) return;
-  wrapper.innerHTML = previous;
-  standingsReplayTimer = setTimeout(() => {
-    const before = rowPositions(wrapper);
-    wrapper.innerHTML = current;
-    slideRows(wrapper, before, 800);
-  }, STANDINGS_HOLD);
+  const current = snapshot(lastGroupsData);
+  seen = current;
+  const table = standingsTable();
+  if (previous === null || previous.key === current.key || prefersReducedMotion()) {
+    table.show(current.groups, current.moves, 0);
+    return;
+  }
+  table.show(previous.groups, previous.moves, 0);
+  replayTimer = setTimeout(() => table.show(current.groups, current.moves, 800), STANDINGS_HOLD);
 }

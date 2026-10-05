@@ -1,6 +1,8 @@
 import { state } from '../state.js';
 import { getTeamName, getTeamDisplay, escapeHtml, buildPlayerIndex } from '../utils.js';
-import { computeStandings, GAME_STATUS, tallyPlayerStats } from '../algorithms.js';
+import { computeStandings, GAME_STATUS } from '../algorithms.js';
+import { getSport } from '../sports/registry.js';
+import { StatsTable } from '../components/StatsTable.js';
 import { dom } from './dom.js';
 import { en } from '../i18n/en.js';
 
@@ -58,35 +60,12 @@ export function statCardsHtml(summary) {
 }
 
 export function renderStatsGrid(summary) {
-  const scorers = computeScorerStats().slice(0, 10);
-  let html = statCardsHtml(summary);
-
-  const scorerRows = scorers.length
-    ? scorers.map((s) =>
-      `<div style="padding:6px 0; border-bottom:1px solid var(--line);"><strong>${s.count}</strong> ${en.common.goals} — ${escapeHtml(s.name)} <span style="color:var(--ink-faint); font-size:13px;">(${escapeHtml(s.team)})</span></div>`
-    ).join('')
-    : `<p class="empty">${en.statsTab.noGoalsYet}</p>`;
-
-  html += `<div class="card stats-half"><div class="section-title">${en.statsTab.topScorers}</div>${scorerRows}</div>`;
-
-  const tally = tallyPlayerStats(state.results, state.jogosSingulares);
-  const index = buildPlayerIndex();
-  const topBy = (key, unit) => {
-    const rows = Object.keys(tally)
-      .filter((pid) => tally[pid][key] > 0)
-      .sort((a, b) => tally[b][key] - tally[a][key])
-      .slice(0, 10);
-    return rows.length
-      ? rows.map((pid) => {
-        const info = index[pid] || { name: en.common.unknownPlayer, team: en.common.noTeam };
-        return `<div style="padding:6px 0; border-bottom:1px solid var(--line);"><strong>${tally[pid][key]}</strong> ${unit} — ${escapeHtml(info.name)} <span style="color:var(--ink-faint); font-size:13px;">(${escapeHtml(info.team)})</span></div>`;
-      }).join('')
-      : `<p class="empty">${en.statsTab.nothingRecordedYet}</p>`;
-  };
-
-  html += `<div class="card stats-half"><div class="section-title">${en.statsTab.assistsTitle}</div>${topBy('assistencias', 'assist.')}</div>`;
-  html += `<div class="card stats-half"><div class="section-title">${en.statsTab.mvpTitle}</div>${topBy('mvp', '×')}</div>`;
-  dom.statsGrid.innerHTML = html;
+  const table = new StatsTable();
+  table.sport = getSport(state.meta?.sport);
+  table.tally = table.sport.tallyPlayerStats(state.results, state.jogosSingulares);
+  table.players = buildPlayerIndex();
+  dom.statsGrid.innerHTML = statCardsHtml(summary);
+  dom.statsGrid.append(table);
 }
 
 // ---------------------------------------------------------------------------

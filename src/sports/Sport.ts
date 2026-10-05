@@ -12,6 +12,24 @@ import type {
   Team,
 } from '../types.js';
 
+/** One numeric column of the standings table (after position and team). */
+export interface StandingsColumn {
+  label: string;
+  value: (row: StandingsRow) => string | number;
+  /** Extra class on the cell (e.g. the highlighted points column). */
+  className?: string;
+}
+
+/** One player leaderboard of the stats tab (top scorers, assists…). */
+export interface PlayerStatColumn {
+  key: keyof PlayerStats;
+  title: string;
+  /** Text after the count, e.g. "goals". */
+  unit: string;
+  /** Shown when nobody has any yet. */
+  empty: string;
+}
+
 // ---------------------------------------------------------------------------
 // Abstract Sport Base Class
 // ---------------------------------------------------------------------------
@@ -20,6 +38,12 @@ export abstract class Sport {
   abstract readonly id: string;
   abstract readonly name: string;
   abstract readonly icon: string;
+
+  /** Columns of the standings table, in order. */
+  abstract standingsColumns(): StandingsColumn[];
+
+  /** Player leaderboards shown in the stats tab, in order. */
+  abstract playerStatColumns(): PlayerStatColumn[];
 
   /**
    * Computes group and overall standings for the tournament league stage.
