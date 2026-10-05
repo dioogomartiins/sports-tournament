@@ -31,7 +31,8 @@ import { en } from './i18n/en.js';
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
-export const SNAPSHOT_VERSION = 9;
+// 10: config.setFormat (padel) and per-sport rating attribute keys
+export const SNAPSHOT_VERSION = 10;
 export const MAX_TEAMS = 32;
 const DEFAULT_COLOR = '#2F7A4F';
 

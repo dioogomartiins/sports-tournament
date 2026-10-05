@@ -1,6 +1,6 @@
 # 🏟️ Multi-Sport Architecture
 
-> **Status:** original proposal, kept for reference. The plan is now tracked in issue [#23](https://github.com/dioogomartiins/torneio-ilog/issues/23), and its phases 1 and 2 are implemented: the abstract `Sport` class (`src/sports/Sport.ts`), the registry (`src/sports/registry.ts`, `getSport(id)`) and the football implementation (`src/sports/football/Football.ts`); multiple tournaments with a sport fixed at creation (`meta.sport`), global players with per-sport ratings, and per-sport admins. Padel can already be picked as a tournament's sport and has its own player ratings, but it has no `Sport` class yet, so it uses the football rules. See [What exists today](#what-exists-today).
+> **Status:** original proposal, kept for reference. The plan is now tracked in issue [#23](https://github.com/dioogomartiins/torneio-ilog/issues/23), and its phases 1 to 4 are implemented: the abstract `Sport` class (`src/sports/Sport.ts`), the registry (`src/sports/registry.ts`, `getSport(id)`) and the football implementation (`src/sports/football/Football.ts`); multiple tournaments with a sport fixed at creation (`meta.sport`), global players with per-sport ratings, and per-sport admins. Padel has its own `Sport` class, score panel, standings and ratings. See [What exists today](#what-exists-today).
 
 Torneio ILOG started as a football-only app. This document describes the plan to make it **sport-agnostic**, supporting football, padel, basketball, handball, volleyball or any other sport — all in the same codebase.
 
@@ -195,8 +195,9 @@ The phases below are the original ones. The current phases (TypeScript and `Spor
 How the code on `main` differs from the proposal above:
 
 - **A class, not an object.** `src/sports/Sport.ts` is an abstract class with `id`, `name`, `icon` and the methods that vary (`computeStandings`, `resolveHeadToHead`, `getPlayoffWinner`, `tallyPlayerStats`, `mergePlayerStats`, `addGoal`, `removeGoal`, …). `Football` in `src/sports/football/Football.ts` implements it; `src/algorithms.ts` re-exports its methods for older modules.
-- **Registry.** `src/sports/registry.ts` exposes `getSport(id)`, `registerSport()` and `listSports()`. Only `football` is registered (with `futebol` as an alias); unknown ids fall back to football.
+- **Registry.** `src/sports/registry.ts` exposes `getSport(id)`, `registerSport()` and `listSports()`. `football` (with `futebol` as an alias) and `padel` are registered; unknown ids fall back to football.
 - **The sport lives in the tournament.** It is `meta.sport` (and `config.sport`), chosen when the tournament is created and fixed afterwards; there is no `tipoDesporto`. Data saved before this defaults to `football`.
-- **Ratings per sport.** Players are global (`/players`) with `ratings.<sport>`; every sport uses the six football attributes for now.
+- **Ratings per sport.** Players are global (`/players`) with `ratings.<sport>`; each sport declares its own attributes (`Sport.ratingAttributes()`).
+- **Padel.** `src/sports/RacketSport.ts` (shared by set-based sports) and `src/sports/padel/Padel.ts`, with `<padel-score>`, a configurable set format, game-based standings, pairs fixed or drawn by rating, and rules that accept set scores in padel tournaments. The rules are in [Rules](rules.md#padel).
 - **Per-sport admins.** `users/<uid>/admin/<sport>`, enforced by `database.rules.json` (see [Architecture](architecture.md#permissions)).
-- **Not done yet:** a padel class and score input, sport-specific standings columns, stats and animations, and rules that accept other score formats.
+- **Not done yet:** the other sports (tennis can reuse `RacketSport`), and Americano/Mexicano padel formats.

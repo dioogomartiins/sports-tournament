@@ -5,6 +5,7 @@
 // ---------------------------------------------------------------------------
 import { state } from './state.js';
 import { getSport } from './sports/registry.js';
+import { RacketSport } from './sports/RacketSport.js';
 import { getTeamName, safeColor, playerName } from './utils.js';
 import { showToast } from './ui.js';
 import { en } from './i18n/en.js';
@@ -79,7 +80,7 @@ function header(ctx, title, subtitle) {
 
 function footer(ctx, height) {
   const d = new Date().toLocaleDateString('en-GB');
-  text(ctx, `⚽ ${en.share.brand} · ${d}`, W / 2, height - 44, { font: `500 24px ${BODY}`, color: C.soft, align: 'center', maxW: W - 2 * PAD });
+  text(ctx, `${getSport(state.meta?.sport).icon} ${en.share.brand} · ${d}`, W / 2, height - 44, { font: `500 24px ${BODY}`, color: C.soft, align: 'center', maxW: W - 2 * PAD });
 }
 
 function toBlob(canvas) {
@@ -116,7 +117,8 @@ async function deliver(canvas, filename, title) {
 // ---------------------------------------------------------------------------
 export async function shareStandings() {
   const teamsArray = state.teams.slice(0, state.scheduleTeamCount || state.config.numEquipas);
-  const groups = getSport(state.meta?.sport).computeStandings(teamsArray, state.schedule, state.results, state.config)
+  const sport = getSport(state.meta?.sport);
+  const groups = sport.computeStandings(teamsArray, state.schedule, state.results, state.config)
     .filter((g) => g.standings.length);
   if (!groups.length) { showToast(en.share.noStandingsYet, 'error'); return; }
 
@@ -131,15 +133,13 @@ export async function shareStandings() {
   const played = Object.values(state.results).filter((r) => r && typeof r === 'object' && r.status === 'terminado').length;
   header(ctx, state.config.nome, en.share.standingsSubtitle(played));
 
-  // Columns: position, team, P, W, D, L, GD, Pts
-  const cols = [
-    { key: 'J', label: 'P', x: 610 },
-    { key: 'V', label: 'W', x: 680 },
-    { key: 'E', label: 'D', x: 750 },
-    { key: 'D', label: 'L', x: 820 },
-    { key: 'DG', label: 'GD', x: 905 },
-    { key: 'Pts', label: 'Pts', x: W - PAD - 20 },
-  ];
+  // Columns of the sport, the highlighted one (Pts, GW) last, right-aligned in the row
+  const sportCols = sport.standingsColumns();
+  const ordered = [...sportCols.filter((c) => !c.className), ...sportCols.filter((c) => c.className)];
+  const COL_W = 64;
+  const lastX = W - PAD - 20;
+  const cols = ordered.map((c, i) => ({ ...c, x: lastX - (ordered.length - 1 - i) * COL_W }));
+  const teamMaxW = cols[0].x - COL_W / 2 - (PAD + 90) - 10;
 
   let y = 250;
   groups.forEach((g) => {
@@ -157,13 +157,11 @@ export async function shareStandings() {
       text(ctx, String(i + 1), PAD + 14, cy, { font: `700 32px ${DISPLAY}`, color: i === 0 ? C.gold : C.text, align: 'center' });
       const team = state.teams[s.idx] || {};
       dot(ctx, PAD + 62, cy, 13, team.color);
-      text(ctx, s.name, PAD + 90, cy, { font: `600 32px ${BODY}`, maxW: 440 });
+      text(ctx, s.name, PAD + 90, cy, { font: `600 32px ${BODY}`, maxW: teamMaxW });
       cols.forEach((c) => {
-        let v = s[c.key];
-        if (c.key === 'DG' && v > 0) v = `+${v}`;
-        text(ctx, String(v), c.x, cy, {
-          font: c.label === 'Pts' ? `700 36px ${DISPLAY}` : `500 30px ${BODY}`,
-          color: c.label === 'Pts' ? C.gold : C.text,
+        text(ctx, String(c.value(s)), c.x, cy, {
+          font: c.className ? `700 36px ${DISPLAY}` : `500 30px ${BODY}`,
+          color: c.className ? C.gold : C.text,
           align: 'center',
         });
       });
@@ -205,7 +203,13 @@ export async function shareResult(gi) {
   const ronda = typeof game.jornada === 'number' ? en.gameModal.roundLabel(game.jornada) : String(game.jornada || '');
   header(ctx, state.config.nome, ronda ? en.share.roundResult(ronda) : en.share.finalResult);
 
-  const [h, a] = String(res.score || '0-0').split('-');
+  // Football: goals. Racket sports: sets won, with the games of each set underneath
+  const sport = getSport(state.meta?.sport);
+  const racket = sport instanceof RacketSport ? sport : null;
+  const sets = racket ? racket.setsOf(res) : [];
+  const [h, a] = racket
+    ? Object.values(racket.setsWon(sets, racket.format(state.config)))
+    : String(res.score || '0-0').split('-');
   const colHome = W / 4;
   const colAway = (3 * W) / 4;
   const teamColor = (idx) => (typeof idx === 'number' && state.teams[idx] ? state.teams[idx].color : '#888888');
@@ -217,7 +221,9 @@ export async function shareResult(gi) {
 
   text(ctx, `${h}  -  ${a}`, W / 2, 500, { font: `700 140px ${DISPLAY}`, color: C.gold, align: 'center' });
   let y = 600;
-  if (res.penalties) {
+  if (racket && sets.length) {
+    text(ctx, racket.formatSets(sets), W / 2, y, { font: `600 34px ${BODY}`, color: C.soft, align: 'center' });
+  } else if (res.penalties) {
     text(ctx, en.share.penalties(res.penalties), W / 2, y, { font: `600 30px ${BODY}`, color: C.soft, align: 'center' });
   }
   y += 50;
