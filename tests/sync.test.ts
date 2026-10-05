@@ -6,6 +6,7 @@ import {
   describeUpdates,
   onlyMetadata,
   normalizeConfig,
+  normalizeMeta,
 } from '../src/sync.js';
 
 describe('diffSnapshot', () => {
@@ -93,8 +94,8 @@ describe('describeUpdates', () => {
   });
 
   it('resume secções e ignora metadados', () => {
-    expect(describeUpdates({ config: {}, teams: [], exportedAt: 'x', version: 5 }, snap))
-      .toBe('Configuração alterada; Equipas alteradas');
+    expect(describeUpdates({ meta: {}, config: {}, teams: [], exportedAt: 'x', version: 5 }, snap))
+      .toBe('Detalhes do torneio alterados; Configuração alterada; Equipas alteradas');
     expect(describeUpdates({ exportedAt: 'x', version: 5 }, snap)).toBe('');
   });
 
@@ -113,16 +114,18 @@ describe('describeUpdates', () => {
 });
 
 describe('normalizeArquivo', () => {
-  it('repõe listas apagadas pelo Firebase', () => {
+  it('repõe listas apagadas pelo Firebase e garante campo sport', () => {
     expect(normalizeArquivo(undefined)).toEqual([]);
     expect(normalizeArquivo([{ nome: 'T', grupos: [{ nome: 'G' }] }])).toEqual([
-      { nome: 'T', grupos: [{ nome: 'G', tabela: [] }], jogadores: [] },
+      { nome: 'T', sport: 'football', grupos: [{ nome: 'G', tabela: [] }], jogadores: [] },
     ]);
   });
 
   it('converte objetos com chaves numéricas em listas', () => {
-    const fb = { 0: { nome: 'A', jogadores: { 0: { pid: 'x' } } }, 2: { nome: 'B' } };
+    const fb = { 0: { nome: 'A', sport: 'padel', jogadores: { 0: { pid: 'x' } } }, 2: { nome: 'B' } };
     expect(normalizeArquivo(fb).map((e) => e.nome)).toEqual(['A', 'B']);
+    expect(normalizeArquivo(fb)[0].sport).toBe('padel');
+    expect(normalizeArquivo(fb)[1].sport).toBe('football');
     expect(normalizeArquivo(fb)[0].jogadores).toEqual([{ pid: 'x' }]);
   });
 });
@@ -151,6 +154,38 @@ describe('normalizeConfig', () => {
   it('normalizes empty sport string to football', () => {
     const cfg = normalizeConfig({ sport: '' });
     expect(cfg.sport).toBe('football');
+  });
+});
+
+describe('normalizeMeta', () => {
+  it('creates default meta when undefined', () => {
+    const meta = normalizeMeta();
+    expect(meta.sport).toBe('football');
+    expect(meta.name).toBe('Futebol ILOG');
+    expect(meta.status).toBe('active');
+    expect(typeof meta.createdAt).toBe('number');
+  });
+
+  it('inherits from config when meta is missing fields', () => {
+    const meta = normalizeMeta({}, { nome: 'Meu Torneio', sport: 'padel' });
+    expect(meta.name).toBe('Meu Torneio');
+    expect(meta.sport).toBe('padel');
+    expect(meta.status).toBe('active');
+  });
+
+  it('preserves valid meta fields', () => {
+    const meta = normalizeMeta({
+      id: 'tourney-1',
+      name: 'Custom',
+      sport: 'basketball',
+      status: 'finished',
+      createdAt: 12345,
+    });
+    expect(meta.id).toBe('tourney-1');
+    expect(meta.name).toBe('Custom');
+    expect(meta.sport).toBe('basketball');
+    expect(meta.status).toBe('finished');
+    expect(meta.createdAt).toBe(12345);
   });
 });
 

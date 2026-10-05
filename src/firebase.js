@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getDatabase, connectDatabaseEmulator, ref, onValue, update, push, query, orderByChild, limitToLast, serverTimestamp } from "firebase/database";
+import { getDatabase, connectDatabaseEmulator, ref, onValue, update, push, query, orderByChild, limitToLast, serverTimestamp, get } from "firebase/database";
 import { getAuth, connectAuthEmulator, GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
 import { diffSnapshot, describeUpdates, onlyMetadata } from "./sync.js";
 import { blockedPaths, roleLabel } from "./permissions.js";
@@ -27,21 +27,61 @@ if (import.meta.env.VITE_USE_EMULATORS === 'true') {
 
 const LOG_LIMIT = 200;
 
+let activeTournamentId = 'default';
 let onStateChangeCallback = null;
 let onPushErrorCallback = null;
 let isFirstLoad = true;
 let lastSynced = null; // último snapshot igual ao que está no Firebase
+let stopStateListener = null;
+let stopArquivoListener = null;
+
+export function setActiveTournamentId(id) {
+  if (!id || id === activeTournamentId) return;
+  activeTournamentId = id;
+  lastSynced = null;
+  isFirstLoad = true;
+  initFirebaseListener(activeTournamentId);
+}
+
+export function getActiveTournamentId() {
+  return activeTournamentId;
+}
 
 // Set the callback that will be called whenever the DB updates
 export function onFirebaseStateChange(callback) {
   onStateChangeCallback = callback;
 }
 
-// Start listening to the "torneio_state" node
-export function initFirebaseListener() {
-  const stateRef = ref(database, 'torneio_state');
-  onValue(stateRef, (snapshot) => {
-    const data = snapshot.val();
+// Start listening to the "tournaments/<id>" node and global "arquivo"
+export function initFirebaseListener(tournamentId = activeTournamentId) {
+  activeTournamentId = tournamentId || 'default';
+  if (stopStateListener) {
+    stopStateListener();
+    stopStateListener = null;
+  }
+
+  const stateRef = ref(database, `tournaments/${activeTournamentId}`);
+  stopStateListener = onValue(stateRef, async (snapshot) => {
+    let data = snapshot.val();
+    if (!data) {
+      // Fallback para ler dados legados caso a migração ainda não tenha corrido
+      try {
+        const legacySnap = await get(ref(database, 'torneio_state'));
+        data = legacySnap.val();
+      } catch {
+        // Ignora erros de permissão ou rede
+      }
+    }
+    if (data) {
+      // Arquivo global vive em /arquivo
+      try {
+        const arqSnap = await get(ref(database, 'arquivo'));
+        const arqVal = arqSnap.val();
+        if (arqVal) data.arquivo = arqVal;
+      } catch {
+        // Ignora
+      }
+    }
     // Base de dados vazia: já está sincronizada, a primeira gravação envia tudo
     if (!data && !lastSynced) lastSynced = {};
     if (data && onStateChangeCallback) {
@@ -49,6 +89,18 @@ export function initFirebaseListener() {
       isFirstLoad = false;
     }
   });
+
+  if (!stopArquivoListener) {
+    const arquivoRef = ref(database, 'arquivo');
+    stopArquivoListener = onValue(arquivoRef, (snapshot) => {
+      const arqVal = snapshot.val();
+      if (arqVal && onStateChangeCallback && !isFirstLoad) {
+        const current = getSyncedSnapshot() || {};
+        current.arquivo = arqVal;
+        onStateChangeCallback(current, false);
+      }
+    }, (err) => console.error("Firebase error reading arquivo:", err));
+  }
 }
 
 // Called when Firebase rejects a save that was already applied locally
@@ -67,11 +119,11 @@ export function getSyncedSnapshot() {
 
 // Push only what changed since the last sync, so concurrent edits to
 // different games or sections don't overwrite each other. Each push also
-// appends an entry to torneio_log with who made the change.
+// appends an entry to tournament_log/<id> with who made the change.
 //
 // Returns { ok: true } or { ok: false, reason: 'sem-sync' | 'sem-sessao' | 'sem-permissao' }.
 // When it fails nothing is sent and the caller should restore the last synced state.
-export function pushStateToFirebase(newState) {
+export function pushStateToFirebase(newState, tournamentId = activeTournamentId) {
   if (!lastSynced) return { ok: false, reason: 'sem-sync' };
 
   const updates = diffSnapshot(lastSynced, newState);
@@ -84,12 +136,20 @@ export function pushStateToFirebase(newState) {
   lastSynced = JSON.parse(JSON.stringify(newState));
 
   const rootUpdates = {};
-  Object.keys(updates).forEach((p) => { rootUpdates[`torneio_state/${p}`] = updates[p]; });
+  Object.keys(updates).forEach((p) => {
+    if (p === 'arquivo') {
+      rootUpdates['arquivo'] = updates[p];
+    } else {
+      rootUpdates[`tournaments/${tournamentId}/${p}`] = updates[p];
+    }
+  });
+
   // As regras exigem que cada gravação aponte (logRef) para uma entrada nova
   // do registo de alterações, escrita no mesmo update()
-  const log = logEntry(describeUpdates(updates, newState) || 'Alterações ao torneio');
+  const log = logEntry(describeUpdates(updates, newState) || 'Alterações ao torneio', tournamentId);
   Object.assign(rootUpdates, log);
-  rootUpdates['torneio_state/logRef'] = Object.keys(log)[0].split('/')[1];
+  const logKey = Object.keys(log)[0].split('/')[2];
+  rootUpdates[`tournaments/${tournamentId}/logRef`] = logKey;
 
   update(ref(database), rootUpdates).catch((err) => {
     console.error("Firebase error pushing state:", err);
@@ -113,16 +173,60 @@ function displayName(user) {
   return (user.displayName || user.email || 'Sem nome').slice(0, 100);
 }
 
-function logEntry(acao) {
-  const key = push(ref(database, 'torneio_log')).key;
+function logEntry(acao, tournamentId = activeTournamentId) {
+  const key = push(ref(database, `tournament_log/${tournamentId}`)).key;
   return {
-    [`torneio_log/${key}`]: {
+    [`tournament_log/${tournamentId}/${key}`]: {
       uid: currentUser.uid,
       nome: displayName(currentUser),
       acao: acao.slice(0, 500),
       quando: serverTimestamp(),
     },
   };
+}
+
+// Migração: o primeiro load do master admin copia torneio_state para tournaments/default
+async function checkAndMigrateLegacyState() {
+  const defaultTourneyRef = ref(database, 'tournaments/default');
+  const defaultSnap = await get(defaultTourneyRef);
+  if (defaultSnap.exists()) return;
+
+  const legacyRef = ref(database, 'torneio_state');
+  const legacySnap = await get(legacyRef);
+  const legacyData = legacySnap.val();
+  if (!legacyData) return;
+
+  console.log("A migrar torneio_state para tournaments/default...");
+  const meta = {
+    name: (legacyData.config && legacyData.config.nome) || 'Futebol ILOG',
+    sport: 'football',
+    status: 'active',
+    createdAt: Date.now(),
+  };
+
+  const key = push(ref(database, 'tournament_log/default')).key;
+  const rootUpdates = {
+    [`tournament_log/default/${key}`]: {
+      uid: currentUser.uid,
+      nome: displayName(currentUser),
+      acao: 'Migração do torneio legado para tournaments/default',
+      quando: serverTimestamp(),
+    },
+    'tournaments/default/logRef': key,
+    'tournaments/default/meta': meta,
+    'tournaments/default/version': 9,
+  };
+
+  Object.keys(legacyData).forEach((k) => {
+    if (k === 'arquivo') {
+      rootUpdates['arquivo'] = legacyData.arquivo;
+    } else if (k !== 'logRef' && k !== 'version' && k !== 'meta') {
+      rootUpdates[`tournaments/default/${k}`] = legacyData[k];
+    }
+  });
+
+  await update(ref(database), rootUpdates);
+  console.log("Migração concluída com sucesso!");
 }
 
 // Calls callback({ user, role }) on sign-in, sign-out and role changes
@@ -148,9 +252,17 @@ export function initAuth(callback) {
     });
 
     callback({ user, role: null });
-    stopRoleListener = onValue(ref(database, `utilizadores/${user.uid}/role`), (snap) => {
+    stopRoleListener = onValue(ref(database, `utilizadores/${user.uid}/role`), async (snap) => {
       currentRole = snap.val();
       callback({ user, role: currentRole });
+
+      if (currentRole === 'admin') {
+        try {
+          await checkAndMigrateLegacyState();
+        } catch (err) {
+          console.error("Erro na verificação de migração legada:", err);
+        }
+      }
     }, (err) => {
       console.error("Firebase error reading role:", err);
     });
@@ -175,8 +287,8 @@ export function listenUsers(callback) {
   }, (err) => console.error("Firebase error reading users:", err));
 }
 
-export function listenLog(callback) {
-  const q = query(ref(database, 'torneio_log'), orderByChild('quando'), limitToLast(LOG_LIMIT));
+export function listenLog(callback, tournamentId = activeTournamentId) {
+  const q = query(ref(database, `tournament_log/${tournamentId}`), orderByChild('quando'), limitToLast(LOG_LIMIT));
   return onValue(q, (snap) => {
     const entries = [];
     snap.forEach((child) => { entries.push({ id: child.key, ...child.val() }); });

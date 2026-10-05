@@ -2,9 +2,12 @@ import { describe, it, expect } from 'vitest';
 import { canWritePath, blockedPaths, roleLabel } from '../src/permissions.js';
 
 describe('canWritePath', () => {
-  it('admin pode gravar tudo', () => {
+  it('admin pode gravar tudo exceto campos imutáveis', () => {
     expect(canWritePath('admin', 'config')).toBe(true);
     expect(canWritePath('admin', 'players')).toBe(true);
+    expect(canWritePath('admin', 'meta')).toBe(true);
+    expect(canWritePath('admin', 'meta/name')).toBe(true);
+    expect(canWritePath('admin', 'meta/sport')).toBe(false);
   });
 
   it('utilizador grava resultados, calendário e jogos singulares', () => {
@@ -15,8 +18,11 @@ describe('canWritePath', () => {
     expect(canWritePath('user', 'exportedAt')).toBe(true);
   });
 
-  it('utilizador não altera configuração, equipas nem jogadores', () => {
+  it('utilizador não altera configuração, equipas, jogadores nem metadados', () => {
     expect(canWritePath('user', 'config')).toBe(false);
+    expect(canWritePath('user', 'meta')).toBe(false);
+    expect(canWritePath('user', 'meta/name')).toBe(false);
+    expect(canWritePath('user', 'meta/sport')).toBe(false);
     expect(canWritePath('user', 'teams')).toBe(false);
     expect(canWritePath('user', 'squads')).toBe(false);
     expect(canWritePath('user', 'players')).toBe(false);
@@ -41,6 +47,7 @@ describe('blockedPaths', () => {
     const updates = { 'results/1': {}, config: {}, exportedAt: 'x' };
     expect(blockedPaths('user', updates)).toEqual(['config']);
     expect(blockedPaths('admin', updates)).toEqual([]);
+    expect(blockedPaths('admin', { 'meta/sport': 'padel' })).toEqual(['meta/sport']);
   });
 });
 

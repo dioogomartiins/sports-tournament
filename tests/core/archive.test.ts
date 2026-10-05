@@ -84,6 +84,7 @@ describe('arquivo de torneios', () => {
       '2026-10-02T10:00:00.000Z'
     );
     expect(entry.nome).toBe('Verão');
+    expect(entry.sport).toBe('football');
     expect(entry.campeao).toEqual({ nome: 'Leões', cor: '#111111' });
     expect(countPlayedGames(results)).toBe(2);
     expect(entry.jogos).toBe(2);
@@ -106,5 +107,21 @@ describe('arquivo de torneios', () => {
       jogosAMarcar: 1,
       recorde: 1,
     });
+
+    const entryWithMeta = buildArchiveEntry(
+      {
+        meta: { name: 'Padel Open', sport: 'padel', status: 'finished', createdAt: 123 },
+        config: { ...config, nome: 'Padel Open' },
+        teams,
+        schedule,
+        results,
+        scheduleTeamCount: 3,
+      },
+      {},
+      'id2',
+      '2026-10-02T10:00:00.000Z'
+    );
+    expect(entryWithMeta.sport).toBe('padel');
+    expect(entryWithMeta.nome).toBe('Padel Open');
   });
 });

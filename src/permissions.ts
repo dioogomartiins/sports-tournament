@@ -29,12 +29,15 @@ export function roleLabel(role: string | null | undefined): string {
 }
 
 /**
- * Can this role write to the given path (relative to torneio_state)?
+ * Can this role write to the given path (relative to the tournament root)?
  */
 export function canWritePath(role: string | null | undefined, path: string): boolean {
+  const parts = String(path).split('/');
+  // meta/sport is immutable after creation and cannot be updated directly
+  if (parts[0] === 'meta' && parts[1] === 'sport') return false;
+
   if (role === 'admin') return true;
   if (role !== 'user') return false;
-  const parts = String(path).split('/');
   // In the schedule, a regular user can only pass winning teams to subsequent playoff matches
   if (parts[0] === 'schedule') {
     return parts.length === 3 && (parts[2] === 'home' || parts[2] === 'away');
