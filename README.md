@@ -4,7 +4,7 @@ Web app for running friendly sports tournaments: teams, squads, schedule, live r
 
 Football ⚽ and padel 🎾 are supported today, each with its own scoring, standings and live score panel. The app is moving towards [supporting any sport](docs/multi-sport.md) — basketball 🏀, handball 🤾, volleyball 🏐 and others — through one class per sport.
 
-**App:** <https://dioogomartiins.github.io/torneio-ilog/>
+**App:** <https://dioogomartiins.github.io/sports-tournament/>
 
 ## ✨ What it does
 
@@ -36,14 +36,14 @@ Football ⚽ and padel 🎾 are supported today, each with its own scoring, stan
 ## 🚀 Quick start (development)
 
 ```bash
-git clone https://github.com/dioogomartiins/torneio-ilog.git
-cd torneio-ilog
+git clone https://github.com/dioogomartiins/sports-tournament.git
+cd sports-tournament
 npm install
 cp .env.example .env.development.local   # fill in with a TEST Firebase project
 npm run dev
 ```
 
-Open `http://localhost:5173/torneio-ilog/`.
+Open `http://localhost:5173/sports-tournament/`.
 
 > ⚠️ With the production keys, any click on the local server changes the real tournaments on every phone. Use a test database or the Firebase emulators: see [Setup and Deployment](docs/configuration.md#running-locally).
 

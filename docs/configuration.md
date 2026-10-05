@@ -55,7 +55,7 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:5173/torneio-ilog/` (the app is served on the same path as on GitHub Pages; the root is blank).
+Open `http://localhost:5173/sports-tournament/` (the app is served on the same path as on GitHub Pages; the root is blank).
 
 Pick one of these ways to stay away from the real tournaments:
 
@@ -115,13 +115,13 @@ What must be configured on GitHub:
 
   They must be **repository** secrets, not only secrets of the `github-pages` environment: the rules job does not use that environment and cannot see them. Without them the deployment fails with an explicit error.
 
-The site lives at `https://dioogomartiins.github.io/torneio-ilog/` (the path comes from `base` in `vite.config.js`).
+The site lives at `https://dioogomartiins.github.io/sports-tournament/` (the path comes from `base` in `vite.config.js`).
 
 ## Common problems
 
 | Symptom | Likely cause |
 |---|---|
-| Blank page on the local server | You opened `localhost:5173/` instead of `localhost:5173/torneio-ilog/` |
+| Blank page on the local server | You opened `localhost:5173/` instead of `localhost:5173/sports-tournament/` |
 | Firebase errors in the browser console | Missing `.env` or wrong database URL |
 | "Your account has not been approved by an admin yet." | The account has no role: the Master Admin must give it one in Manage → 👮 Users |
 | "Only an admin can make this change." | The account is a User (or an Admin of another sport) and the change needs an admin of this tournament's sport |

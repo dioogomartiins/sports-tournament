@@ -2,7 +2,7 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   // The base URL for the repository on GitHub Pages
-  base: '/torneio-ilog/',
+  base: '/sports-tournament/',
   build: {
     outDir: 'dist',
     emptyOutDir: true,

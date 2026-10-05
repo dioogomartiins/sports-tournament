@@ -25,3 +25,4 @@ dist/
 
 # Emulador do Firebase
 *-debug.log
+.idea
