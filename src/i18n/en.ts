@@ -390,6 +390,10 @@ export const en = {
     shareImageButton: '📤 Share image',
     noGoalsInMatch: 'No goals in this match yet.',
     roundLabel: (r: string | number) => `Round ${r}`,
+    addGoalTitle: 'Add goal',
+    cancelGoalTitle: 'Cancel last goal',
+    kickOffButton: '▶ Kick off',
+    fullTimeButton: '⏹ Full time',
   },
 
   animations: {
