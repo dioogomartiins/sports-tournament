@@ -73,7 +73,7 @@
   padding: 2px 8px;
   border-radius: 999px;
   background: var(--paper);
-  color: var(--pitch-800);
+  color: var(--ink);
   border: 1px solid var(--line);
 }
 

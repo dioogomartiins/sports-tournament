@@ -4,7 +4,7 @@
 // otherwise downloads the image.
 // ---------------------------------------------------------------------------
 import { state } from './state.js';
-import { computeStandings } from './algorithms.js';
+import { getSport } from './sports/registry.js';
 import { getTeamName, safeColor, playerName } from './utils.js';
 import { showToast } from './ui.js';
 import { en } from './i18n/en.js';
@@ -116,7 +116,7 @@ async function deliver(canvas, filename, title) {
 // ---------------------------------------------------------------------------
 export async function shareStandings() {
   const teamsArray = state.teams.slice(0, state.scheduleTeamCount || state.config.numEquipas);
-  const groups = computeStandings(teamsArray, state.schedule, state.results, state.config)
+  const groups = getSport(state.meta?.sport).computeStandings(teamsArray, state.schedule, state.results, state.config)
     .filter((g) => g.standings.length);
   if (!groups.length) { showToast(en.share.noStandingsYet, 'error'); return; }
 

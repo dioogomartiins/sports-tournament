@@ -13,7 +13,7 @@ import { keyed } from 'lit/directives/keyed.js';
 import { styleMap } from 'lit/directives/style-map.js';
 import eventStyles from '../../css/score-events.css?inline';
 import { GAME_STATUS } from '../types.js';
-import type { GameEvent, GameStatus, MatchResult } from '../types.js';
+import type { GameEvent, GameStatus, MatchResult, SetFormat } from '../types.js';
 import { en } from '../i18n/en.js';
 import { prefersReducedMotion, safeColor } from '../utils.js';
 
@@ -32,6 +32,8 @@ export interface ScoreMatch {
   home: ScoreTeam;
   away: ScoreTeam;
   result?: MatchResult;
+  /** Racket sports: the tournament's set format. */
+  format?: SetFormat;
 }
 
 const PLACEHOLDER_CREST = '#888888';
@@ -248,9 +250,14 @@ export abstract class ScoreBase extends LitElement {
     return m ? { home: Number(m[1]), away: Number(m[2]) } : null;
   }
 
+  /** Is this event a point for a side (a goal, a game)? Sports override it. */
+  protected isPointEvent(ev: GameEvent): boolean {
+    return ev.type === 'golo';
+  }
+
   /** Colour behind an event banner: the scoring team for a point. */
   protected eventColor(ev: GameEvent): string | null {
-    if (ev.type !== 'golo' || !ev.side || !this.match) return null;
+    if (!this.isPointEvent(ev) || !ev.side || !this.match) return null;
     return this.match[ev.side].color || PLACEHOLDER_EVENT;
   }
 
@@ -273,9 +280,9 @@ export abstract class ScoreBase extends LitElement {
     }
     this.current = ev;
     this.shown += 1;
-    if (ev.side && (ev.type === 'golo' || ev.type === 'anulado')) {
+    if (ev.side && (this.isPointEvent(ev) || ev.type === 'anulado')) {
       const side = ev.side;
-      const color = ev.type === 'golo' ? this.eventColor(ev) || PLACEHOLDER_EVENT : CANCELLED_COLOR;
+      const color = this.isPointEvent(ev) ? this.eventColor(ev) || PLACEHOLDER_EVENT : CANCELLED_COLOR;
       this.later(ScoreBase.BUMP_DELAY, () => ScoreBase.bump(this.renderRoot, side, color));
     }
     this.later(ScoreBase.STAGGER, () => {
@@ -316,9 +323,9 @@ export abstract class ScoreBase extends LitElement {
       if (!target.querySelector('.game-anim')) target.classList.remove('has-anim');
     }, ScoreBase.DURATION);
 
-    if (ev.side && (ev.type === 'golo' || ev.type === 'anulado')) {
+    if (ev.side && (this.isPointEvent(ev) || ev.type === 'anulado')) {
       const side = ev.side;
-      const bump = ev.type === 'golo' ? color || PLACEHOLDER_EVENT : CANCELLED_COLOR;
+      const bump = this.isPointEvent(ev) ? color || PLACEHOLDER_EVENT : CANCELLED_COLOR;
       // Look the card up again: the list may have been redrawn meanwhile
       setTimeout(() => {
         document.querySelectorAll<HTMLElement>(`[data-game="${CSS.escape(String(ev.gi))}"]`)

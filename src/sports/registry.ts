@@ -1,11 +1,13 @@
 import type { Sport } from './Sport.js';
 import { football } from './football/Football.js';
+import { padel } from './padel/Padel.js';
 
 const sportsRegistry = new Map<string, Sport>();
 
 // Register default sport
 sportsRegistry.set('football', football);
 sportsRegistry.set('futebol', football); // alias
+sportsRegistry.set('padel', padel);
 
 export function registerSport(sport: Sport): void {
   sportsRegistry.set(sport.id, sport);

@@ -2,6 +2,7 @@ import { state } from '../state.js';
 import { escapeHtml, clamp } from '../utils.js';
 import { dom } from './dom.js';
 import { en } from '../i18n/en.js';
+import { padel } from '../sports/padel/Padel.js';
 
 // ---------------------------------------------------------------------------
 // Settings Form
@@ -18,6 +19,10 @@ export function populateConfigForm() {
   dom.cfgGoleada.value = state.config.golosGoleada;
   dom.cfgMataMata.checked = state.config.mataMata || false;
   dom.cfgNumPlayoffTeams.value = state.config.numPlayoffTeams || 4;
+  const f = padel.format(state.config);
+  dom.cfgSets.value = String(f.sets);
+  dom.cfgGamesPerSet.value = f.gamesPerSet;
+  dom.cfgSuperTieBreak.checked = f.superTieBreak;
 }
 
 export function renderScheduleHint() {
