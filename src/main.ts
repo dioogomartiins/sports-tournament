@@ -16,7 +16,7 @@ import type { ScoreStep, ScoreCommit } from './components/ResultsList.js';
 import type { TeamChange } from './components/TeamsEditor.js';
 import type { RoleChange } from './components/UserList.js';
 import { getSport, listSports } from './sports/registry.js';
-import { initFirebaseListener, onFirebaseStateChange, onFirebasePushError, setSyncedSnapshot, initAuth, signInWithGoogle, signOutUser, getCurrentUser, getCurrentRole, getCurrentUserAdmin, listenUsers, listenLog, setUserRole, listenTournaments, createTournament, finishTournament, setActiveTournamentId } from './firebase.js';
+import { initFirebaseListener, onFirebaseStateChange, onFirebasePushError, setSyncedSnapshot, initAuth, signInWithGoogle, signOutUser, getCurrentUser, getCurrentRole, getCurrentUserAdmin, listenUsers, listenLog, setUserRole, listenTournaments, createTournament, finishTournament, setActiveTournamentId, isEmulator, setDevRole, getCurrentDevRole, DevRole } from './firebase.js';
 import { roleLabel } from './permissions.js';
 import { en } from './i18n/en.js';
 
@@ -608,6 +608,14 @@ export function onContaClick(): void {
 function onAuthChange({ user, role, admin }: AuthInfo): void {
   renderAuth(user, role, admin);
 
+  if (isEmulator && dom.devRoleSelect) {
+    const select = dom.devRoleSelect as HTMLSelectElement;
+    if (!user) select.value = 'none';
+    else if (role === 'master') select.value = 'master';
+    else if (role === 'admin') select.value = 'admin';
+    else if (role === 'user') select.value = 'user';
+  }
+
   const isMst = !!user && role === 'master';
   if (isMst && !stopAdminListeners) {
     const stopUsers = listenUsers((users) => renderUsers(users, user.uid));
@@ -725,7 +733,25 @@ export function bindEvents(): void {
   onEvent<ScoreCommit>(dom.resultsList, 'score-commit', onScoreCommit);
 
   // Account and administration
-  dom.btnConta.addEventListener('click', onContaClick);
+  if (isEmulator) {
+    if (dom.btnConta) dom.btnConta.style.display = 'none';
+    if (dom.devRoleContainer) dom.devRoleContainer.style.display = 'inline-flex';
+    if (dom.devRoleSelect) {
+      (dom.devRoleSelect as HTMLSelectElement).value = getCurrentDevRole();
+      dom.devRoleSelect.addEventListener('change', async (e) => {
+        const selected = (e.target as HTMLSelectElement).value as DevRole;
+        try {
+          await setDevRole(selected);
+          showToast(`Role switched to: ${selected}`, 'ok');
+        } catch (err) {
+          console.error("Failed to switch dev role:", err);
+          showToast('Failed to switch role', 'error');
+        }
+      });
+    }
+  } else {
+    dom.btnConta.addEventListener('click', onContaClick);
+  }
   onEvent<RoleChange>(dom.usersList, 'role-change', onUserRoleChange);
 
   // Export / import

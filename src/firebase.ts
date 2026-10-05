@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getDatabase, connectDatabaseEmulator, ref, onValue, update, push, query, orderByChild, limitToLast, serverTimestamp, get } from "firebase/database";
-import { getAuth, connectAuthEmulator, GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
+import { getAuth, connectAuthEmulator, GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { diffSnapshot, describeUpdates, onlyMetadata, normalizeMeta, normalizeConfig, legacyRoleUpdates } from "./sync.js";
 import { en } from "./i18n/en.js";
 import { blockedPaths, roleLabel, isSportAdmin, isMaster } from "./permissions.js";
@@ -17,14 +17,41 @@ export type PushResult = { ok: true } | { ok: false; reason: 'sem-sync' | 'sem-s
 export interface AuthInfo { user: User | null; role: Role | null; admin: Record<string, boolean> }
 type Updates = Record<string, unknown>;
 
+export const isEmulator = import.meta.env.VITE_USE_EMULATORS === 'true';
+
+export type DevRole = 'master' | 'admin' | 'user' | 'none';
+
+export const DEV_USERS: Record<'master' | 'admin' | 'user', { email: string; password: string; name: string; role: Role; admin?: Record<string, boolean> }> = {
+  master: {
+    email: 'master@torneio.local',
+    password: 'password123',
+    name: 'Master Admin',
+    role: 'master',
+    admin: { football: true, padel: true, tennis: true },
+  },
+  admin: {
+    email: 'admin@torneio.local',
+    password: 'password123',
+    name: 'Admin Futebol',
+    role: 'admin',
+    admin: { football: true, padel: true, tennis: true },
+  },
+  user: {
+    email: 'user@torneio.local',
+    password: 'password123',
+    name: 'Utilizador',
+    role: 'user',
+  },
+};
+
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || (isEmulator ? 'demo-api-key' : undefined),
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || (isEmulator ? 'demo-torneio.firebaseapp.com' : undefined),
+  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL || (isEmulator ? 'https://demo-torneio.firebaseio.com' : undefined),
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || (isEmulator ? 'demo-torneio' : undefined),
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || (isEmulator ? 'demo-app-id' : undefined),
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
@@ -33,9 +60,10 @@ const database = getDatabase(app);
 const auth = getAuth(app);
 
 // Development: use the local Firebase emulators instead of the real database
-if (import.meta.env.VITE_USE_EMULATORS === 'true') {
-  connectDatabaseEmulator(database, '127.0.0.1', 9000);
-  connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
+if (isEmulator) {
+  const emulatorHost = import.meta.env.VITE_FIREBASE_EMULATOR_HOST || '127.0.0.1';
+  connectDatabaseEmulator(database, emulatorHost, 9000);
+  connectAuthEmulator(auth, `http://${emulatorHost}:9099`, { disableWarnings: true });
 }
 
 const LOG_LIMIT = 200;
@@ -351,6 +379,63 @@ export function initAuth(callback: (info: AuthInfo) => void): void {
       console.error("Firebase error reading user role:", err);
     });
   });
+
+  // In emulator/docker mode, default to the saved dev role (or 'master')
+  if (isEmulator && !currentUser) {
+    const initialDevRole = getCurrentDevRole();
+    if (initialDevRole !== 'none') {
+      setDevRole(initialDevRole).catch((err) => console.error("Auto dev role initialization error:", err));
+    }
+  }
+}
+
+export function getCurrentDevRole(): DevRole {
+  return (localStorage.getItem('torneio_dev_role') as DevRole) || 'master';
+}
+
+export async function setDevRole(role: DevRole): Promise<void> {
+  if (!isEmulator) return;
+
+  if (role === 'none') {
+    await signOut(auth);
+    localStorage.setItem('torneio_dev_role', 'none');
+    return;
+  }
+
+  const devUser = DEV_USERS[role];
+  let userCred;
+  try {
+    userCred = await signInWithEmailAndPassword(auth, devUser.email, devUser.password);
+  } catch (err: unknown) {
+    const firebaseErr = err as { code?: string };
+    if (firebaseErr?.code === 'auth/user-not-found' || firebaseErr?.code === 'auth/invalid-credential') {
+      userCred = await createUserWithEmailAndPassword(auth, devUser.email, devUser.password);
+      await updateProfile(userCred.user, { displayName: devUser.name });
+    } else {
+      console.error("Error signing in dev user:", err);
+      return;
+    }
+  }
+
+  const user = userCred.user;
+  const emulatorHost = import.meta.env.VITE_FIREBASE_EMULATOR_HOST || '127.0.0.1';
+  try {
+    await fetch(`http://${emulatorHost}:9000/users/${user.uid}.json?ns=demo-torneio`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nome: devUser.name,
+        email: devUser.email,
+        role: devUser.role,
+        admin: devUser.admin || null,
+        ultimoAcesso: Date.now()
+      })
+    });
+  } catch (err) {
+    console.warn("Could not patch emulator user role via REST:", err);
+  }
+
+  localStorage.setItem('torneio_dev_role', role);
 }
 
 export function signInWithGoogle(): ReturnType<typeof signInWithPopup> {

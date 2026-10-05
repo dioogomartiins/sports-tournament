@@ -81,6 +81,32 @@ VITE_FIREBASE_DATABASE_URL=https://demo-torneio.firebaseio.com
 
 Load `database.rules.json` into the emulator to test the roles. To edit you need a user with `users/<uid>/role` set (`"master"` for full access, or `"admin"` plus `users/<uid>/admin/football: true`); create it in the emulator UI.
 
+**C. Docker Compose (fully containerized, zero local Java/Firebase install needed).**
+
+Run both the Firebase Emulator Suite (Realtime Database + Auth + Emulator UI) and the Vite frontend inside Docker:
+
+```bash
+docker compose up -d
+```
+
+- **Torneio App**: `http://localhost:5173/sports-tournament/`
+- **Firebase Emulator Suite UI**: `http://localhost:4000/` (explore database, auth users, logs)
+- **Realtime Database Emulator**: `localhost:9000`
+- **Auth Emulator**: `localhost:9099`
+
+To run only the Firebase emulators in Docker while running `npm run dev` on your host machine:
+
+```bash
+docker compose up -d firebase
+npm run dev
+```
+
+Data in the emulator persists in the `torneio-firebase-data` volume across container restarts. To stop containers:
+
+```bash
+docker compose down
+```
+
 **Before opening a PR:**
 
 ```bash

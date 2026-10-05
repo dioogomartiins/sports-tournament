@@ -59,6 +59,8 @@ Open `http://localhost:5173/sports-tournament/`.
 | `npm run test:rules` | Firebase rules tests in the emulator (needs Java) |
 | `npm run build` | Production build into `dist/` |
 | `npm run preview` | Serves `dist/` the way GitHub Pages does |
+| `npm run docker:up` | Starts Firebase emulators & app in Docker (`docker compose up -d`) |
+| `npm run docker:down` | Stops the Docker containers (`docker compose down`) |
 
 ## 🛠️ Technologies
 

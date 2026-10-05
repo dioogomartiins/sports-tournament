@@ -24,7 +24,7 @@ export function cacheDom(): void {
     'draftNomeA', 'draftNomeB', 'draftPlayerList', 'btnFazerDraft', 'draftResultCard', 'draftTeamsResult',
     'draftLabelA', 'draftLabelB', 'draftScoreA', 'draftScoreB', 'btnGuardarJogo',
     'singularHistoricoList',
-    'btnConta', 'usersList', 'logList',
+    'btnConta', 'devRoleContainer', 'devRoleSelect', 'usersList', 'logList',
     'historicoSempre', 'arquivoList', 'btnArquivar', 'btnPartilharTabela',
     'cardTorneiosAtivos', 'listaTorneiosAtivos', 'btnNovoTorneioModal', 'headerSportBadge',
   ].forEach((id) => {

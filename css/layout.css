@@ -102,6 +102,50 @@
   transform: scale(0.95);
 }
 
+.dev-role-container {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(203, 161, 53, 0.16);
+  border: 1px solid rgba(203, 161, 53, 0.4);
+  padding: 3px 8px;
+  border-radius: 999px;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.dev-role-container:hover {
+  background: rgba(203, 161, 53, 0.28);
+  border-color: var(--gold);
+}
+
+.dev-role-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--gold);
+  letter-spacing: 0.06em;
+  user-select: none;
+}
+
+.dev-role-select {
+  background: transparent;
+  border: none;
+  color: inherit;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  padding: 0;
+  margin: 0;
+}
+
+.dev-role-select option {
+  background: #1b281e;
+  color: #fff;
+}
+
+
 #tournamentTitle {
   font-size: clamp(28px, 6vw, 44px);
   font-weight: 700;
