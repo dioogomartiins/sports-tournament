@@ -4,6 +4,6 @@ dist
 .idea
 .vscode
 *.log
-.env.local
-.env.*.local
+.env
+.env.*
 .firebase

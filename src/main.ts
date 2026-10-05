@@ -16,7 +16,7 @@ import type { ScoreStep, ScoreCommit } from './components/ResultsList.js';
 import type { TeamChange } from './components/TeamsEditor.js';
 import type { RoleChange } from './components/UserList.js';
 import { getSport, listSports } from './sports/registry.js';
-import { initFirebaseListener, onFirebaseStateChange, onFirebasePushError, setSyncedSnapshot, initAuth, signInWithGoogle, signOutUser, getCurrentUser, getCurrentRole, getCurrentUserAdmin, listenUsers, listenLog, setUserRole, listenTournaments, createTournament, finishTournament, setActiveTournamentId, isEmulator, setDevRole, getCurrentDevRole, DevRole } from './firebase.js';
+import { initFirebaseListener, onFirebaseStateChange, onFirebasePushError, setSyncedSnapshot, initAuth, signInWithGoogle, signOutUser, getCurrentUser, getCurrentRole, getCurrentUserAdmin, listenUsers, listenLog, setUserRole, listenTournaments, createTournament, finishTournament, setActiveTournamentId, isEmulator, setDevRole, getCurrentDevRole, type DevRole } from './firebase.js';
 import { roleLabel } from './permissions.js';
 import { en } from './i18n/en.js';
 
@@ -747,10 +747,10 @@ export function bindEvents(): void {
         const selected = (e.target as HTMLSelectElement).value as DevRole;
         try {
           await setDevRole(selected);
-          showToast(`Role switched to: ${selected}`, 'ok');
+          showToast(en.toasts.devRoleSwitched(selected === 'none' ? en.roles.viewer : en.roles[selected]), 'ok');
         } catch (err) {
           console.error("Failed to switch dev role:", err);
-          showToast('Failed to switch role', 'error');
+          showToast(en.toasts.couldNotSwitchDevRole, 'error');
         }
       });
     }
