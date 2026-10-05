@@ -26,3 +26,6 @@ dist/
 # Emulador do Firebase
 *-debug.log
 .idea
+
+# Repomix output (published with each release, see deploy.yml)
+knowledge/

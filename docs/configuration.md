@@ -102,6 +102,8 @@ Deployment runs through the [`.github/workflows/deploy.yml`](../.github/workflow
 1. **Rules (`rules`):** tests `database.rules.json` in the Firebase emulator (`npm run test:rules`) and, if it passes, publishes the rules to the Realtime Database with `firebase deploy --only database`.
 2. **Site (`deploy`):** only starts if the rules were published. Installs dependencies, runs ESLint, the type check and the tests, creates `.env` from the secrets, builds, and publishes `dist/` to GitHub Pages.
 
+The site job also packs the release's code and docs into one file with [Repomix](https://repomix.com) (`repomix.config.json`) and publishes it with the site at `https://<user>.github.io/sports-tournament/knowledge/repomix-context.md`, so it always matches the tagged release. Add that URL as a website source in NotebookLM and re-sync it there after each release. It is generated before `.env` exists, and nothing is committed back to the repository. Run `npx repomix` to make the same file locally in `knowledge/` (git ignores it).
+
 The rules go first because the new site depends on them (for example, the `logRef` of the [activity log](architecture.md#activity-log)). If the rules fail, the old site stays up and nothing is left half-done. That is why changes are made on a branch with a PR, and released with a tag.
 
 When the rules change in an incompatible way, phones with the old page open can no longer save ("The change was rejected by the database (permission denied). It has been reverted.") until they reload the page.

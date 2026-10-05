@@ -69,6 +69,11 @@ jobs:
           cache: 'npm'
       - name: Install dependencies
         run: npm ci
+      # Code and docs of this release in one file for NotebookLM, built
+      # before .env exists and published with the site at
+      # <site>/knowledge/repomix-context.md
+      - name: Generate knowledge file
+        run: npx -y repomix@1.18.1 --output "$RUNNER_TEMP/repomix-context.md"
       - name: Lint
         run: npm run lint
       - name: Typecheck
@@ -93,6 +98,10 @@ jobs:
           env | grep '^VITE_' > .env
       - name: Build
         run: npm run build
+      - name: Add knowledge file to the site
+        run: |
+          mkdir -p dist/knowledge
+          cp "$RUNNER_TEMP/repomix-context.md" dist/knowledge/repomix-context.md
       - name: Setup Pages
         uses: actions/configure-pages@v4
       - name: Upload artifact
@@ -103,35 +112,3 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-
-  update-knowledge:
-    needs: deploy
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          ref: main
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
-      - name: Install Repomix
-        run: npm install -g repomix
-
-      - name: Generate Knowledge File
-        run: |
-          mkdir -p knowledge
-          repomix
-
-      - name: Commit and Push
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: "docs: update NotebookLM knowledge context"
-          file_pattern: "knowledge/repomix-context.md"
-          branch: main
-

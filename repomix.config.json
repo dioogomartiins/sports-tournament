@@ -14,13 +14,11 @@
       ".github/",
       ".gemini/",
       ".claude/",
-      "node_modules/",
-      "coverage/",
-      "dist/",
-      "scratch/",
       "knowledge/",
-      "*.json",
-      "*.md"
+      "package-lock.json"
     ]
+  },
+  "security": {
+    "enableSecurityCheck": true
   }
 }
