@@ -55,7 +55,7 @@ On a phone, the header is a single line pinned to the top: on the left the tourn
 Several tournaments can run at the same time, each with its own sport, teams, schedule, results and single matches. The players database and the History are shared by all of them.
 
 - **🏆 Active Tournaments** (on the 🏠 Dashboard) lists every tournament that has not been finished. Tap a card, or **👁️ View Tournament**, to follow it; the whole app then shows that tournament. Each device remembers the last tournament it viewed.
-- **➕ New Tournament** (Master Admin, or an Admin of at least one sport) asks for the **Tournament Name**, the **Sport** and the **Number of Teams (2–32)**, then **Create Tournament**. The sport cannot be changed later. An Admin can only pick the sports they administer.
+- **➕ New Tournament** (Master Admin, or an Admin of at least one sport) asks for the **Tournament Name**, the **Sport** and the **Number of Teams (2–32)**, then **Create Tournament**. The sport cannot be changed later. An Admin can only pick the sports they administer. What each sport changes is in [Sports](sports.md).
 - **🏁 Finish Tournament** appears on the card of the tournament being viewed (for its admins): see [Finishing and archiving](#finishing-and-archiving).
 
 ## Setting up a tournament

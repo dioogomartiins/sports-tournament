@@ -202,4 +202,4 @@ How the code on `main` differs from the proposal above:
 - **Tennis.** `src/sports/tennis/Tennis.ts` reuses `RacketSport` with a full deciding set by default; singles or doubles. `<tennis-score>` and `<padel-score>` share `RacketScore`. See [Rules](rules.md#tennis).
 - **Per-sport admins.** `users/<uid>/admin/<sport>`, enforced by `database.rules.json` (see [Architecture](architecture.md#permissions)).
 - **Americano / Mexicano.** Padel tournaments can rotate partners (`config.padelFormat`); matches are played to points and players are ranked on their own (`src/core/americano.ts`, [Rules](rules.md#americano-and-mexicano)).
-- **Not done yet:** basketball, handball and volleyball.
+- **Not done yet:** basketball, handball and volleyball, planned in [#59](https://github.com/dioogomartiins/torneio-ilog/issues/59), [#60](https://github.com/dioogomartiins/torneio-ilog/issues/60) and [#61](https://github.com/dioogomartiins/torneio-ilog/issues/61). What each sport does today is in [Sports](sports.md).

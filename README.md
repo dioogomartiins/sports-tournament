@@ -2,7 +2,7 @@
 
 Web app for running friendly sports tournaments: teams, squads, schedule, live results, playoffs, player stats and single matches. Several tournaments can run at the same time, and every connected phone sees each change instantly, without reloading the page.
 
-Football ⚽, padel 🎾 and tennis 🎾 are supported today, each with its own scoring, standings and live score panel. The app is moving towards [supporting any sport](docs/multi-sport.md) — basketball 🏀, handball 🤾, volleyball 🏐 and others — through one class per sport.
+Football ⚽, padel 🎾 (fixed pairs, Americano or Mexicano) and tennis 🎾 are supported today, each with its own scoring, standings and live score panel ([Sports](docs/sports.md)). The app is moving towards [supporting any sport](docs/multi-sport.md) — basketball 🏀, handball 🤾, volleyball 🏐 and others — through one class per sport.
 
 **App:** <https://dioogomartiins.github.io/sports-tournament/>
 
@@ -28,6 +28,7 @@ Football ⚽, padel 🎾 and tennis 🎾 are supported today, each with its own 
 | Document | For | Contents |
 |---|---|---|
 | [User Guide](docs/guide.md) | People using the app | Roles, tournaments, setting up and playing a tournament, single matches, history, data |
+| [Sports](docs/sports.md) | Anyone choosing or running a sport | What changes per sport: score, format, standings, teams, ratings, match window |
 | [Rules and Calculations](docs/rules.md) | Anyone who wants to understand the numbers | Scoring, tiebreaks, schedule, playoffs, ratings, balanced teams |
 | [Setup and Deployment](docs/configuration.md) | People maintaining the app | Firebase, `.env`, running locally without touching the real tournament, deploying the site and the rules |
 | [Architecture](docs/architecture.md) | People changing the code | Modules, data model, sync, permissions, tests |
