@@ -73,6 +73,8 @@ export function onFirebaseStateChange(callback: (data: Snapshot, firstLoad: bool
 // Start listening to the "tournaments/<id>" node, global "arquivo", and global "players"
 export function initFirebaseListener(tournamentId: string = activeTournamentId): void {
   activeTournamentId = tournamentId || 'default';
+  // A read of the previous tournament still in flight must not be applied
+  serverStateSeq++;
   if (stopStateListener) {
     stopStateListener();
     stopStateListener = null;
@@ -223,11 +225,14 @@ export function pushStateToFirebase(newState: Snapshot, tournamentId: string = a
   });
 
   // The rules require every save to point (logRef) at a new change-log
-  // entry written in the same update()
-  const log = logEntry(describeUpdates(updates, newState) || en.sync.tournamentChanged, tournamentId);
-  Object.assign(rootUpdates, log);
-  const logKey = Object.keys(log)[0].split('/')[2];
-  if (exists) rootUpdates[`tournaments/${tournamentId}/logRef`] = logKey;
+  // entry written in the same update(). With no tournament there is no log
+  // to append to: players and the archive need no logRef.
+  if (exists) {
+    const log = logEntry(describeUpdates(updates, newState) || en.sync.tournamentChanged, tournamentId);
+    Object.assign(rootUpdates, log);
+    const logKey = Object.keys(log)[0].split('/')[2];
+    rootUpdates[`tournaments/${tournamentId}/logRef`] = logKey;
+  }
 
   update(ref(database), rootUpdates).catch((err) => {
     console.error("Firebase error pushing state:", err);
