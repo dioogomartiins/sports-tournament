@@ -1,0 +1,26 @@
+{
+  "output": {
+    "filePath": "knowledge/repomix-context.md",
+    "style": "markdown",
+    "removeComments": false,
+    "removeEmptyLines": false,
+    "topFilesLength": 10,
+    "showLineNumbers": false
+  },
+  "ignore": {
+    "useGitignore": true,
+    "useDefaultPatterns": true,
+    "customPatterns": [
+      ".github/",
+      ".gemini/",
+      ".claude/",
+      "node_modules/",
+      "coverage/",
+      "dist/",
+      "scratch/",
+      "knowledge/",
+      "*.json",
+      "*.md"
+    ]
+  }
+}

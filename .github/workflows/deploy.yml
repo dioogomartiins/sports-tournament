@@ -103,3 +103,35 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  update-knowledge:
+    needs: deploy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Repomix
+        run: npm install -g repomix
+
+      - name: Generate Knowledge File
+        run: |
+          mkdir -p knowledge
+          repomix
+
+      - name: Commit and Push
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "docs: update NotebookLM knowledge context"
+          file_pattern: "knowledge/repomix-context.md"
+          branch: main
+
