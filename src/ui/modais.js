@@ -1,13 +1,14 @@
 import { state } from '../state.js';
 import { getTeamName, escapeHtml } from '../utils.js';
 import { dom } from './dom.js';
+import { en } from '../i18n/en.js';
 
 // ---------------------------------------------------------------------------
-// Modal — geral (confirmações e scorer)
+// Modal — general (confirmations and scorer)
 // ---------------------------------------------------------------------------
 export var confirmCallback = null;
 
-/** Para os modais definidos noutros módulos (um import não pode ser reatribuído). */
+/** For modals defined in other modules (an import cannot be reassigned). */
 export function setConfirmCallback(fn) {
   confirmCallback = fn;
 }
@@ -17,12 +18,12 @@ export function openConfirm(title, body, onConfirm) {
   dom.modalBody.innerHTML = body;
   confirmCallback = onConfirm;
 
-  dom.modalCancel.innerHTML = 'Cancelar';
+  dom.modalCancel.innerHTML = en.common.cancel;
   dom.modalCancel.style.background = 'var(--paper)';
   dom.modalCancel.style.color = 'var(--ink)';
   dom.modalCancel.hidden = false;
 
-  dom.modalConfirm.innerHTML = 'Confirmar';
+  dom.modalConfirm.innerHTML = en.common.confirm;
   dom.modalConfirm.style.background = 'var(--danger)';
   dom.modalConfirm.style.color = '#fff';
   dom.modalConfirm.hidden = false;
@@ -50,24 +51,24 @@ export function closeConfirm() {
  * @param {Function} onConfirm — called only when the word matches
  */
 export function openDangerConfirm(title, itemLabels, onConfirm) {
-  const secret = 'APAGAR';
+  const secret = en.modals.deleteWord;
 
   dom.modalTitle.textContent = title;
 
   // Build body: summary list + password input
   const listHtml = itemLabels.map(l => `<li>${escapeHtml(l)}</li>`).join('');
   dom.modalBody.innerHTML =
-    `<p style="margin-bottom:6px;">Vais apagar permanentemente:</p>` +
+    `<p style="margin-bottom:6px;">${escapeHtml(en.modals.permanentlyDelete)}</p>` +
     `<ul class="danger-confirm-summary">${listHtml}</ul>` +
-    `<label style="font-size:13px;font-weight:600;color:var(--ink-soft);">Para confirmar, escreve ${secret}:</label>` +
+    `<label style="font-size:13px;font-weight:600;color:var(--ink-soft);">${escapeHtml(en.modals.toConfirmType(secret))}</label>` +
     `<input type="text" class="danger-confirm-input" id="dangerConfirmInput" autocomplete="off" spellcheck="false" placeholder="${secret}">`;
 
-  dom.modalCancel.innerHTML = 'Cancelar';
+  dom.modalCancel.innerHTML = en.common.cancel;
   dom.modalCancel.style.background = 'var(--paper)';
   dom.modalCancel.style.color = 'var(--ink)';
   dom.modalCancel.hidden = false;
 
-  dom.modalConfirm.innerHTML = '🔒 Confirmar';
+  dom.modalConfirm.innerHTML = escapeHtml(en.modals.confirmDelete);
   dom.modalConfirm.style.background = 'var(--danger)';
   dom.modalConfirm.style.color = '#fff';
   dom.modalConfirm.hidden = false;
@@ -112,11 +113,11 @@ export function openDangerConfirm(title, itemLabels, onConfirm) {
 }
 
 /**
- * Modal para escolher um jogador (assistência, MVP).
+ * Modal to pick a player (assist, MVP).
  * @param {string} title
  * @param {{id:string, label:string}[]} players
- * @param {string} noneLabel — botão para "nenhum" (devolve '')
- * @param {Function} onSelect — recebe o id escolhido ou ''
+ * @param {string} noneLabel — button for "none" (returns '')
+ * @param {Function} onSelect — receives selected id or ''
  */
 export function openPickPlayerModal(title, players, noneLabel, onSelect) {
   dom.modalTitle.textContent = title;
@@ -124,9 +125,9 @@ export function openPickPlayerModal(title, players, noneLabel, onSelect) {
     ? players.map((p) =>
       `<button class="btn btn-ghost scorer-btn" data-pid="${escapeHtml(p.id)}">${escapeHtml(p.label)}</button>`
     ).join('')
-    : '<p class="empty" style="margin-bottom:14px;">Nenhum jogador disponível.</p>';
+    : `<p class="empty" style="margin-bottom:14px;">${escapeHtml(en.modals.noPlayersAvailable)}</p>`;
 
-  dom.modalCancel.innerHTML = 'Cancelar';
+  dom.modalCancel.innerHTML = en.common.cancel;
   dom.modalCancel.style.background = 'var(--paper)';
   dom.modalCancel.style.color = 'var(--ink)';
   dom.modalCancel.hidden = false;
@@ -152,7 +153,7 @@ export function openPickPlayerModal(title, players, noneLabel, onSelect) {
   });
 }
 
-/** Jogadores do plantel de uma equipa do torneio, no formato de openPickPlayerModal. */
+/** Squad players of a tournament team, in openPickPlayerModal format. */
 export function squadPickList(teamIdx, excludeId) {
   if (typeof teamIdx !== 'number' && !/^\d+$/.test(String(teamIdx))) return [];
   return (state.squads[teamIdx] || [])
@@ -166,20 +167,20 @@ export function openScorerModal(gi, side, onSelect) {
   const teamName = getTeamName(teamIdx);
   const players = (state.squads && state.squads[teamIdx]) ? state.squads[teamIdx] : [];
 
-  dom.modalTitle.textContent = `Golo: ${teamName}`;
+  dom.modalTitle.textContent = en.modals.goalForTeam(teamName);
 
   dom.modalBody.innerHTML = players.length
     ? players.map((p) =>
       `<button class="btn btn-ghost scorer-btn" data-pid="${escapeHtml(p.id)}">${escapeHtml(p.num)} - ${escapeHtml(p.name)}</button>`
     ).join('')
-    : '<p class="empty" style="margin-bottom:14px;">Nenhum jogador registado nesta equipa.</p>';
+    : `<p class="empty" style="margin-bottom:14px;">${escapeHtml(en.modals.noPlayersInTeam)}</p>`;
 
-  dom.modalCancel.innerHTML = '❌ Cancelar';
+  dom.modalCancel.innerHTML = escapeHtml(en.modals.cancelButton);
   dom.modalCancel.style.background = 'var(--danger)';
   dom.modalCancel.style.color = '#fff';
   dom.modalCancel.hidden = false;
 
-  dom.modalConfirm.innerHTML = '✅ Auto-Golo';
+  dom.modalConfirm.innerHTML = escapeHtml(en.modals.ownGoalButton);
   dom.modalConfirm.style.background = 'var(--pitch-500)';
   dom.modalConfirm.style.color = '#fff';
   dom.modalConfirm.hidden = false;

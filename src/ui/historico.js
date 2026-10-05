@@ -3,12 +3,13 @@ import { escapeHtml, safeColor, buildPlayerIndex } from '../utils.js';
 import { tallyPlayerStats, mergePlayerStats, archiveTally } from '../algorithms.js';
 import { dom } from './dom.js';
 import { openConfirm } from './modais.js';
+import { en } from '../i18n/en.js';
 
 // ---------------------------------------------------------------------------
-// Histórico — torneios arquivados e estatísticas de sempre
+// History — Archived Tournaments & All-Time Stats
 // ---------------------------------------------------------------------------
 
-/** Estatísticas de sempre por jogador: arquivo + torneio atual + jogos singulares. */
+/** All-time stats per player: archive + current tournament + single matches. */
 export function computeAllTimeStats() {
   return mergePlayerStats(
     ...state.arquivo.map(archiveTally),
@@ -18,7 +19,7 @@ export function computeAllTimeStats() {
 
 function fmtDate(iso) {
   const d = new Date(iso);
-  return isNaN(d) ? '' : d.toLocaleDateString('pt-PT');
+  return isNaN(d) ? '' : d.toLocaleDateString('en-GB');
 }
 
 function allTimeRows() {
@@ -30,7 +31,7 @@ function allTimeRows() {
 
   const totals = computeAllTimeStats();
   const rows = Object.keys(totals)
-    .map((pid) => ({ pid, nome: (index[pid] && index[pid].name) || archivedNames[pid] || 'Jogador Desconhecido', ...totals[pid] }))
+    .map((pid) => ({ pid, nome: (index[pid] && index[pid].name) || archivedNames[pid] || en.common.unknownPlayer, ...totals[pid] }))
     .filter((r) => r.golos || r.assistencias || r.mvp)
     .sort((a, b) => (b.golos - a.golos) || (b.assistencias - a.assistencias) || (b.mvp - a.mvp));
   return { rows, titles };
@@ -47,26 +48,26 @@ export function renderHistorico() {
 
   dom.historicoSempre.innerHTML = titlesHtml + (rows.length
     ? `<table class="standings-table historico-sempre"><thead><tr>` +
-      `<th style="text-align:left;">Jogador</th><th title="Golos">⚽</th><th title="Assistências">🅰️</th><th title="MVP">⭐</th>` +
+      `<th style="text-align:left;">${en.historyTab.playerCol}</th><th title="${en.historyTab.goalsTitle}">⚽</th><th title="${en.historyTab.assistsTitle}">🅰️</th><th title="${en.historyTab.mvpTitle}">⭐</th>` +
       `</tr></thead><tbody>` +
       rows.slice(0, 20).map((r) =>
         `<tr><td class="team-cell">${escapeHtml(r.nome)}</td><td class="num">${r.golos}</td><td class="num">${r.assistencias}</td><td class="num">${r.mvp}</td></tr>`
       ).join('') +
       `</tbody></table>`
-    : '<p class="empty">Ainda não há golos registados.</p>');
+    : `<p class="empty">${en.historyTab.noGoalsYet}</p>`);
 
   if (!state.arquivo.length) {
-    dom.arquivoList.innerHTML = '<p class="empty">Ainda não há torneios arquivados. Um admin pode arquivar o torneio atual em Gestão → Dados.</p>';
+    dom.arquivoList.innerHTML = `<p class="empty">${en.historyTab.noArchivedYet}</p>`;
     return;
   }
 
   dom.arquivoList.innerHTML = state.arquivo.slice().reverse().map((e) => {
     const campeao = e.campeao
       ? `<span class="arquivo-campeao"><span class="arquivo-cor" style="background:${safeColor(e.campeao.cor)}"></span>${escapeHtml(e.campeao.nome)}</span>`
-      : '<span class="arquivo-campeao">Sem campeão</span>';
+      : `<span class="arquivo-campeao">${en.historyTab.noChampion}</span>`;
     const tabelas = e.grupos.map((g) =>
       (e.grupos.length > 1 ? `<div class="arquivo-grupo">${escapeHtml(g.nome)}</div>` : '') +
-      `<table class="standings-table"><thead><tr><th>Pos</th><th style="text-align:left;">Equipa</th><th>J</th><th>DG</th><th>Pts</th></tr></thead><tbody>` +
+      `<table class="standings-table"><thead><tr><th>${en.standings.cols.pos}</th><th style="text-align:left;">${en.standings.cols.team}</th><th>${en.standings.cols.p}</th><th>${en.standings.cols.gd}</th><th>${en.standings.cols.pts}</th></tr></thead><tbody>` +
       g.tabela.map((t, i) =>
         `<tr><td><span class="pos-badge">${i + 1}</span></td>` +
         `<td class="team-cell"><span class="arquivo-cor" style="background:${safeColor(t.cor)}"></span>${escapeHtml(t.nome)}</td>` +
@@ -83,17 +84,17 @@ export function renderHistorico() {
       `<details class="arquivo-card">` +
       `<summary><div class="arquivo-head"><div>` +
       `<div class="arquivo-nome">${escapeHtml(e.nome)}</div>` +
-      `<div class="arquivo-meta">${escapeHtml(fmtDate(e.data))} · ${Number(e.jogos) || 0} jogos · ${Number(e.golos) || 0} golos</div>` +
+      `<div class="arquivo-meta">${escapeHtml(fmtDate(e.data))} · ${en.historyTab.matchesGoalsSummary(Number(e.jogos) || 0, Number(e.golos) || 0)}</div>` +
       `</div><span>🏆 ${campeao}</span></div></summary>` +
       tabelas + topHtml +
-      `<button class="btn btn-ghost arquivo-del" data-requires="admin" data-aid="${escapeHtml(e.id)}">🗑️ Apagar do histórico</button>` +
+      `<button class="btn btn-ghost arquivo-del" data-requires="admin" data-aid="${escapeHtml(e.id)}">${en.historyTab.deleteFromHistory}</button>` +
       `</details>`
     );
   }).join('');
 
   dom.arquivoList.querySelectorAll('.arquivo-del').forEach((btn) => {
     btn.addEventListener('click', () => {
-      openConfirm('Apagar do Histórico', 'Este torneio arquivado vai ser apagado. Continuar?', async () => {
+      openConfirm(en.historyTab.deleteModalTitle, en.historyTab.deleteModalPrompt, async () => {
         state.arquivo = state.arquivo.filter((x) => x.id !== btn.dataset.aid);
         await persistArquivo();
         renderHistorico();

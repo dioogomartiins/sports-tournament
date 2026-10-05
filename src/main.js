@@ -6,12 +6,13 @@ import { animateResultChanges } from './animations.js';
 import { bergerRounds, balancedDraft, buildFirstRoundSeeding, buildExtraVolta, getPlayoffWinner, buildArchiveEntry, GAME_STATUS, alignAssists, addGoal, removeGoal, setGameStatus } from './algorithms.js';
 import { initFirebaseListener, onFirebaseStateChange, onFirebasePushError, setSyncedSnapshot, initAuth, signInWithGoogle, signOutUser, getCurrentUser, getCurrentRole, getCurrentUserAdmin, listenUsers, listenLog, setUserRole, listenTournaments, createTournament, finishTournament, setActiveTournamentId } from './firebase.js';
 import { roleLabel } from './permissions.js';
+import { en } from './i18n/en.js';
 
 // ---------------------------------------------------------------------------
 // Handlers de configuração
 // ---------------------------------------------------------------------------
 export function onConfigFieldChange() {
-  state.config.nome = dom.cfgNome.value.trim() || 'Torneio';
+  state.config.nome = dom.cfgNome.value.trim() || 'Tournament';
   state.config.pontosVitoria = numOr(dom.cfgVitoria.value, 3);
   state.config.pontosEmpate = numOr(dom.cfgEmpate.value, 1);
   state.config.pontosDerrota = numOr(dom.cfgDerrota.value, 0);
@@ -54,16 +55,16 @@ export function onAddPlayerFromDB() {
   const num = parseInt(dom.squadPlayerNum.value, 10);
   const pid = dom.squadPlayerFromDB.value;
 
-  if (!tIdx) { showToast('Seleciona uma equipa.', 'error'); return; }
-  if (isNaN(num) || num < 1) { showToast('Preenche o número da camisola.', 'error'); return; }
-  if (!pid) { showToast('Escolhe um jogador da lista.', 'error'); return; }
+  if (!tIdx) { showToast(en.toasts.selectTeam, 'error'); return; }
+  if (isNaN(num) || num < 1) { showToast(en.toasts.enterJerseyNumber, 'error'); return; }
+  if (!pid) { showToast(en.toasts.choosePlayerFromList, 'error'); return; }
 
   const player = state.players.find((p) => p.id === pid);
-  if (!player) { showToast('Jogador não encontrado.', 'error'); return; }
+  if (!player) { showToast(en.toasts.playerNotFound, 'error'); return; }
 
   // Check if already in squad
   if (state.squads[tIdx].some((p) => p.id === pid)) {
-    showToast('Este jogador já está no plantel.', 'error');
+    showToast(en.toasts.playerAlreadyInSquad, 'error');
     return;
   }
 
@@ -73,7 +74,7 @@ export function onAddPlayerFromDB() {
   dom.squadPlayerFromDB.value = '';
   renderSquadList();
   renderSquadPlayerFromDBDropdown();
-  showToast('Jogador adicionado ao plantel!', 'ok');
+  showToast(en.toasts.playerAddedToSquad, 'ok');
 }
 
 function onSquadListClick(e) {
@@ -150,7 +151,7 @@ function onScoreBtnClick(btn) {
 
       // Autogolo não tem assistência
       if (pid === 'auto') registerGoal('');
-      else openPickPlayerModal('Assistência', squadPickList(teamIdx, pid), 'Sem assistência', registerGoal);
+      else openPickPlayerModal(en.singleMatch.pickAssistTitle, squadPickList(teamIdx, pid), en.singleMatch.noAssist, registerGoal);
     });
   } else if (action === 'sub') {
     commitGoal(removeGoal(state.results[gi], side));
@@ -161,7 +162,7 @@ export function onMvpClick(gi) {
   const game = state.schedule[gi];
   if (!game) return;
   const players = [...squadPickList(game.home), ...squadPickList(game.away)];
-  openPickPlayerModal('MVP do Jogo', players, 'Sem MVP', (pid) => {
+  openPickPlayerModal(en.singleMatch.pickMvpTitle, players, en.singleMatch.noMvp, (pid) => {
     const res = state.results[gi];
     if (!res || typeof res !== 'object') return;
     if (pid) res.mvp = pid;
@@ -247,16 +248,16 @@ export function onGerarCalendario() {
     persistSchedule();
     persistResults();
     renderAll();
-    showToast(`Calendário gerado: ${state.schedule.length} jogos.`, 'ok');
+    showToast(en.toasts.scheduleGenerated(state.schedule.length), 'ok');
   }
 
   const msgParts = [];
-  if (hasResults) msgParts.push('Isto substitui o calendário atual e apaga todos os resultados já introduzidos.');
-  if (estimate > 1500) msgParts.push(`Este calendário vai ter ${estimate} jogos — é bastante grande.`);
-  msgParts.push('As equipas, os plantéis e a configuração mantêm-se.');
+  if (hasResults) msgParts.push(en.confirmations.replaceScheduleWarn);
+  if (estimate > 1500) msgParts.push(en.confirmations.largeScheduleWarn(estimate));
+  msgParts.push(en.confirmations.teamsSquadsPreserved);
 
   if (hasResults || estimate > 1500) {
-    openConfirm('Gerar novo calendário', msgParts.join(' '), doIt);
+    openConfirm(en.confirmations.generateNewSchedule, msgParts.join(' '), doIt);
   } else {
     doIt();
   }
@@ -272,17 +273,17 @@ export function onNovoTorneio() {
   const delTeams = chkTeams && chkTeams.checked;
 
   if (!delResults && !delSchedule && !delTeams) {
-    showToast('Seleciona pelo menos uma categoria para apagar.', 'error');
+    showToast(en.toasts.selectCategoryToDelete, 'error');
     return;
   }
 
   // Build summary labels
   const labels = [];
-  if (delResults) labels.push('Resultados e Classificação');
-  if (delSchedule) labels.push('Calendário (jornadas e jogos)');
-  if (delTeams) labels.push('Equipas e Plantéis');
+  if (delResults) labels.push(en.dataTab.checkResults);
+  if (delSchedule) labels.push(en.dataTab.checkSchedule);
+  if (delTeams) labels.push(en.dataTab.checkTeams);
 
-  openDangerConfirm('🧹 Apagar Dados', labels, async () => {
+  openDangerConfirm(en.confirmations.deleteData, labels, async () => {
     if (delResults) {
       state.results = {};
       await persistResults();
@@ -300,7 +301,7 @@ export function onNovoTorneio() {
       await persistConfigTeams();
     }
     renderAll();
-    showToast('Dados apagados com sucesso.', 'ok');
+    showToast(en.toasts.dataDeletedSuccess, 'ok');
   });
 }
 
@@ -366,7 +367,7 @@ export function onNovoTorneioModalClick() {
   const role = getCurrentRole();
   const userAdmin = getCurrentUserAdmin();
   const allSports = [
-    { id: 'football', label: '⚽ Futebol' },
+    { id: 'football', label: '⚽ Football' },
     { id: 'padel', label: '🎾 Padel' },
   ];
   const allowedSports = role === 'master'
@@ -374,36 +375,32 @@ export function onNovoTorneioModalClick() {
     : allSports.filter((s) => userAdmin && userAdmin[s.id] === true);
 
   if (!allowedSports.length) {
-    showToast('Não tens permissão para criar torneios.', 'error');
+    showToast(en.toasts.noPermissionCreateTournament, 'error');
     return;
   }
 
   openNovoTorneioModal(async ({ name, sport, numEquipas }) => {
     const res = await createTournament({ name, sport, numEquipas });
     if (res && res.ok && res.tournamentId) {
-      showToast('Torneio criado com sucesso!', 'ok');
+      showToast(en.toasts.tournamentCreatedSuccess, 'ok');
       onSelectTournament(res.tournamentId);
     } else {
-      showToast('Não foi possível criar o torneio.', 'error');
+      showToast(en.toasts.couldNotCreateTournament, 'error');
     }
   }, allowedSports);
 }
 
 export function onTerminarTorneio(tid = getCurrentTournamentId()) {
-  const tourneyName = state.meta?.name || state.config?.nome || 'Torneio';
+  const tourneyName = state.meta?.name || state.config?.nome || en.tournaments.defaultNewName;
   const porJogar = state.schedule.filter((g, gi) => {
     const r = state.results[gi];
     return !(r && typeof r === 'object' ? r.status === GAME_STATUS.TERMINADO : typeof r === 'string');
   }).length;
-  const aviso = porJogar
-    ? `<br><br>⚠️ Ainda há <strong>${porJogar} jogo${porJogar !== 1 ? 's' : ''} por terminar</strong>: ` +
-      'o campeão guardado será quem lidera agora (ou nenhum, se a final não terminou).'
-    : '';
+  const aviso = porJogar ? en.tournaments.finishPendingMatches(porJogar) : '';
 
   openConfirm(
-    'Terminar Torneio',
-    `Tem a certeza de que deseja terminar o torneio <strong>${escapeHtml(tourneyName)}</strong>? ` +
-    'A classificação e as estatísticas finais serão guardadas no Histórico e o torneio será marcado como terminado.' + aviso,
+    en.tournaments.finishTitle,
+    en.tournaments.finishPrompt(escapeHtml(tourneyName)) + aviso,
     async () => {
       const index = buildPlayerIndex();
       const names = {};
@@ -413,11 +410,11 @@ export function onTerminarTorneio(tid = getCurrentTournamentId()) {
 
       const res = await finishTournament(tid, entry);
       if (!res.ok) {
-        showToast('Erro ao terminar torneio: ' + (res.reason || 'sem permissão'), 'error');
+        showToast(en.toasts.errorFinishingTournament(res.reason || en.toasts.permissionDenied), 'error');
         return;
       }
 
-      showToast('Torneio terminado e guardado no Histórico!', 'ok');
+      showToast(en.toasts.tournamentFinishedSuccess, 'ok');
 
       // Se o torneio terminado era o que estava a ser visualizado, muda para o próximo ativo
       const remainingActive = allTournaments.filter((t) => t.id !== tid && t.status === 'active');
@@ -438,27 +435,27 @@ export function onArquivar() {
 
 export function onAtualizar() {
   renderAll();
-  showToast('Dashboard atualizado.', 'ok');
+  showToast(en.toasts.dashboardRefreshed, 'ok');
 }
 
 export function onAdicionarVolta() {
   if (!state.schedule.length) return;
 
   if ((state.config.numGrupos || 1) > 1) {
-    showToast('A adição de voltas extras não é suportada em torneios com grupos. Usa o modo Liga Única.', 'error');
+    showToast(en.toasts.extraRoundGroupsUnsupported, 'error');
     return;
   }
 
   if (state.schedule.some((g) => g.isPlayoff)) {
-    showToast('Não é possível adicionar voltas depois de gerar as eliminatórias.', 'error');
+    showToast(en.toasts.cannotAddRoundsAfterPlayoffs, 'error');
     return;
   }
 
   const novaVolta = state.scheduleVoltas + 1;
 
   openConfirm(
-    'Adicionar Volta Extra',
-    `A volta ${novaVolta} será adicionada. Os resultados mantêm-se. Continuar?`,
+    en.confirmations.addExtraRoundTitle,
+    en.confirmations.addExtraRoundPrompt(novaVolta),
     () => {
       const { games, rounds } = buildExtraVolta(state.schedule, state.roundsMeta, state.scheduleVoltas);
       state.schedule = state.schedule.concat(games);
@@ -469,7 +466,7 @@ export function onAdicionarVolta() {
       persistConfigTeams();
       persistSchedule();
       renderAll();
-      showToast('Volta extra adicionada!', 'ok');
+      showToast(en.toasts.extraRoundAdded, 'ok');
     }
   );
 }
@@ -478,10 +475,10 @@ export function onAdicionarVolta() {
 // A ordem é sempre invariável: Oitavos → Quartos → Meias → Final.
 // Para adicionar suporte a 32 equipas basta adicionar uma entrada no início.
 const ROUND_CHAIN = [
-  { prefix: 'OF', label: 'Oitavos-de-Final' },
-  { prefix: 'QF', label: 'Quartos-de-Final' },
-  { prefix: 'MF', label: 'Meias-Finais' },
-  { prefix: 'F', label: 'Final' },
+  { prefix: 'OF', label: en.playoffs.roundOf16 },
+  { prefix: 'QF', label: en.playoffs.quarterFinals },
+  { prefix: 'MF', label: en.playoffs.semiFinals },
+  { prefix: 'F', label: en.playoffs.final },
 ];
 
 // Para N equipas, as rondas activas começam em: ROUND_CHAIN.length - log2(N)
@@ -538,8 +535,8 @@ function buildPlayoffBracket(teamCount, seeds) {
       } else {
         // Rondas seguintes: placeholders que são preenchidos em runtime
         const prevPrefix = roundDefs[roundIndex - 1].prefix;
-        home = `Vencedor ${prevPrefix}${i * 2 + 1}`;
-        away = `Vencedor ${prevPrefix}${i * 2 + 2}`;
+        home = en.playoffs.winnerPlaceholder(prevPrefix, i * 2 + 1);
+        away = en.playoffs.winnerPlaceholder(prevPrefix, i * 2 + 2);
       }
 
       games.push({ jornada: label, home, away, isPlayoff: true, playoffMatchId: matchId, nextMatchId });
@@ -556,19 +553,19 @@ export function onGerarEliminatorias() {
   const totalPlayoffTeams = numPlayoffTeamsPerGroup * numGrupos;
 
   if (totalPlayoffTeams > 16) {
-    showToast('O sistema suporta no máximo 16 equipas no Mata-Mata. Altera as configurações.', 'error');
+    showToast(en.playoffs.maxTeamsError, 'error');
     return;
   }
 
   const startIndex = ROUND_CHAIN.length - Math.log2(totalPlayoffTeams);
   if (!Number.isInteger(startIndex) || startIndex < 0) {
-    showToast(`Configuração de ${totalPlayoffTeams} equipas não suportada.`, 'error');
+    showToast(en.playoffs.configNotSupported(totalPlayoffTeams), 'error');
     return;
   }
 
   const ok = summary.groupsData.every((g) => g.standings.length >= numPlayoffTeamsPerGroup);
   if (!ok) {
-    showToast(`Alguns grupos não têm equipas suficientes para apurar o Top ${numPlayoffTeamsPerGroup}.`, 'error');
+    showToast(en.playoffs.notEnoughTeamsInGroup(numPlayoffTeamsPerGroup), 'error');
     return;
   }
 
@@ -583,14 +580,14 @@ export function onGerarEliminatorias() {
   const { games: newGames, rounds: newRounds } = buildPlayoffBracket(totalPlayoffTeams, topTeams);
 
   openConfirm(
-    '🏆 Gerar Eliminatórias',
-    `Vão ser gerados os jogos de eliminatórias com base na classificação atual (Top ${totalPlayoffTeams}). Continuar?`,
+    en.playoffs.generatePlayoffsTitle,
+    en.playoffs.generatePlayoffsPrompt(totalPlayoffTeams),
     () => {
       state.schedule = state.schedule.concat(newGames);
       state.roundsMeta = state.roundsMeta.concat(newRounds);
       persistSchedule();
       renderAll();
-      showToast('Eliminatórias geradas!', 'ok');
+      showToast(en.playoffs.playoffsGenerated, 'ok');
     }
   );
 }
@@ -599,14 +596,14 @@ export function onGerarEliminatorias() {
 // Handlers — Jogo Singular
 // ---------------------------------------------------------------------------
 export function onFazerDraft() {
-  const nomeA = (dom.draftNomeA.value.trim()) || 'Equipa A';
-  const nomeB = (dom.draftNomeB.value.trim()) || 'Equipa B';
+  const nomeA = (dom.draftNomeA.value.trim()) || en.singleMatch.teamA;
+  const nomeB = (dom.draftNomeB.value.trim()) || en.singleMatch.teamB;
 
   const checkedBoxes = dom.draftPlayerList.querySelectorAll('.draft-checkbox:checked');
   const selectedIds = Array.from(checkedBoxes).map((cb) => cb.dataset.pid);
 
   if (selectedIds.length < 2) {
-    showToast('Seleciona pelo menos 2 jogadores.', 'error');
+    showToast(en.toasts.selectAtLeast2Players, 'error');
     return;
   }
 
@@ -627,13 +624,13 @@ export function onFazerDraft() {
 }
 
 export async function onGuardarJogo() {
-  const nomeA = dom.draftLabelA ? dom.draftLabelA.textContent : 'Equipa A';
-  const nomeB = dom.draftLabelB ? dom.draftLabelB.textContent : 'Equipa B';
+  const nomeA = dom.draftLabelA ? dom.draftLabelA.textContent : en.singleMatch.teamA;
+  const nomeB = dom.draftLabelB ? dom.draftLabelB.textContent : en.singleMatch.teamB;
   const scoreA = dom.draftScoreA ? dom.draftScoreA.value.trim() : '';
   const scoreB = dom.draftScoreB ? dom.draftScoreB.value.trim() : '';
 
   if (!currentDraft.equipaA.length && !currentDraft.equipaB.length) {
-    showToast('Faz o draft primeiro.', 'error');
+    showToast(en.toasts.runDraftFirst, 'error');
     return;
   }
 
@@ -671,10 +668,10 @@ export async function onGuardarJogo() {
   if (dom.draftScoreB) dom.draftScoreB.value = '';
   dom.draftPlayerList.querySelectorAll('.draft-checkbox:checked').forEach((cb) => { cb.checked = false; });
   const countEl = document.getElementById('draftSelectedCount');
-  if (countEl) countEl.textContent = '0 jogadores selecionados';
+  if (countEl) countEl.textContent = en.singleMatch.playersSelected(0);
   if (dom.btnFazerDraft) dom.btnFazerDraft.disabled = true;
 
-  showToast('Jogo guardado no histórico!', 'ok');
+  showToast(en.toasts.matchSavedToHistory, 'ok');
 
   // Switch to history tab
   document.querySelectorAll('.singular-subtab').forEach((b) => b.classList.toggle('active', b.dataset.subtab === 'historico'));
@@ -691,14 +688,14 @@ export function onContaClick() {
     signInWithGoogle().catch((err) => {
       if (err && err.code === 'auth/popup-closed-by-user') return;
       console.error('Erro ao entrar:', err);
-      showToast('Não foi possível entrar com Google.', 'error');
+      showToast(en.toasts.couldNotSignInGoogle, 'error');
     });
     return;
   }
   // No telemóvel o botão só mostra 👤, por isso a confirmação diz quem tem a sessão
   const user = getCurrentUser();
   const quem = `${escapeHtml(user.displayName || user.email || '')} (${escapeHtml(roleLabel(getCurrentRole(), getCurrentUserAdmin()))})`;
-  openConfirm('Terminar sessão', `Tens sessão iniciada como <strong>${quem}</strong>. Queres sair da tua conta? Continuas a ver o torneio, mas sem poder editar.`, () => {
+  openConfirm(en.modals.signOutTitle, en.modals.signOutPrompt(quem), () => {
     signOutUser();
   });
 }
@@ -737,10 +734,10 @@ export function onUserRoleChange(e) {
   }
 
   setUserRole(uid, role, sportAdmins, nome)
-    .then(() => showToast('Perfil atualizado.', 'ok'))
+    .then(() => showToast(en.toasts.roleUpdated, 'ok'))
     .catch((err) => {
       console.error('Erro ao mudar perfil:', err);
-      showToast('Não foi possível mudar o perfil.', 'error');
+      showToast(en.toasts.couldNotUpdateRole, 'error');
     });
 }
 

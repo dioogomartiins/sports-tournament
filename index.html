@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="pt">
+<html lang="en">
 
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Torneio — Gestor de Liga</title>
+  <title>Tournament — League Manager</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
@@ -20,58 +20,58 @@
       <div class="marquee-lines" aria-hidden="true"></div>
       <div class="marquee-content">
         <div class="marquee-top">
-          <span class="eyebrow">Gestor de Torneio</span>
+          <span class="eyebrow">Tournament Manager</span>
           <div class="header-pills">
-            <button class="theme-toggle-btn" id="btnAtualizar" title="Atualizar Tabela">🔁</button>
-            <span class="save-pill" id="savePill">Guardado</span>
-            <span class="backup-pill" id="backupPill">Sem backup</span>
-            <button class="theme-toggle-btn" id="btnDarkMode" title="Alternar Modo Escuro/Claro">🌙</button>
-            <button class="theme-toggle-btn auth-btn" id="btnConta" title="Entrar com Google">🔑 Entrar</button>
+            <button class="theme-toggle-btn" id="btnAtualizar" title="Refresh Standings">🔁</button>
+            <span class="save-pill" id="savePill">Saved</span>
+            <span class="backup-pill" id="backupPill">No backup</span>
+            <button class="theme-toggle-btn" id="btnDarkMode" title="Toggle Dark/Light Mode">🌙</button>
+            <button class="theme-toggle-btn auth-btn" id="btnConta" title="Sign in with Google">🔑 Sign In</button>
           </div>
         </div>
         <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-          <h1 id="tournamentTitle">Futebol ILOG</h1>
-          <span class="sport-badge" id="headerSportBadge">⚽ Futebol</span>
+          <h1 id="tournamentTitle">Football Tournament</h1>
+          <span class="sport-badge" id="headerSportBadge">⚽ Football</span>
         </div>
         <span class="marquee-ticker" id="marqueeTicker">—</span>
       </div>
     </header>
 
-    <nav class="tabs" id="tabs" aria-label="Separadores">
+    <nav class="tabs" id="tabs" aria-label="Tabs">
       <div class="drawer-head">
-        <span class="drawer-title">Mais</span>
-        <button class="drawer-close" id="btnFecharMenu" title="Fechar menu" aria-label="Fechar menu">✕</button>
+        <span class="drawer-title">More</span>
+        <button class="drawer-close" id="btnFecharMenu" title="Close menu" aria-label="Close menu">✕</button>
       </div>
       <button class="tab active" data-tab="dashboard">🏠 Dashboard</button>
-      <button class="tab" data-tab="standings">🏆 Classificação</button>
-      <button class="tab" data-tab="calendar">📅 Calendário</button>
-      <button class="tab" data-tab="results">⚽ Resultados</button>
-      <button class="tab" data-tab="stats">📊 Estatísticas</button>
-      <button class="tab" data-tab="historico">🗄️ Histórico</button>
-      <button class="tab" data-tab="config" data-requires="admin">⚙️ Configuração</button>
+      <button class="tab" data-tab="standings">🏆 Standings</button>
+      <button class="tab" data-tab="calendar">📅 Schedule</button>
+      <button class="tab" data-tab="results">⚽ Results</button>
+      <button class="tab" data-tab="stats">📊 Stats</button>
+      <button class="tab" data-tab="historico">🗄️ History</button>
+      <button class="tab" data-tab="config" data-requires="admin">⚙️ Settings</button>
 
       <div class="dropdown">
-        <button class="tab dropdown-btn">🛠️ Gestão <span class="dropdown-caret">▾</span></button>
+        <button class="tab dropdown-btn">🛠️ Manage <span class="dropdown-caret">▾</span></button>
         <div class="dropdown-content">
-          <button class="tab" data-tab="teams">👥 Equipas</button>
-          <button class="tab" data-tab="squads">👕 Plantéis</button>
-          <button class="tab" data-tab="players">👤 Jogadores</button>
-          <button class="tab" data-tab="data" data-requires="admin">💾 Dados</button>
-          <button class="tab" data-tab="admin" data-requires="master">👮 Utilizadores</button>
+          <button class="tab" data-tab="teams">👥 Teams</button>
+          <button class="tab" data-tab="squads">👕 Squads</button>
+          <button class="tab" data-tab="players">👤 Players</button>
+          <button class="tab" data-tab="data" data-requires="admin">💾 Data</button>
+          <button class="tab" data-tab="admin" data-requires="master">👮 Users</button>
         </div>
       </div>
 
-      <button class="tab" data-tab="singular">⚽ Jogo Singular</button>
+      <button class="tab" data-tab="singular">⚽ Single Match</button>
     </nav>
     <div class="drawer-backdrop" id="drawerBackdrop" aria-hidden="true"></div>
 
-    <!-- PÍLULA DE NAVEGAÇÃO (só telemóvel): os separadores dos jogos e "Mais" para o resto -->
-    <nav class="bottom-nav" aria-label="Navegação principal">
-      <button class="tab" data-tab="dashboard" aria-label="Início"><span class="bn-icon" aria-hidden="true">🏠</span><span class="bn-label">Início</span></button>
-      <button class="tab" data-tab="results" aria-label="Resultados"><span class="bn-icon" aria-hidden="true">⚽</span><span class="bn-label">Resultados</span></button>
-      <button class="tab" data-tab="standings" aria-label="Tabela"><span class="bn-icon" aria-hidden="true">🏆</span><span class="bn-label">Tabela</span></button>
-      <button class="tab" data-tab="calendar" aria-label="Calendário"><span class="bn-icon" aria-hidden="true">📅</span><span class="bn-label">Calendário</span></button>
-      <button class="bn-more" id="btnMobileMenu" aria-label="Mais" aria-controls="tabs" aria-expanded="false"><span class="bn-icon" aria-hidden="true">☰</span><span class="bn-label">Mais</span></button>
+    <!-- NAVIGATION PILL (mobile only): match tabs and "More" for the rest -->
+    <nav class="bottom-nav" aria-label="Main navigation">
+      <button class="tab" data-tab="dashboard" aria-label="Home"><span class="bn-icon" aria-hidden="true">🏠</span><span class="bn-label">Home</span></button>
+      <button class="tab" data-tab="results" aria-label="Results"><span class="bn-icon" aria-hidden="true">⚽</span><span class="bn-label">Results</span></button>
+      <button class="tab" data-tab="standings" aria-label="Standings"><span class="bn-icon" aria-hidden="true">🏆</span><span class="bn-label">Standings</span></button>
+      <button class="tab" data-tab="calendar" aria-label="Schedule"><span class="bn-icon" aria-hidden="true">📅</span><span class="bn-label">Schedule</span></button>
+      <button class="bn-more" id="btnMobileMenu" aria-label="More" aria-controls="tabs" aria-expanded="false"><span class="bn-icon" aria-hidden="true">☰</span><span class="bn-label">More</span></button>
     </nav>
 
     <main class="content">
@@ -80,20 +80,20 @@
       <section id="tab-dashboard" class="panel active">
         <div class="card" id="cardTorneiosAtivos">
           <div class="torneios-header">
-            <div class="section-title" style="margin-bottom:0;">🏆 Torneios Ativos</div>
-            <button class="btn btn-sm btn-gold" id="btnNovoTorneioModal" data-requires="admin">➕ Novo Torneio</button>
+            <div class="section-title" style="margin-bottom:0;">🏆 Active Tournaments</div>
+            <button class="btn btn-sm btn-gold" id="btnNovoTorneioModal" data-requires="admin">➕ New Tournament</button>
           </div>
-          <p class="section-sub">Seleciona o torneio que pretendes acompanhar neste dispositivo.</p>
+          <p class="section-sub">Select the tournament you want to follow on this device.</p>
           <div class="torneios-grid" id="listaTorneiosAtivos"></div>
         </div>
 
         <div class="card">
-          <div class="section-title">🏆 Classificação — Top 3</div>
+          <div class="section-title">🏆 Standings — Top 3</div>
           <div class="podium" id="dashboardPodium"></div>
           <div id="dashboardStandings"></div>
         </div>
         <div class="card">
-          <div class="section-title">⚽ Estatísticas</div>
+          <div class="section-title">⚽ Stats</div>
           <div class="stats-grid" id="dashboardStats"></div>
         </div>
         <div class="card">
@@ -101,109 +101,109 @@
         </div>
       </section>
 
-      <!-- CONFIGURAÇÃO -->
+      <!-- SETTINGS -->
       <section id="tab-config" class="panel">
         <div class="card">
-          <div class="section-title">⚙️ Definições gerais</div>
+          <div class="section-title">⚙️ General Settings</div>
           <div class="form-grid">
             <div class="field">
-              <label for="cfgNome">Nome do torneio</label>
+              <label for="cfgNome">Tournament name</label>
               <input type="text" id="cfgNome" class="input" maxlength="60">
             </div>
           </div>
         </div>
 
         <div class="card">
-          <div class="section-title">⚽ Formato do torneio</div>
-          <p class="section-sub">Define aqui o formato base do teu torneio.</p>
+          <div class="section-title">⚽ Tournament Format</div>
+          <p class="section-sub">Configure the base format of your tournament here.</p>
           <div class="form-grid">
             <div class="field">
-              <label for="cfgNumEquipas">Número de equipas (2–32)</label>
+              <label for="cfgNumEquipas">Number of teams (2–32)</label>
               <input type="number" id="cfgNumEquipas" class="input" min="2" max="32" step="1">
             </div>
             <div class="field">
-              <label for="cfgNumGrupos">Número de Grupos</label>
+              <label for="cfgNumGrupos">Number of Groups</label>
               <select id="cfgNumGrupos" class="input">
-                <option value="1">1 (Liga Única)</option>
-                <option value="2">2 Grupos</option>
-                <option value="4">4 Grupos</option>
-                <option value="8">8 Grupos</option>
+                <option value="1">1 (Single League)</option>
+                <option value="2">2 Groups</option>
+                <option value="4">4 Groups</option>
+                <option value="8">8 Groups</option>
               </select>
             </div>
             <div class="field">
-              <label for="cfgNumVoltas">Número de voltas</label>
+              <label for="cfgNumVoltas">Number of rounds</label>
               <input type="number" id="cfgNumVoltas" class="input" min="1" max="20" step="1">
-              <p class="field-note">1 = cada equipa joga uma vez · 2 = casa e fora · 3+ = repetição configurável</p>
+              <p class="field-note">1 = each team plays once · 2 = home and away · 3+ = configurable repeat</p>
             </div>
           </div>
           <div class="hint-box" id="scheduleHint"></div>
 
           <button class="btn btn-gold" id="btnGerarCalendario"
-            style="margin-top: 16px; width: 100%; justify-content: center;">🔄 Gerar Calendário</button>
+            style="margin-top: 16px; width: 100%; justify-content: center;">🔄 Generate Schedule</button>
         </div>
 
         <div class="card">
-          <div class="section-title">🏆 Eliminatórias (Mata-Mata)</div>
-          <p class="section-sub">Ativa o modo de eliminatórias que será jogado após o fim da fase de liga.</p>
+          <div class="section-title">🏆 Playoffs (Knockout)</div>
+          <p class="section-sub">Enable the playoff stage to be played after the league phase.</p>
           <div class="form-grid">
             <div class="field" style="display:flex; align-items:center; gap:8px; margin-top:20px;">
               <input type="checkbox" id="cfgMataMata" style="width:18px;height:18px;cursor:pointer;">
-              <label for="cfgMataMata" style="margin:0;cursor:pointer;">Ativar Eliminatórias</label>
+              <label for="cfgMataMata" style="margin:0;cursor:pointer;">Enable Playoffs</label>
             </div>
             <div class="field">
-              <label for="cfgNumPlayoffTeams">Equipas Apuradas (da Liga)</label>
+              <label for="cfgNumPlayoffTeams">Qualified Teams (from League)</label>
               <select id="cfgNumPlayoffTeams" class="input">
                 <option value="2">Top 2 (Final)</option>
-                <option value="4">Top 4 (Meias-Finais)</option>
-                <option value="8">Top 8 (Quartos-de-Final)</option>
-                <option value="16">Top 16 (Oitavos-de-Final)</option>
+                <option value="4">Top 4 (Semi-Finals)</option>
+                <option value="8">Top 8 (Quarter-Finals)</option>
+                <option value="16">Top 16 (Round of 16)</option>
               </select>
             </div>
           </div>
         </div>
 
         <div class="card">
-          <div class="section-title">📐 Pontuação</div>
+          <div class="section-title">📐 Scoring</div>
           <div class="form-grid">
-            <div class="field"><label for="cfgVitoria">Vitória</label><input type="number" id="cfgVitoria" class="input"
+            <div class="field"><label for="cfgVitoria">Win</label><input type="number" id="cfgVitoria" class="input"
                 min="0" step="1"></div>
-            <div class="field"><label for="cfgEmpate">Empate</label><input type="number" id="cfgEmpate" class="input"
+            <div class="field"><label for="cfgEmpate">Draw</label><input type="number" id="cfgEmpate" class="input"
                 min="0" step="1"></div>
-            <div class="field"><label for="cfgDerrota">Derrota</label><input type="number" id="cfgDerrota" class="input"
+            <div class="field"><label for="cfgDerrota">Loss</label><input type="number" id="cfgDerrota" class="input"
                 min="0" step="1"></div>
-            <div class="field"><label for="cfgBonus">Bónus (vitória por goleada)</label><input type="number"
+            <div class="field"><label for="cfgBonus">Bonus (blowout win)</label><input type="number"
                 id="cfgBonus" class="input" min="0" step="1"></div>
             <div class="field">
-              <label for="cfgGoleada">Golos marcados para bónus</label>
+              <label for="cfgGoleada">Goals scored for bonus</label>
               <input type="number" id="cfgGoleada" class="input" min="1" step="1">
             </div>
           </div>
-          <p class="field-note" style="margin-top:10px;">Exemplo: Porto 4–1 Benfica com vitória=3 e bónus=1 a partir de
-            3 golos marcados → Porto fica com 3+1 = 4 pontos.</p>
+          <p class="field-note" style="margin-top:10px;">Example: Porto 4–1 Benfica with win=3 and bonus=1 for 3+
+            goals scored → Porto gets 3+1 = 4 points.</p>
         </div>
       </section>
 
-      <!-- EQUIPAS -->
+      <!-- TEAMS -->
       <section id="tab-teams" class="panel">
         <div class="card">
-          <div class="section-title">👥 Equipas (Cores)</div>
-          <p class="section-sub" data-requires="admin">Muda os nomes e escolhe a cor principal da equipa livremente.</p>
-          <p class="section-sub readonly-note" data-hide-for="admin">🔒 Só um admin pode alterar nomes e cores das equipas.</p>
+          <div class="section-title">👥 Teams (Colors)</div>
+          <p class="section-sub" data-requires="admin">Change names and pick the primary color for each team freely.</p>
+          <p class="section-sub readonly-note" data-hide-for="admin">🔒 Only an admin can change team names and colors.</p>
           <div class="teams-grid" id="teamsList"></div>
         </div>
       </section>
 
-      <!-- PLANTÉIS -->
+      <!-- SQUADS -->
       <section id="tab-squads" class="panel">
         <div class="card">
-          <div class="section-title">👕 Gestão de Plantéis</div>
-          <p class="section-sub" data-requires="admin">Seleciona uma equipa e associa jogadores da base de dados para acompanhar a tabela de
-            melhores marcadores.</p>
-          <p class="section-sub readonly-note" data-hide-for="admin">🔒 Escolhe uma equipa para ver o plantel. Só um admin pode alterar os plantéis.</p>
+          <div class="section-title">👕 Squad Management</div>
+          <p class="section-sub" data-requires="admin">Select a team and assign players from the database to track top
+            scorers.</p>
+          <p class="section-sub readonly-note" data-hide-for="admin">🔒 Select a team to view the squad. Only an admin can edit squads.</p>
 
           <div class="form-grid" style="margin-bottom: 20px;">
             <div class="field">
-              <label for="squadTeamSelect">Escolher Equipa</label>
+              <label for="squadTeamSelect">Select Team</label>
               <select id="squadTeamSelect" class="input"></select>
             </div>
           </div>
@@ -213,21 +213,21 @@
             <div data-requires="admin">
             <div class="form-grid" style="align-items: end; margin-bottom: 16px;">
               <div class="field" style="grid-column: span 1; max-width: 80px;">
-                <label for="squadPlayerNum">Nº</label>
-                <input type="number" id="squadPlayerNum" class="input" min="1" max="99" placeholder="Ex: 10">
+                <label for="squadPlayerNum">No.</label>
+                <input type="number" id="squadPlayerNum" class="input" min="1" max="99" placeholder="e.g. 10">
               </div>
               <div class="field" style="grid-column: span 1; width: 100%;">
-                <label for="squadPlayerFromDB">Adicionar Jogador da Base de Dados</label>
+                <label for="squadPlayerFromDB">Add Player from Database</label>
                 <div style="display: flex; gap: 8px;">
                   <select id="squadPlayerFromDB" class="input" style="flex:1;">
-                    <option value="">-- Escolher jogador --</option>
+                    <option value="">-- Select player --</option>
                   </select>
-                  <button class="btn btn-gold" id="btnAddPlayerFromDB">Adicionar</button>
+                  <button class="btn btn-gold" id="btnAddPlayerFromDB">Add</button>
                 </div>
               </div>
             </div>
-            <p class="field-note" style="margin-bottom:12px;">Se um jogador ainda não existe, cria-o primeiro na aba
-              <strong>👤 Jogadores</strong>.
+            <p class="field-note" style="margin-bottom:12px;">If a player does not exist yet, create them first in the
+              <strong>👤 Players</strong> tab.
             </p>
             </div>
 
@@ -236,22 +236,22 @@
         </div>
       </section>
 
-      <!-- JOGADORES (BASE DE DADOS) -->
+      <!-- PLAYERS (DATABASE) -->
       <section id="tab-players" class="panel">
         <div class="card">
           <div
             style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:20px;">
             <div>
-              <div class="section-title" style="margin-bottom:4px;">👤 Base de Dados de Jogadores</div>
-              <p class="section-sub" style="margin:0;" data-requires="admin">Regista jogadores e define os seus atributos. Podes atribuir cada
-                jogador a uma equipa do torneio.</p>
-              <p class="section-sub readonly-note" style="margin:0;" data-hide-for="admin">🔒 Só um admin pode criar, editar ou apagar jogadores.</p>
+              <div class="section-title" style="margin-bottom:4px;">👤 Players Database</div>
+              <p class="section-sub" style="margin:0;" data-requires="admin">Register players and set their attributes. You can assign each
+                player to a tournament team.</p>
+              <p class="section-sub readonly-note" style="margin:0;" data-hide-for="admin">🔒 Only an admin can create, edit, or delete players.</p>
             </div>
-            <button class="btn btn-gold" id="btnNewPlayer" data-requires="admin">➕ Novo Jogador</button>
+            <button class="btn btn-gold" id="btnNewPlayer" data-requires="admin">➕ New Player</button>
           </div>
 
           <div style="margin-bottom:16px;">
-            <input type="text" id="playerSearchInput" class="input" placeholder="🔍 Pesquisar jogador..."
+            <input type="text" id="playerSearchInput" class="input" placeholder="🔍 Search player..."
               style="max-width:320px;">
           </div>
 
@@ -259,51 +259,51 @@
         </div>
       </section>
 
-      <!-- JOGO SINGULAR -->
+      <!-- SINGLE MATCH -->
       <section id="tab-singular" class="panel">
         <!-- Sub-tab nav -->
         <div class="singular-subtabs">
-          <button class="singular-subtab active" data-subtab="novo">⚽ Novo Jogo</button>
-          <button class="singular-subtab" data-subtab="historico">📅 Histórico</button>
+          <button class="singular-subtab active" data-subtab="novo">⚽ New Match</button>
+          <button class="singular-subtab" data-subtab="historico">📅 History</button>
         </div>
 
-        <!-- NOVO JOGO -->
+        <!-- NEW MATCH -->
         <div id="singular-novo" class="singular-panel active">
           <div class="card">
-            <div class="section-title">🎯 Equipas Equilibradas</div>
-            <p class="section-sub">Define os nomes das equipas, seleciona os jogadores presentes e clica em
-              <strong>Fazer Draft</strong>: a app divide-os em duas equipas com o rating total o mais parecido
-              possível. Em cada golo podes indicar quem assistiu.
+            <div class="section-title">🎯 Balanced Teams</div>
+            <p class="section-sub">Set team names, select available players, and click
+              <strong>Run Draft</strong>: the app splits them into two teams with the closest possible total
+              rating. For each goal you can track who assisted.
             </p>
 
             <div class="form-grid" style="margin-bottom:20px;">
               <div class="field">
-                <label for="draftNomeA">Nome Equipa A</label>
-                <input type="text" id="draftNomeA" class="input" placeholder="Ex: Os Marados" maxlength="40">
+                <label for="draftNomeA">Team A Name</label>
+                <input type="text" id="draftNomeA" class="input" placeholder="e.g. Reds" maxlength="40">
               </div>
               <div class="field">
-                <label for="draftNomeB">Nome Equipa B</label>
-                <input type="text" id="draftNomeB" class="input" placeholder="Ex: Os Calmos" maxlength="40">
+                <label for="draftNomeB">Team B Name</label>
+                <input type="text" id="draftNomeB" class="input" placeholder="e.g. Blues" maxlength="40">
               </div>
             </div>
 
-            <div class="section-title" style="font-size:14px; margin-bottom:12px;">Selecionar Jogadores Disponíveis
+            <div class="section-title" style="font-size:14px; margin-bottom:12px;">Select Available Players
             </div>
             <div id="draftPlayerList" style="margin-bottom:20px;"></div>
 
-            <button class="btn btn-gold" id="btnFazerDraft" style="width:100%; justify-content:center;" disabled>⚽ Fazer
+            <button class="btn btn-gold" id="btnFazerDraft" style="width:100%; justify-content:center;" disabled>⚽ Run
               Draft</button>
           </div>
 
           <div class="card" id="draftResultCard" style="display:none;">
-            <div class="section-title">👥 Equipas Geradas</div>
+            <div class="section-title">👥 Generated Teams</div>
             <div id="draftTeamsResult"></div>
 
             <div style="margin-top:24px; padding-top:16px; border-top:1px solid var(--line);">
-              <div class="section-title" style="font-size:14px; margin-bottom:12px;">📝 Registar Resultado</div>
+              <div class="section-title" style="font-size:14px; margin-bottom:12px;">📝 Record Result</div>
               <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
                 <div style="display:flex; align-items:center; gap:8px;">
-                  <span id="draftLabelA" style="font-weight:700; font-size:15px;">Equipa A</span>
+                  <span id="draftLabelA" style="font-weight:700; font-size:15px;">Team A</span>
                   <input type="number" id="draftScoreA" class="input"
                     style="width:72px; text-align:center; font-size:20px; font-weight:700;" min="0" max="99"
                     placeholder="0">
@@ -313,174 +313,172 @@
                   <input type="number" id="draftScoreB" class="input"
                     style="width:72px; text-align:center; font-size:20px; font-weight:700;" min="0" max="99"
                     placeholder="0">
-                  <span id="draftLabelB" style="font-weight:700; font-size:15px;">Equipa B</span>
+                  <span id="draftLabelB" style="font-weight:700; font-size:15px;">Team B</span>
                 </div>
-                <button class="btn btn-gold" id="btnGuardarJogo" style="margin-left:auto;">💾 Guardar Jogo</button>
+                <button class="btn btn-gold" id="btnGuardarJogo" style="margin-left:auto;">💾 Save Match</button>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- HISTÓRICO -->
+        <!-- HISTORY -->
         <div id="singular-historico" class="singular-panel">
           <div class="card">
-            <div class="section-title">📅 Histórico de Jogos Singulares</div>
+            <div class="section-title">📅 Single Matches History</div>
             <div id="singularHistoricoList"></div>
           </div>
         </div>
       </section>
 
-      <!-- CALENDÁRIO -->
+      <!-- SCHEDULE -->
       <section id="tab-calendar" class="panel">
         <div class="card">
-          <div class="section-title">📅 Calendário</div>
-          <p class="section-sub">Gerado automaticamente pelo algoritmo de Berger.</p>
+          <div class="section-title">📅 Schedule</div>
+          <p class="section-sub">Generated automatically using the Berger pairing system.</p>
           <div id="calendarList"></div>
           <div id="calendarActions" data-requires="admin"
             style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line); text-align: center; display: none;">
             <button class="btn" id="btnAdicionarVolta"
-              style="background:var(--paper); border:1px solid var(--line); color:var(--pitch-800);">➕ Adicionar Volta
-              Extra (Manter Resultados)</button>
-            <button class="btn btn-gold" id="btnGerarEliminatorias" style="display: none; margin-left: 10px;">🏆 Gerar
-              Eliminatórias</button>
+              style="background:var(--paper); border:1px solid var(--line); color:var(--pitch-800);">➕ Add Extra
+              Round (Keep Results)</button>
+            <button class="btn btn-gold" id="btnGerarEliminatorias" style="display: none; margin-left: 10px;">🏆 Generate
+              Playoffs</button>
           </div>
         </div>
       </section>
 
-      <!-- RESULTADOS -->
+      <!-- RESULTS -->
       <section id="tab-results" class="panel">
         <div class="card">
-          <div class="section-title">⚽ Resultados e Estados da Partida</div>
-          <p class="section-sub">Introduz o resultado e clica na etiqueta central (ex: Agendado) para mudar o estado do
-            jogo para A Decorrer ou Terminado.</p>
+          <div class="section-title">⚽ Results and Match Status</div>
+          <p class="section-sub">Enter the score and click the status pill (e.g. Scheduled) to change match status to In
+            Progress or Finished.</p>
           <div id="resultsList"></div>
         </div>
       </section>
 
-      <!-- CLASSIFICAÇÃO -->
+      <!-- STANDINGS -->
       <section id="tab-standings" class="panel">
         <div class="card">
-          <div class="section-title">🏆 Classificação
-            <button class="icon-action" id="btnPartilharTabela" title="Partilhar Classificação" aria-label="Partilhar Classificação">📤</button>
+          <div class="section-title">🏆 Standings
+            <button class="icon-action" id="btnPartilharTabela" title="Share Standings" aria-label="Share Standings">📤</button>
           </div>
           <div class="table-wrap" id="standingsWrapper">
           </div>
-          <p class="field-note" style="margin-top:14px;">Critérios de desempate, por ordem: pontos → diferença de golos
-            → golos marcados → confronto direto (mini-tabela só com os jogos entre as equipas empatadas) → menos golos
-            sofridos → ordem alfabética.</p>
+          <p class="field-note" style="margin-top:14px;">Tiebreaker criteria, in order: points → goal difference → goals
+            scored → head-to-head (mini-table of matches between tied teams) → fewest goals conceded → alphabetical order.</p>
         </div>
       </section>
 
-      <!-- ESTATÍSTICAS -->
+      <!-- STATS -->
       <section id="tab-stats" class="panel">
         <div class="card">
-          <div class="section-title">📊 Estatísticas</div>
+          <div class="section-title">📊 Stats</div>
           <div class="stats-grid" id="statsGrid"></div>
         </div>
       </section>
 
-      <!-- HISTÓRICO -->
+      <!-- HISTORY -->
       <section id="tab-historico" class="panel">
         <div class="card">
-          <div class="section-title">🌟 Estatísticas de Sempre</div>
-          <p class="section-sub">Todos os torneios arquivados, o torneio atual e os jogos singulares.</p>
+          <div class="section-title">🌟 All-Time Stats</div>
+          <p class="section-sub">All archived tournaments, the current tournament, and single matches.</p>
           <div id="historicoSempre"></div>
         </div>
         <div class="card">
-          <div class="section-title">🗄️ Torneios Arquivados</div>
+          <div class="section-title">🗄️ Archived Tournaments</div>
           <div id="arquivoList"></div>
         </div>
       </section>
 
-      <!-- DADOS E BACKUPS -->
+      <!-- DATA & USERS -->
       <section id="tab-admin" class="panel">
         <div class="card">
-          <div class="section-title">👮 Utilizadores</div>
-          <p class="section-sub">Quem entra com Google fica pendente (só vê) até lhe dares um perfil.
-            Utilizadores registam resultados e jogos singulares; admins podem fazer tudo.</p>
-          <div id="usersList"><p class="empty">A carregar…</p></div>
+          <div class="section-title">👮 Users</div>
+          <p class="section-sub">Users who sign in with Google start as pending (read-only) until you assign them a role.
+            Users record results and single matches; admins can configure everything.</p>
+          <div id="usersList"><p class="empty">Loading…</p></div>
         </div>
         <div class="card">
-          <div class="section-title">📜 Registo de Alterações</div>
-          <p class="section-sub">As últimas 200 alterações, com quem as fez.</p>
-          <div id="logList"><p class="empty">A carregar…</p></div>
+          <div class="section-title">📜 Activity Log</div>
+          <p class="section-sub">The last 200 changes, along with who made them.</p>
+          <div id="logList"><p class="empty">Loading…</p></div>
         </div>
       </section>
 
       <section id="tab-data" class="panel">
         <div class="card">
-          <div class="section-title">💾 Backup e Restauro</div>
-          <p class="section-sub">Guarda uma cópia de segurança do teu torneio (equipas, plantel, resultados) num
-            ficheiro .json que podes importar mais tarde em qualquer dispositivo.</p>
+          <div class="section-title">💾 Backup and Restore</div>
+          <p class="section-sub">Save a backup of your tournament (teams, squads, results) to a .json file that you can
+            import later on any device.</p>
           <div style="display:flex; gap:12px; margin-top: 18px; flex-wrap: wrap;">
-            <button class="btn btn-teal" id="btnExportar">⬇️ Exportar JSON</button>
-            <button class="btn btn-teal" id="btnImportar">⬆️ Importar JSON</button>
+            <button class="btn btn-teal" id="btnExportar">⬇️ Export JSON</button>
+            <button class="btn btn-teal" id="btnImportar">⬆️ Import JSON</button>
             <input type="file" id="inputImportar" accept=".json,application/json" style="display:none">
           </div>
         </div>
 
         <div class="card">
-          <div class="section-title">🏁 Terminar e Arquivar Torneio</div>
-          <p class="section-sub">Termina o torneio atual, guarda a classificação final, campeão e estatísticas dos jogadores no
-            Histórico, e retira o torneio da lista de torneios ativos.</p>
-          <button class="btn btn-gold" id="btnArquivar" style="margin-top: 12px;">🏁 Terminar e Arquivar Torneio</button>
+          <div class="section-title">🏁 Finish and Archive Tournament</div>
+          <p class="section-sub">Finish the current tournament, save final standings, champion, and player stats in
+            History, and remove the tournament from the active tournaments list.</p>
+          <button class="btn btn-gold" id="btnArquivar" style="margin-top: 12px;">🏁 Finish and Archive Tournament</button>
         </div>
 
         <div class="card" style="border-color: var(--danger);">
-          <div class="section-title" style="color: var(--danger);">🧹 Zona de Perigo</div>
-          <p class="section-sub">Seleciona os dados que pretendes apagar. Jogadores e histórico de singulares estão
-            protegidos.</p>
+          <div class="section-title" style="color: var(--danger);">🧹 Danger Zone</div>
+          <p class="section-sub">Select the data you want to delete. Players database and single matches history are
+            protected.</p>
 
           <div class="danger-checks">
             <label class="danger-check">
               <input type="checkbox" id="chkDeleteResults" checked>
               <div>
-                <div class="danger-check__label">📊 Resultados e Classificação</div>
-                <div class="danger-check__desc">Apaga todos os resultados registados nos jogos do torneio</div>
+                <div class="danger-check__label">📊 Results and Standings</div>
+                <div class="danger-check__desc">Delete all recorded match results in the tournament</div>
               </div>
             </label>
 
             <label class="danger-check">
               <input type="checkbox" id="chkDeleteSchedule">
               <div>
-                <div class="danger-check__label">📅 Calendário</div>
-                <div class="danger-check__desc">Apaga o calendário gerado (jornadas e jogos)</div>
+                <div class="danger-check__label">📅 Schedule</div>
+                <div class="danger-check__desc">Delete generated schedule (rounds and matches)</div>
               </div>
             </label>
 
             <label class="danger-check">
               <input type="checkbox" id="chkDeleteTeams">
               <div>
-                <div class="danger-check__label">👕 Equipas e Plantéis</div>
-                <div class="danger-check__desc">Apaga nomes, cores e plantéis das equipas</div>
+                <div class="danger-check__label">👕 Teams and Squads</div>
+                <div class="danger-check__desc">Delete team names, colors, and squads</div>
               </div>
             </label>
 
             <label class="danger-check danger-check--locked">
               <input type="checkbox" disabled>
               <div>
-                <div class="danger-check__label">🔒 Jogadores (Base de Dados)</div>
-                <div class="danger-check__desc">Protegido — não pode ser apagado por aqui</div>
+                <div class="danger-check__label">🔒 Players (Database)</div>
+                <div class="danger-check__desc">Protected — cannot be deleted here</div>
               </div>
             </label>
 
             <label class="danger-check danger-check--locked">
               <input type="checkbox" disabled>
               <div>
-                <div class="danger-check__label">🔒 Histórico de Singulares</div>
-                <div class="danger-check__desc">Protegido — não pode ser apagado por aqui</div>
+                <div class="danger-check__label">🔒 Single Matches History</div>
+                <div class="danger-check__desc">Protected — cannot be deleted here</div>
               </div>
             </label>
           </div>
 
-          <button class="btn btn-danger" id="btnNovoTorneio" style="margin-top: 8px;">🧹 Apagar Dados
-            Selecionados</button>
+          <button class="btn btn-danger" id="btnNovoTorneio" style="margin-top: 8px;">🧹 Delete Selected
+            Data</button>
         </div>
       </section>
 
     </main>
-    <p class="foot">Dados guardados automaticamente enquanto usas esta aplicação · nenhum dado sai do teu dispositivo.
-    </p>
+    <p class="foot">Data saved automatically while you use this application.</p>
   </div>
 
   <div class="modal-overlay" id="modalOverlay" hidden>
@@ -489,17 +487,17 @@
       <div id="modalBody"></div>
       <div class="modal-actions">
         <button class="btn btn-ghost" id="modalCancel"
-          style="color:var(--ink);background:var(--paper);">Cancelar</button>
-        <button class="btn btn-danger" id="modalConfirm">Confirmar</button>
+          style="color:var(--ink);background:var(--paper);">Cancel</button>
+        <button class="btn btn-danger" id="modalConfirm">Confirm</button>
       </div>
     </div>
   </div>
 
   <div class="modal-overlay game-overlay" id="gameOverlay" hidden>
-    <div class="modal game-modal" role="dialog" aria-modal="true" aria-label="Jogo">
+    <div class="modal game-modal" role="dialog" aria-modal="true" aria-label="Match">
       <div id="gameModalContent"></div>
       <div class="modal-actions">
-        <button class="btn btn-ghost" id="gameModalClose" style="color:var(--ink);background:var(--paper);">Fechar</button>
+        <button class="btn btn-ghost" id="gameModalClose" style="color:var(--ink);background:var(--paper);">Close</button>
       </div>
     </div>
   </div>

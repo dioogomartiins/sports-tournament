@@ -13,6 +13,7 @@ import type {
   Player,
   PlayerAttributes,
 } from './types.js';
+import { en } from './i18n/en.js';
 
 function same(a: unknown, b: unknown): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
@@ -265,18 +266,18 @@ export function normalizePlayers(players?: unknown): Player[] {
 }
 
 const SECTION_LABELS: Record<string, string | null> = {
-  meta: 'Detalhes do torneio alterados',
-  config: 'Configuração alterada',
-  teams: 'Equipas alteradas',
-  squads: 'Plantéis alterados',
-  schedule: 'Calendário alterado',
+  meta: en.sync.sectionLabels.meta,
+  config: en.sync.sectionLabels.config,
+  teams: en.sync.sectionLabels.teams,
+  squads: en.sync.sectionLabels.squads,
+  schedule: en.sync.sectionLabels.schedule,
   roundsMeta: null,
   scheduleTeamCount: null,
   scheduleVoltas: null,
-  players: 'Base de dados de jogadores alterada',
-  jogosSingulares: 'Jogos singulares alterados',
-  results: 'Resultados alterados',
-  arquivo: 'Histórico de torneios alterado',
+  players: en.sync.sectionLabels.players,
+  jogosSingulares: en.sync.sectionLabels.jogosSingulares,
+  results: en.sync.sectionLabels.results,
+  arquivo: en.sync.sectionLabels.arquivo,
   exportedAt: null,
   version: null,
 };
@@ -284,7 +285,7 @@ const SECTION_LABELS: Record<string, string | null> = {
 function teamLabel(snap: Partial<Tournament>, idx: number | string): string {
   if (typeof idx === 'string') return idx;
   const t = snap.teams && snap.teams[idx];
-  return t && t.name ? t.name : `Equipa ${Number(idx) + 1}`;
+  return t && t.name ? t.name : en.sync.defaultTeamLabel(Number(idx) + 1);
 }
 
 /**
@@ -303,12 +304,13 @@ export function describeUpdates(
   const deleted = Object.keys(updates).filter(
     (p) => p.startsWith('results/') && updates[p] == null,
   );
-  if (deleted.length > 1) parts.push(`${deleted.length} resultados apagados`);
+  if (deleted.length > 1) parts.push(en.sync.resultsDeleted(deleted.length));
 
   Object.keys(updates).forEach((path) => {
     const [section, gi] = path.split('/');
     if (section === 'schedule' && gi !== undefined) {
-      if (!parts.includes('Calendário alterado')) parts.push('Calendário alterado');
+      const scheduleLabel = en.sync.sectionLabels.schedule;
+      if (!parts.includes(scheduleLabel)) parts.push(scheduleLabel);
       return;
     }
     if (section === 'results' && gi !== undefined) {
@@ -316,21 +318,21 @@ export function describeUpdates(
       const game = (snap.schedule || [])[Number(gi)];
       const jogo = game
         ? `${teamLabel(snap, game.home)} vs ${teamLabel(snap, game.away)}`
-        : `jogo ${Number(gi) + 1}`;
+        : en.sync.defaultMatchLabel(Number(gi) + 1);
       const r = updates[path] as Score | string | null | undefined;
       if (r === null || r === undefined) {
-        parts.push(`Resultado apagado: ${jogo}`);
+        parts.push(en.sync.resultDeleted(jogo));
       } else {
         const score = typeof r === 'object' ? r.score : r;
-        const pen = typeof r === 'object' && r && r.penalties ? ` (g.p. ${r.penalties})` : '';
-        const status = typeof r === 'object' && r && r.status ? `, ${r.status}` : '';
-        parts.push(`Resultado ${jogo}: ${score}${pen}${status}`);
+        const pen = typeof r === 'object' && r && r.penalties ? en.sync.penaltiesSuffix(r.penalties) : '';
+        const status = typeof r === 'object' && r && r.status ? en.sync.statusSuffix(r.status) : '';
+        parts.push(en.sync.resultUpdated(jogo, String(score), pen, status));
       }
       return;
     }
     const label = Object.prototype.hasOwnProperty.call(SECTION_LABELS, section)
       ? SECTION_LABELS[section]
-      : `${section} alterado`;
+      : en.sync.genericSectionUpdated(section);
     if (label && !parts.includes(label)) parts.push(label);
   });
   return parts.join('; ').slice(0, 500);

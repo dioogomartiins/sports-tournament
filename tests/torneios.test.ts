@@ -55,7 +55,7 @@ describe('ui/torneios', () => {
 
   it('exibe mensagem vazia se não houver torneios ativos', () => {
     renderTournamentsList([], 'default', vi.fn(), vi.fn());
-    expect(mockContainer.innerHTML).toContain('Não há torneios ativos de momento');
+    expect(mockContainer.innerHTML).toContain('No active tournaments right now');
   });
 
   it('filtra torneios terminados e lista apenas ativos no HTML gerado', () => {
@@ -79,7 +79,7 @@ describe('ui/torneios', () => {
     renderTournamentsList(list, 't1', vi.fn(), vi.fn());
 
     expect(mockContainer.innerHTML).toContain('torneio-card active');
-    expect(mockContainer.innerHTML).toContain('✓ A ver agora');
+    expect(mockContainer.innerHTML).toContain('✓ Viewing now');
     expect(mockContainer.innerHTML).toContain('btn-terminar-torneio');
     expect(mockContainer.innerHTML).toContain('data-requires="admin"');
     expect(mockContainer.innerHTML).toContain('btn-trocar-torneio');

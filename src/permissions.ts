@@ -9,7 +9,7 @@ import type { Role } from './types.js';
 export const ROLES: Record<Role, string> = {
   master: 'Master Admin',
   admin: 'Admin',
-  user: 'Utilizador',
+  user: 'User',
 };
 
 /**
@@ -55,8 +55,8 @@ export function roleLabel(
     }
     return 'Admin';
   }
-  if (role === 'user') return 'Utilizador';
-  return 'Pendente';
+  if (role === 'user') return 'User';
+  return 'Pending';
 }
 
 export interface WritePathOptions {

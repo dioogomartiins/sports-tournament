@@ -5,12 +5,13 @@ import { dom, isAdminView } from './dom.js';
 import { switchTab } from './navegacao.js';
 import { renderSquadList } from './equipas.js';
 import { renderPlayersList } from './jogadores.js';
+import { en } from '../i18n/en.js';
 
 // ---------------------------------------------------------------------------
-// Sessão e administração
+// Session & Administration
 // ---------------------------------------------------------------------------
 
-/** Atualiza o botão de conta e o perfil usado pelo CSS para esconder controlos. */
+/** Updates the user account button and the data-role used by CSS. */
 export function renderAuth(user, role, userAdmin = null) {
   const currentSport = state.meta?.sport || state.config?.sport || 'football';
   let effectiveRole = 'viewer';
@@ -31,22 +32,22 @@ export function renderAuth(user, role, userAdmin = null) {
   if (dom.teamsList) {
     dom.teamsList.querySelectorAll('.team-prop').forEach((inp) => { inp.disabled = !isAdminView(); });
   }
-  // Textos de lista vazia dependem do perfil
+  // Empty list messages depend on permissions
   if (state.config) { renderSquadList(); renderPlayersList(); }
 
   if (dom.btnConta) {
     if (user) {
       const nome = (user.displayName || user.email || '').split(' ')[0];
-      // No telemóvel só se vê o ícone; o nome e o perfil ficam no title
+      // On mobile only the avatar icon is displayed; full name and role are in title
       dom.btnConta.innerHTML = `👤<span class="auth-label"> ${escapeHtml(nome)} · ${escapeHtml(roleLabel(role, userAdmin))}</span>`;
-      dom.btnConta.title = `${nome} · ${roleLabel(role, userAdmin)} — Terminar sessão`;
+      dom.btnConta.title = `${nome} · ${roleLabel(role, userAdmin)} — ${en.header.signOut}`;
     } else {
-      dom.btnConta.textContent = '🔑 Entrar';
-      dom.btnConta.title = 'Entrar com Google';
+      dom.btnConta.textContent = `🔑 ${en.header.signIn}`;
+      dom.btnConta.title = en.header.signInWithGoogle;
     }
   }
 
-  // Se o separador atual ficou escondido, volta ao dashboard
+  // If active tab became hidden due to permissions, return to dashboard
   const active = document.querySelector('.tab.active[data-requires]');
   if (active && getComputedStyle(active).display === 'none') switchTab('dashboard');
 }
@@ -57,12 +58,12 @@ function fmtMillis(ms) {
 
 /**
  * @param {object[]} users — { uid, nome, email, role, admin, ultimoAcesso }
- * @param {string}   selfUid — o admin atual não pode mudar o próprio perfil
+ * @param {string}   selfUid — current admin cannot change their own role
  */
 export function renderUsers(users, selfUid) {
   if (!dom.usersList) return;
   if (!users.length) {
-    dom.usersList.innerHTML = '<p class="empty">Ainda ninguém entrou.</p>';
+    dom.usersList.innerHTML = `<p class="empty">${en.adminTab.noUsersYet}</p>`;
     return;
   }
   const order = { master: 0, admin: 1, user: 2 };
@@ -75,15 +76,15 @@ export function renderUsers(users, selfUid) {
     const showSports = role === 'admin';
     return `<div class="user-row">` +
       `<div class="user-row__info">` +
-      `<div class="user-row__name">${escapeHtml(u.nome || 'Sem nome')}</div>` +
-      `<div class="user-row__meta">${escapeHtml(u.email || '')} · último acesso ${escapeHtml(fmtMillis(u.ultimoAcesso))}</div>` +
+      `<div class="user-row__name">${escapeHtml(u.nome || en.common.unnamed)}</div>` +
+      `<div class="user-row__meta">${escapeHtml(u.email || '')} · ${escapeHtml(en.adminTab.lastActive(fmtMillis(u.ultimoAcesso)))}</div>` +
       `<div class="user-sport-admins" style="${showSports ? 'display:flex; gap:10px; margin-top:6px; font-size:12px;' : 'display:none; gap:10px; margin-top:6px; font-size:12px;'}" data-uid="${escapeHtml(u.uid)}">` +
-      `<label style="cursor:pointer;"><input type="checkbox" class="user-sport-cb" data-uid="${escapeHtml(u.uid)}" data-sport="football"${u.admin?.football ? ' checked' : ''}${u.uid === selfUid ? ' disabled' : ''}> ⚽ Futebol</label>` +
-      `<label style="cursor:pointer;"><input type="checkbox" class="user-sport-cb" data-uid="${escapeHtml(u.uid)}" data-sport="padel"${u.admin?.padel ? ' checked' : ''}${u.uid === selfUid ? ' disabled' : ''}> 🎾 Padel</label>` +
+      `<label style="cursor:pointer;"><input type="checkbox" class="user-sport-cb" data-uid="${escapeHtml(u.uid)}" data-sport="football"${u.admin?.football ? ' checked' : ''}${u.uid === selfUid ? ' disabled' : ''}> ⚽ ${en.common.football}</label>` +
+      `<label style="cursor:pointer;"><input type="checkbox" class="user-sport-cb" data-uid="${escapeHtml(u.uid)}" data-sport="padel"${u.admin?.padel ? ' checked' : ''}${u.uid === selfUid ? ' disabled' : ''}> 🎾 ${en.common.padel}</label>` +
       `</div>` +
       `</div>` +
-      `<select data-uid="${escapeHtml(u.uid)}" data-nome="${escapeHtml(u.nome || '')}"${u.uid === selfUid ? ' disabled title="Não podes mudar o teu próprio perfil"' : ''}>` +
-      opt('', 'Pendente') + opt('user', ROLES.user) + opt('admin', ROLES.admin) + opt('master', ROLES.master) +
+      `<select data-uid="${escapeHtml(u.uid)}" data-nome="${escapeHtml(u.nome || '')}"${u.uid === selfUid ? ` disabled title="${en.roles.cannotChangeOwn}"` : ''}>` +
+      opt('', en.roles.pending) + opt('user', ROLES.user) + opt('admin', ROLES.admin) + opt('master', ROLES.master) +
       `</select>` +
       `</div>`;
   }).join('');
@@ -100,7 +101,7 @@ export function renderUsers(users, selfUid) {
   });
 }
 
-/** @param {object[]} entries — { nome, acao, quando }, mais recentes primeiro */
+/** @param {object[]} entries — { nome, acao, quando }, newest first */
 export function renderLog(entries) {
   if (!dom.logList) return;
   dom.logList.innerHTML = entries.length
@@ -110,5 +111,5 @@ export function renderLog(entries) {
       `<div class="log-row__meta">${escapeHtml(e.nome || '')} · ${escapeHtml(fmtMillis(e.quando))}</div>` +
       `</div></div>`
     ).join('')
-    : '<p class="empty">Ainda não há alterações registadas.</p>';
+    : `<p class="empty">${en.adminTab.noChangesYet}</p>`;
 }

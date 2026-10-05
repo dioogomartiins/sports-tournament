@@ -1,12 +1,13 @@
 // ---------------------------------------------------------------------------
-// Partilha — gera uma imagem (PNG) da classificação ou de um resultado para
-// enviar no WhatsApp. Usa a partilha nativa do telemóvel quando existe;
-// noutros casos descarrega a imagem.
+// Share — generates a PNG image of standings or match result to send via
+// WhatsApp or other messaging apps. Uses Web Share API when supported;
+// otherwise downloads the image.
 // ---------------------------------------------------------------------------
 import { state } from './state.js';
 import { computeStandings } from './algorithms.js';
 import { getTeamName, safeColor, playerName } from './utils.js';
 import { showToast } from './ui.js';
+import { en } from './i18n/en.js';
 
 const W = 1080;
 const PAD = 64;
@@ -28,7 +29,7 @@ async function fontsReady() {
       document.fonts.load(`700 48px ${DISPLAY}`),
       document.fonts.load(`600 32px ${BODY}`),
     ]);
-  } catch { /* usa as fontes de recurso */ }
+  } catch { /* use system fallback fonts */ }
 }
 
 function makeCanvas(height) {
@@ -42,9 +43,9 @@ function makeCanvas(height) {
   return { canvas, ctx };
 }
 
-/** Corta o texto com reticências para caber em maxW. */
-function fit(ctx, text, maxW) {
-  let t = String(text);
+/** Truncates text with an ellipsis to fit within maxW. */
+function fit(ctx, textVal, maxW) {
+  let t = String(textVal);
   if (ctx.measureText(t).width <= maxW) return t;
   while (t.length > 1 && ctx.measureText(`${t}…`).width > maxW) t = t.slice(0, -1);
   return `${t}…`;
@@ -77,8 +78,8 @@ function header(ctx, title, subtitle) {
 }
 
 function footer(ctx, height) {
-  const d = new Date().toLocaleDateString('pt-PT');
-  text(ctx, `⚽ Gestor de Torneio · ${d}`, W / 2, height - 44, { font: `500 24px ${BODY}`, color: C.soft, align: 'center', maxW: W - 2 * PAD });
+  const d = new Date().toLocaleDateString('en-GB');
+  text(ctx, `⚽ ${en.share.brand} · ${d}`, W / 2, height - 44, { font: `500 24px ${BODY}`, color: C.soft, align: 'center', maxW: W - 2 * PAD });
 }
 
 function toBlob(canvas) {
@@ -87,7 +88,7 @@ function toBlob(canvas) {
 
 async function deliver(canvas, filename, title) {
   const blob = await toBlob(canvas);
-  if (!blob) { showToast('Não foi possível criar a imagem.', 'error'); return; }
+  if (!blob) { showToast(en.share.errorCreatingImage, 'error'); return; }
   const file = new File([blob], filename, { type: 'image/png' });
 
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -107,17 +108,17 @@ async function deliver(canvas, filename, title) {
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
-  showToast('Imagem descarregada.', 'ok');
+  showToast(en.share.imageDownloaded, 'ok');
 }
 
 // ---------------------------------------------------------------------------
-// Classificação
+// Standings
 // ---------------------------------------------------------------------------
 export async function shareStandings() {
   const teamsArray = state.teams.slice(0, state.scheduleTeamCount || state.config.numEquipas);
   const groups = computeStandings(teamsArray, state.schedule, state.results, state.config)
     .filter((g) => g.standings.length);
-  if (!groups.length) { showToast('Ainda não há classificação.', 'error'); return; }
+  if (!groups.length) { showToast(en.share.noStandingsYet, 'error'); return; }
 
   await fontsReady();
 
@@ -128,12 +129,16 @@ export async function shareStandings() {
   const { canvas, ctx } = makeCanvas(height);
 
   const played = Object.values(state.results).filter((r) => r && typeof r === 'object' && r.status === 'terminado').length;
-  header(ctx, state.config.nome, `Classificação · ${played} jogos terminados`);
+  header(ctx, state.config.nome, en.share.standingsSubtitle(played));
 
-  // Colunas: posição, equipa, J, V, E, D, DG, Pts
+  // Columns: position, team, P, W, D, L, GD, Pts
   const cols = [
-    { key: 'J', x: 610 }, { key: 'V', x: 680 }, { key: 'E', x: 750 }, { key: 'D', x: 820 },
-    { key: 'DG', x: 905 }, { key: 'Pts', x: W - PAD - 20 },
+    { key: 'J', label: 'P', x: 610 },
+    { key: 'V', label: 'W', x: 680 },
+    { key: 'E', label: 'D', x: 750 },
+    { key: 'D', label: 'L', x: 820 },
+    { key: 'DG', label: 'GD', x: 905 },
+    { key: 'Pts', label: 'Pts', x: W - PAD - 20 },
   ];
 
   let y = 250;
@@ -142,7 +147,7 @@ export async function shareStandings() {
       text(ctx, g.name.toUpperCase(), PAD, y + 30, { font: `700 36px ${DISPLAY}`, color: C.gold });
       y += GROUP_HEAD;
     }
-    cols.forEach((c) => text(ctx, c.key, c.x, y + 26, { font: `700 24px ${BODY}`, color: C.soft, align: 'center' }));
+    cols.forEach((c) => text(ctx, c.label, c.x, y + 26, { font: `700 24px ${BODY}`, color: C.soft, align: 'center' }));
     y += COLS_HEAD;
 
     g.standings.forEach((s, i) => {
@@ -157,8 +162,8 @@ export async function shareStandings() {
         let v = s[c.key];
         if (c.key === 'DG' && v > 0) v = `+${v}`;
         text(ctx, String(v), c.x, cy, {
-          font: c.key === 'Pts' ? `700 36px ${DISPLAY}` : `500 30px ${BODY}`,
-          color: c.key === 'Pts' ? C.gold : C.text,
+          font: c.label === 'Pts' ? `700 36px ${DISPLAY}` : `500 30px ${BODY}`,
+          color: c.label === 'Pts' ? C.gold : C.text,
           align: 'center',
         });
       });
@@ -168,18 +173,18 @@ export async function shareStandings() {
   });
 
   footer(ctx, height);
-  await deliver(canvas, 'classificacao.png', `${state.config.nome} — Classificação`);
+  await deliver(canvas, en.share.standingsFilename, en.share.standingsShareTitle(state.config.nome));
 }
 
 // ---------------------------------------------------------------------------
-// Resultado de um jogo
+// Match Result
 // ---------------------------------------------------------------------------
 function goalLines(res, side) {
   const scorers = (res.scorers && res.scorers[side]) || [];
   const assists = (res.assists && res.assists[side]) || [];
   return scorers.map((pid, i) => {
-    if (pid === 'auto') return 'Autogolo';
-    const a = assists[i] && assists[i] !== 'auto' ? ` (assist. ${playerName(assists[i])})` : '';
+    if (pid === 'auto') return en.share.ownGoal;
+    const a = assists[i] && assists[i] !== 'auto' ? en.share.assist(playerName(assists[i])) : '';
     return `${playerName(pid)}${a}`;
   });
 }
@@ -197,8 +202,8 @@ export async function shareResult(gi) {
   const height = 210 + 420 + lines * 48 + (res.mvp ? 90 : 0) + 110;
   const { canvas, ctx } = makeCanvas(height);
 
-  const ronda = typeof game.jornada === 'number' ? `Jornada ${game.jornada}` : String(game.jornada || '');
-  header(ctx, state.config.nome, ronda ? `${ronda} · Resultado final` : 'Resultado final');
+  const ronda = typeof game.jornada === 'number' ? en.gameModal.roundLabel(game.jornada) : String(game.jornada || '');
+  header(ctx, state.config.nome, ronda ? en.share.roundResult(ronda) : en.share.finalResult);
 
   const [h, a] = String(res.score || '0-0').split('-');
   const colHome = W / 4;
@@ -213,7 +218,7 @@ export async function shareResult(gi) {
   text(ctx, `${h}  -  ${a}`, W / 2, 500, { font: `700 140px ${DISPLAY}`, color: C.gold, align: 'center' });
   let y = 600;
   if (res.penalties) {
-    text(ctx, `Penáltis ${res.penalties}`, W / 2, y, { font: `600 30px ${BODY}`, color: C.soft, align: 'center' });
+    text(ctx, en.share.penalties(res.penalties), W / 2, y, { font: `600 30px ${BODY}`, color: C.soft, align: 'center' });
   }
   y += 50;
 
@@ -225,9 +230,9 @@ export async function shareResult(gi) {
 
   if (res.mvp) {
     y += 30;
-    text(ctx, `⭐ MVP: ${playerName(res.mvp)}`, W / 2, y, { font: `700 36px ${DISPLAY}`, color: C.gold, align: 'center', maxW: W - 2 * PAD });
+    text(ctx, `⭐ ${en.share.mvp(playerName(res.mvp))}`, W / 2, y, { font: `700 36px ${DISPLAY}`, color: C.gold, align: 'center', maxW: W - 2 * PAD });
   }
 
   footer(ctx, height);
-  await deliver(canvas, 'resultado.png', `${getTeamName(game.home)} ${res.score} ${getTeamName(game.away)}`);
+  await deliver(canvas, en.share.resultFilename, `${getTeamName(game.home)} ${res.score} ${getTeamName(game.away)}`);
 }

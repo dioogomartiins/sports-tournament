@@ -48,7 +48,7 @@ function statusOf(res: MatchResult | undefined): GameStatus | null {
 
 export class Football extends Sport {
   readonly id = 'football';
-  readonly name = 'Futebol';
+  readonly name = 'Football';
   readonly icon = '⚽';
 
   computeStandings(
@@ -62,13 +62,13 @@ export class Football extends Sport {
 
     for (let g = 0; g < nGrupos; g++) {
       groupStats.push({
-        name: nGrupos > 1 ? `Grupo ${String.fromCharCode(65 + g)}` : 'Classificação Geral',
+        name: nGrupos > 1 ? `Group ${String.fromCharCode(65 + g)}` : 'General Standings',
         standings: [],
       });
     }
 
     const stats: StandingsRow[] = teamsArray.map((t, idx) => {
-      const name = typeof t === 'string' ? t : (t && t.name ? t.name : `Equipa ${idx + 1}`);
+      const name = typeof t === 'string' ? t : (t && t.name ? t.name : `Team ${idx + 1}`);
       return { idx, name, J: 0, V: 0, E: 0, D: 0, GM: 0, GS: 0, Pts: 0 };
     });
 
