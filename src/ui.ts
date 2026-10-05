@@ -55,13 +55,13 @@ export function refreshComputed() {
   updateTicker(summary);
   renderScheduleHint();
 
-  // Esconde "Adicionar Volta Extra" quando o torneio usa grupos (apenas Liga Única suportada)
+  // Hide "Add Extra Round" when the tournament uses groups (only a single league is supported)
   if (dom.btnAdicionarVolta) {
-    const isLeague = (state.config.numGrupos || 1) === 1;
+    const isLeague = (state.config?.numGrupos || 1) === 1;
     dom.btnAdicionarVolta.style.display = isLeague ? '' : 'none';
   }
 
-  if (state.config.mataMata && dom.btnGerarEliminatorias) {
+  if (state.config?.mataMata && dom.btnGerarEliminatorias) {
     let leagueTotal = 0;
     let leaguePlayed = 0;
     let hasPlayoffs = false;

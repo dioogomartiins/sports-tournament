@@ -1,8 +1,8 @@
 // ---------------------------------------------------------------------------
 // DOM element cache
 // ---------------------------------------------------------------------------
-// Elements of index.html by id, looked up once at start-up. TypeScript callers
-// read them with a cast (`dom.cfgNome as HTMLInputElement`).
+// Elements of index.html by id, looked up once at start-up. Form fields are
+// read and written through fieldValue / setFieldValue / isChecked.
 export const dom: Record<string, HTMLElement> = {};
 
 /** The tab panels (`<section class="panel">`). */
@@ -43,4 +43,26 @@ export function isAdminView(): boolean {
 /** Is the current profile master? */
 export function isMasterView(): boolean {
   return document.body.dataset.master === 'true' || document.body.dataset.role === 'master';
+}
+
+type Field = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
+
+/** The value of a cached input or select. */
+export function fieldValue(id: string): string {
+  return (dom[id] as Field | undefined)?.value ?? '';
+}
+
+export function setFieldValue(id: string, value: string | number): void {
+  const el = dom[id] as Field | undefined;
+  if (el) el.value = String(value);
+}
+
+/** Is a cached checkbox ticked? */
+export function isChecked(id: string): boolean {
+  return (dom[id] as HTMLInputElement | undefined)?.checked ?? false;
+}
+
+/** Listens to a CustomEvent from a Lit component and hands its detail to the handler. */
+export function onEvent<T>(target: EventTarget, name: string, handler: (detail: T) => void): void {
+  target.addEventListener(name, (e) => handler((e as CustomEvent<T>).detail));
 }

@@ -19,6 +19,12 @@ import { prefersReducedMotion, safeColor } from '../utils.js';
 
 export type ScoreSide = 'home' | 'away';
 
+/** Detail of the panel's events (point, cancelled, started, finished, mvp, share). */
+export interface ScoreEvent {
+  gi: string;
+  side?: ScoreSide;
+}
+
 export interface ScoreTeam {
   name: string;
   /** Team colour, or null for a placeholder (e.g. a playoff slot not decided yet). */
@@ -361,7 +367,7 @@ export abstract class ScoreBase extends LitElement {
 
   private emit(name: 'point' | 'cancelled' | 'started' | 'finished', side?: ScoreSide): void {
     if (!this.match) return;
-    this.dispatchEvent(new CustomEvent(name, {
+    this.dispatchEvent(new CustomEvent<ScoreEvent>(name, {
       detail: { gi: this.match.gi, side },
       bubbles: true,
       composed: true,

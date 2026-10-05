@@ -4,6 +4,18 @@ import { getAuth, connectAuthEmulator, GoogleAuthProvider, onAuthStateChanged, s
 import { diffSnapshot, describeUpdates, onlyMetadata, normalizeMeta, normalizeConfig, legacyRoleUpdates } from "./sync.js";
 import { en } from "./i18n/en.js";
 import { blockedPaths, roleLabel, isSportAdmin, isMaster } from "./permissions.js";
+import type { User } from "firebase/auth";
+import type { Unsubscribe } from "firebase/database";
+import type { ArchiveEntry, Role, Tournament, TournamentMeta, UserProfile } from "./types.js";
+import type { LogEntry } from "./components/ActivityLog.js";
+
+/** A tournament snapshot as read from or sent to Firebase (sections may be missing). */
+export type Snapshot = Partial<Tournament>;
+/** A tournament as listed in tournaments/ (its meta plus the id). */
+export type TournamentListing = TournamentMeta & { id: string };
+export type PushResult = { ok: true } | { ok: false; reason: 'sem-sync' | 'sem-sessao' | 'sem-permissao' };
+export interface AuthInfo { user: User | null; role: Role | null; admin: Record<string, boolean> }
+type Updates = Record<string, unknown>;
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -20,7 +32,7 @@ const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 const auth = getAuth(app);
 
-// Desenvolvimento: usar os emuladores locais do Firebase em vez da base de dados real
+// Development: use the local Firebase emulators instead of the real database
 if (import.meta.env.VITE_USE_EMULATORS === 'true') {
   connectDatabaseEmulator(database, '127.0.0.1', 9000);
   connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
@@ -29,15 +41,15 @@ if (import.meta.env.VITE_USE_EMULATORS === 'true') {
 const LOG_LIMIT = 200;
 
 let activeTournamentId = 'default';
-let onStateChangeCallback = null;
-let onPushErrorCallback = null;
+let onStateChangeCallback: ((data: Snapshot, firstLoad: boolean) => void) | null = null;
+let onPushErrorCallback: ((err: Error) => void) | null = null;
 let isFirstLoad = true;
-let lastSynced = null; // último snapshot igual ao que está no Firebase
-let stopStateListener = null;
-let stopArquivoListener = null;
-let stopPlayersListener = null;
+let lastSynced: Snapshot | null = null; // last snapshot equal to what Firebase holds
+let stopStateListener: Unsubscribe | null = null;
+let stopArquivoListener: Unsubscribe | null = null;
+let stopPlayersListener: Unsubscribe | null = null;
 
-export function setActiveTournamentId(id) {
+export function setActiveTournamentId(id: string): void {
   if (!id || id === activeTournamentId) return;
   activeTournamentId = id;
   lastSynced = null;
@@ -45,17 +57,17 @@ export function setActiveTournamentId(id) {
   initFirebaseListener(activeTournamentId);
 }
 
-export function getActiveTournamentId() {
+export function getActiveTournamentId(): string {
   return activeTournamentId;
 }
 
 // Set the callback that will be called whenever the DB updates
-export function onFirebaseStateChange(callback) {
+export function onFirebaseStateChange(callback: (data: Snapshot, firstLoad: boolean) => void): void {
   onStateChangeCallback = callback;
 }
 
 // Start listening to the "tournaments/<id>" node, global "arquivo", and global "players"
-export function initFirebaseListener(tournamentId = activeTournamentId) {
+export function initFirebaseListener(tournamentId: string = activeTournamentId): void {
   activeTournamentId = tournamentId || 'default';
   if (stopStateListener) {
     stopStateListener();
@@ -64,18 +76,18 @@ export function initFirebaseListener(tournamentId = activeTournamentId) {
 
   const stateRef = ref(database, `tournaments/${activeTournamentId}`);
   stopStateListener = onValue(stateRef, async (snapshot) => {
-    let data = snapshot.val();
+    let data: Snapshot | null = snapshot.val();
     if (!data) {
-      // Fallback para ler dados legados caso a migração ainda não tenha corrido
+      // Fall back to the legacy data while the migration has not run yet
       try {
         const legacySnap = await get(ref(database, 'torneio_state'));
         data = legacySnap.val();
       } catch {
-        // Ignora erros de permissão ou rede
+        // Ignore permission or network errors
       }
     }
     if (data) {
-      // Arquivo global vive em /arquivo
+      // The global archive lives in /arquivo
       try {
         const arqSnap = await get(ref(database, 'arquivo'));
         const arqVal = arqSnap.val();
@@ -84,7 +96,7 @@ export function initFirebaseListener(tournamentId = activeTournamentId) {
         // Ignora
       }
 
-      // Jogadores globais vivem em /players
+      // Global players live in /players
       try {
         const playersSnap = await get(ref(database, 'players'));
         const playersVal = playersSnap.val();
@@ -93,7 +105,7 @@ export function initFirebaseListener(tournamentId = activeTournamentId) {
         // Ignora
       }
     }
-    // Base de dados vazia: já está sincronizada, a primeira gravação envia tudo
+    // Empty database: already in sync, the first save sends everything
     if (!data && !lastSynced) lastSynced = {};
     if (data && onStateChangeCallback) {
       onStateChangeCallback(data, isFirstLoad);
@@ -127,16 +139,16 @@ export function initFirebaseListener(tournamentId = activeTournamentId) {
 }
 
 // Called when Firebase rejects a save that was already applied locally
-export function onFirebasePushError(callback) {
+export function onFirebasePushError(callback: (err: Error) => void): void {
   onPushErrorCallback = callback;
 }
 
 // Record the snapshot that matches what Firebase currently holds
-export function setSyncedSnapshot(snap) {
+export function setSyncedSnapshot(snap: Snapshot): void {
   lastSynced = JSON.parse(JSON.stringify(snap));
 }
 
-export function getSyncedSnapshot() {
+export function getSyncedSnapshot(): Snapshot | null {
   return lastSynced ? JSON.parse(JSON.stringify(lastSynced)) : null;
 }
 
@@ -146,11 +158,11 @@ export function getSyncedSnapshot() {
 //
 // Returns { ok: true } or { ok: false, reason: 'sem-sync' | 'sem-sessao' | 'sem-permissao' }.
 // When it fails nothing is sent and the caller should restore the last synced state.
-export function pushStateToFirebase(newState, tournamentId = activeTournamentId) {
+export function pushStateToFirebase(newState: Snapshot, tournamentId: string = activeTournamentId): PushResult {
   if (!lastSynced) return { ok: false, reason: 'sem-sync' };
 
   const updates = diffSnapshot(lastSynced, newState);
-  // Só mudou a data de exportação: nada a gravar
+  // Only the export date changed: nothing to save
   if (onlyMetadata(updates)) return { ok: true };
 
   if (!currentUser) return { ok: false, reason: 'sem-sessao' };
@@ -159,7 +171,7 @@ export function pushStateToFirebase(newState, tournamentId = activeTournamentId)
 
   lastSynced = JSON.parse(JSON.stringify(newState));
 
-  const rootUpdates = {};
+  const rootUpdates: Updates = {};
   Object.keys(updates).forEach((p) => {
     if (p === 'arquivo') {
       rootUpdates['arquivo'] = updates[p];
@@ -170,8 +182,8 @@ export function pushStateToFirebase(newState, tournamentId = activeTournamentId)
     }
   });
 
-  // As regras exigem que cada gravação aponte (logRef) para uma entrada nova
-  // do registo de alterações, escrita no mesmo update()
+  // The rules require every save to point (logRef) at a new change-log
+  // entry written in the same update()
   const log = logEntry(describeUpdates(updates, newState) || en.sync.tournamentChanged, tournamentId);
   Object.assign(rootUpdates, log);
   const logKey = Object.keys(log)[0].split('/')[2];
@@ -179,58 +191,61 @@ export function pushStateToFirebase(newState, tournamentId = activeTournamentId)
 
   update(ref(database), rootUpdates).catch((err) => {
     console.error("Firebase error pushing state:", err);
-    // O Firebase repõe sozinho o valor do servidor (onValue); só falta avisar
+    // Firebase restores the server value itself (onValue); only the warning is left
     if (onPushErrorCallback) onPushErrorCallback(err);
   });
   return { ok: true };
 }
 
 // ---------------------------------------------------------------------------
-// Sessão (Google) e perfis
+// Session (Google) and profiles
 // ---------------------------------------------------------------------------
-let currentUser = null;
-let currentRole = null;
-let currentUserAdmin = {};
-let stopRoleListener = null;
+let currentUser: User | null = null;
+let currentRole: Role | null = null;
+let currentUserAdmin: Record<string, boolean> = {};
+let stopRoleListener: Unsubscribe | null = null;
 
-export function getCurrentUser() { return currentUser; }
-export function getCurrentRole() { return currentRole; }
-export function getCurrentUserAdmin() { return currentUserAdmin; }
-export function isCurrentSportAdmin(sport = 'football') {
+export function getCurrentUser(): User | null { return currentUser; }
+export function getCurrentRole(): Role | null { return currentRole; }
+export function getCurrentUserAdmin(): Record<string, boolean> { return currentUserAdmin; }
+export function isCurrentSportAdmin(sport = 'football'): boolean {
   return isSportAdmin(currentRole, sport, currentUserAdmin);
 }
-export function isCurrentMaster() {
+export function isCurrentMaster(): boolean {
   return isMaster(currentRole);
 }
 
-function displayName(user) {
-  return (user.displayName || user.email || 'Sem nome').slice(0, 100);
+function displayName(user: User): string {
+  return (user.displayName || user.email || en.common.noName).slice(0, 100);
 }
 
-function logEntry(acao, tournamentId = activeTournamentId) {
+function logEntry(acao: string, tournamentId: string = activeTournamentId): Updates {
+  const user = currentUser!;
   const key = push(ref(database, `tournament_log/${tournamentId}`)).key;
   return {
     [`tournament_log/${tournamentId}/${key}`]: {
-      uid: currentUser.uid,
-      nome: displayName(currentUser),
+      uid: user.uid,
+      nome: displayName(user),
       acao: acao.slice(0, 500),
       quando: serverTimestamp(),
     },
   };
 }
 
-// Migração: o primeiro load do master admin copia torneio_state para tournaments/default
-async function checkAndMigrateLegacyState() {
+// Migration: the master admin's first load copies torneio_state to tournaments/default
+async function checkAndMigrateLegacyState(): Promise<void> {
+  const user = currentUser;
+  if (!user) return;
   const defaultTourneyRef = ref(database, 'tournaments/default');
   const defaultSnap = await get(defaultTourneyRef);
   if (defaultSnap.exists()) return;
 
   const legacyRef = ref(database, 'torneio_state');
   const legacySnap = await get(legacyRef);
-  const legacyData = legacySnap.val();
+  const legacyData: Record<string, unknown> & Snapshot | null = legacySnap.val();
   if (!legacyData) return;
 
-  console.log("A migrar torneio_state para tournaments/default...");
+  console.log("Migrating torneio_state to tournaments/default...");
   const meta = {
     name: (legacyData.config && legacyData.config.nome) || 'Futebol ILOG',
     sport: 'football',
@@ -239,10 +254,10 @@ async function checkAndMigrateLegacyState() {
   };
 
   const key = push(ref(database, 'tournament_log/default')).key;
-  const rootUpdates = {
+  const rootUpdates: Updates = {
     [`tournament_log/default/${key}`]: {
-      uid: currentUser.uid,
-      nome: displayName(currentUser),
+      uid: user.uid,
+      nome: displayName(user),
       acao: en.sync.legacyMigrated,
       quando: serverTimestamp(),
     },
@@ -255,11 +270,11 @@ async function checkAndMigrateLegacyState() {
     if (k === 'arquivo') {
       rootUpdates['arquivo'] = legacyData.arquivo;
     } else if (k === 'players') {
-      const rawPlayers = legacyData.players || [];
-      const list = Array.isArray(rawPlayers) ? rawPlayers : Object.values(rawPlayers);
-      rootUpdates['players'] = list.map((p) => {
+      const rawPlayers: unknown = legacyData.players || [];
+      const list: unknown[] = Array.isArray(rawPlayers) ? rawPlayers : Object.values(rawPlayers as object);
+      rootUpdates['players'] = (list as Record<string, unknown>[]).map((p) => {
         if (!p || typeof p !== 'object') return p;
-        const ratings = p.ratings || {};
+        const ratings = (p.ratings || {}) as Record<string, unknown>;
         if (!ratings.football && p.atributos) {
           ratings.football = p.atributos;
         }
@@ -281,7 +296,7 @@ async function checkAndMigrateLegacyState() {
 // Copies the legacy roles (utilizadores) of users who have no role in users
 // yet. Only a master may write roles, so it runs once per session for them.
 let legacyRolesChecked = false;
-async function migrateLegacyRoles() {
+async function migrateLegacyRoles(): Promise<void> {
   if (legacyRolesChecked) return;
   legacyRolesChecked = true;
   const [utilSnap, usersSnap] = await Promise.all([get(ref(database, 'utilizadores')), get(ref(database, 'users'))]);
@@ -293,7 +308,7 @@ async function migrateLegacyRoles() {
 }
 
 // Calls callback({ user, role, admin }) on sign-in, sign-out and role changes
-export function initAuth(callback) {
+export function initAuth(callback: (info: AuthInfo) => void): void {
   onAuthStateChanged(auth, (user) => {
     if (stopRoleListener) { stopRoleListener(); stopRoleListener = null; }
     currentUser = user;
@@ -305,7 +320,7 @@ export function initAuth(callback) {
       return;
     }
 
-    const profile = {
+    const profile: Record<string, unknown> = {
       nome: displayName(user),
       ultimoAcesso: serverTimestamp(),
     };
@@ -318,7 +333,7 @@ export function initAuth(callback) {
     callback({ user, role: null, admin: {} });
     stopRoleListener = onValue(ref(database, `users/${user.uid}`), async (snap) => {
       const val = snap.val() || {};
-      currentRole = val.role || null;
+      currentRole = (val.role as Role) || null;
       currentUserAdmin = val.admin || {};
       callback({ user, role: currentRole, admin: currentUserAdmin });
 
@@ -338,36 +353,36 @@ export function initAuth(callback) {
   });
 }
 
-export function signInWithGoogle() {
+export function signInWithGoogle(): ReturnType<typeof signInWithPopup> {
   return signInWithPopup(auth, new GoogleAuthProvider());
 }
 
-export function signOutUser() {
+export function signOutUser(): Promise<void> {
   return signOut(auth);
 }
 
 // ---------------------------------------------------------------------------
-// Administração (só master consegue ler)
+// Administration (only the master can read)
 // ---------------------------------------------------------------------------
-export function listenUsers(callback) {
+export function listenUsers(callback: (users: UserProfile[]) => void): Unsubscribe {
   return onValue(ref(database, 'users'), (snap) => {
-    const val = snap.val() || {};
+    const val: Record<string, Omit<UserProfile, 'uid'>> = snap.val() || {};
     callback(Object.keys(val).map((uid) => ({ uid, ...val[uid] })));
   }, (err) => console.error("Firebase error reading users:", err));
 }
 
-export function listenLog(callback, tournamentId = activeTournamentId) {
+export function listenLog(callback: (entries: LogEntry[]) => void, tournamentId: string = activeTournamentId): Unsubscribe {
   const q = query(ref(database, `tournament_log/${tournamentId}`), orderByChild('quando'), limitToLast(LOG_LIMIT));
   return onValue(q, (snap) => {
-    const entries = [];
+    const entries: LogEntry[] = [];
     snap.forEach((child) => { entries.push({ id: child.key, ...child.val() }); });
     callback(entries.reverse());
   }, (err) => console.error("Firebase error reading log:", err));
 }
 
-// role: 'master' | 'admin' | 'user' | null (pendente)
-export function setUserRole(uid, role, sportAdmins = null, nome = '') {
-  const updates = {
+// role: 'master' | 'admin' | 'user' | null (pending)
+export function setUserRole(uid: string, role: Role | null, sportAdmins: Record<string, boolean> | null = null, nome = ''): Promise<void> {
+  const updates: Updates = {
     [`users/${uid}/role`]: role || null,
     ...logEntry(en.sync.roleChanged(nome || uid, roleLabel(role, sportAdmins))),
   };
@@ -378,11 +393,11 @@ export function setUserRole(uid, role, sportAdmins = null, nome = '') {
 }
 
 // ---------------------------------------------------------------------------
-// Torneios (listar, criar e terminar)
+// Tournaments (list, create and finish)
 // ---------------------------------------------------------------------------
-export function listenTournaments(callback) {
+export function listenTournaments(callback: (list: TournamentListing[]) => void): Unsubscribe {
   return onValue(ref(database, 'tournaments'), async (snapshot) => {
-    let val = snapshot.val() || {};
+    let val: Record<string, Snapshot> = snapshot.val() || {};
     if (Object.keys(val).length === 0) {
       try {
         const legacySnap = await get(ref(database, 'torneio_state'));
@@ -398,7 +413,7 @@ export function listenTournaments(callback) {
               },
               config: legacyVal.config,
             },
-          };
+          } as Record<string, Snapshot>;
         }
       } catch {
         // ignore
@@ -416,10 +431,10 @@ export function listenTournaments(callback) {
   }, (err) => console.error("Firebase error reading tournaments:", err));
 }
 
-export async function finishTournament(tournamentId = activeTournamentId, archiveEntry) {
+export async function finishTournament(tournamentId: string = activeTournamentId, archiveEntry?: ArchiveEntry | null): Promise<PushResult> {
   if (!currentUser) return { ok: false, reason: 'sem-sessao' };
 
-  let currentMeta = {};
+  let currentMeta: Partial<TournamentMeta> = {};
   try {
     const metaSnap = await get(ref(database, `tournaments/${tournamentId}/meta`));
     currentMeta = metaSnap.val() || {};
@@ -430,8 +445,8 @@ export async function finishTournament(tournamentId = activeTournamentId, archiv
   const sport = currentMeta.sport || 'football';
   if (!isSportAdmin(currentRole, sport, currentUserAdmin)) return { ok: false, reason: 'sem-permissao' };
 
-  const updatedMeta = {
-    name: currentMeta.name || 'Torneio',
+  const updatedMeta: TournamentMeta = {
+    name: currentMeta.name || en.common.tournament,
     sport,
     status: 'finished',
     createdAt: currentMeta.createdAt || Date.now(),
@@ -440,7 +455,7 @@ export async function finishTournament(tournamentId = activeTournamentId, archiv
   const log = logEntry(en.sync.tournamentFinished(updatedMeta.name), tournamentId);
   const logKey = Object.keys(log)[0].split('/')[2];
 
-  const rootUpdates = {
+  const rootUpdates: Updates = {
     ...log,
     [`tournaments/${tournamentId}/logRef`]: logKey,
     [`tournaments/${tournamentId}/meta`]: updatedMeta,
@@ -454,13 +469,15 @@ export async function finishTournament(tournamentId = activeTournamentId, archiv
   return { ok: true };
 }
 
-export async function createTournament({ name, sport = 'football', numEquipas = 8, numVoltas = 2 }) {
+export interface NewTournament { name: string; sport?: string; numEquipas?: number | string; numVoltas?: number | string }
+
+export async function createTournament({ name, sport = 'football', numEquipas = 8, numVoltas = 2 }: NewTournament): Promise<PushResult & { tournamentId?: string }> {
   if (!currentUser) return { ok: false, reason: 'sem-sessao' };
   if (!isSportAdmin(currentRole, sport, currentUserAdmin)) return { ok: false, reason: 'sem-permissao' };
 
   const tournamentId = 't_' + Date.now();
-  const meta = {
-    name: (name || 'Novo Torneio').slice(0, 100),
+  const meta: TournamentMeta = {
+    name: (name || en.common.tournament).slice(0, 100),
     sport,
     status: 'active',
     createdAt: Date.now(),

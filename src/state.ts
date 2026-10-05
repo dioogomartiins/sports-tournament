@@ -164,6 +164,22 @@ export const state: AppState = {
   arquivo: [],
 };
 
+/** The tournament settings. They load before any handler runs, so a missing one is a bug. */
+export function loadedConfig(): Config {
+  if (!state.config) throw new Error('Tournament config not loaded');
+  return state.config;
+}
+
+export function loadedTeams(): Team[] {
+  if (!state.teams) throw new Error('Teams not loaded');
+  return state.teams;
+}
+
+export function loadedSquads(): SquadPlayer[][] {
+  if (!state.squads) throw new Error('Squads not loaded');
+  return state.squads;
+}
+
 export function setCurrentTournamentId(id: string): void {
   state.currentTournamentId = id || 'default';
 }

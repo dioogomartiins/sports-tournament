@@ -14,16 +14,16 @@ Database. Deployed to GitHub Pages at `/torneio-ilog/` on release tags (`release
 
 - Module roles:
   - `src/state.ts` owns global state and persistence (localStorage + Firebase push).
-  - `src/core/` holds pure tournament logic (Berger schedule, snake/balanced draft, archive).
+  - `src/core/` holds pure tournament logic (Berger schedule, playoff bracket, snake/balanced draft, archive).
   - `src/sports/` defines the abstract `Sport` class, `registry.ts` (`getSport(id)`), and sport implementations (`src/sports/football/Football.ts` for standings, head-to-head, playoff winner, player stats and goal handling).
   - `src/algorithms.ts` re-exports core and football sport methods for backward compatibility.
   - `src/sync.ts` diffs snapshots for `update()`, normalizes older saved data
     and describes changes for the log; `src/permissions.ts` mirrors the rules.
   - `src/types.ts` defines domain models (`Tournament`, `Config`, `Match`, `Score`, `Player`, `Team`).
   - `src/utils.ts` provides shared utility functions (`escapeHtml`, `safeColor`, `playerName`, `clamp`, etc.).
-  - `src/ui.js` renders (one module per section in `src/ui/`, re-exported by
-    `ui.js`; `src/ui/` modules never import `ui.js`); `src/main.js` wires event
-    handlers; `src/firebase.js` syncs and handles Google sign-in; `src/share.js`
+  - `src/ui.ts` renders (one module per section in `src/ui/`, re-exported by
+    `ui.ts`; `src/ui/` modules never import `ui.ts`); `src/main.ts` wires event
+    handlers; `src/firebase.ts` syncs and handles Google sign-in; `src/share.ts`
     draws the PNG share images.
 - Each tournament lives in `tournaments/<id>` (players and the archive are
   global, in `players` and `arquivo`). Saves send only what

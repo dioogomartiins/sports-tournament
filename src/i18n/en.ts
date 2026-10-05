@@ -8,6 +8,7 @@ import { html } from 'lit';
 export const en = {
   common: {
     tournament: 'Tournament',
+    noName: 'No name',
     save: 'Save',
     cancel: 'Cancel',
     confirm: 'Confirm',
