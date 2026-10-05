@@ -34,7 +34,7 @@ Database. Deployed to GitHub Pages at `/sports-tournament/` on release tags (`re
 - Who may write what is enforced by `database.rules.json` (Google sign-in;
   roles in `users/<uid>/role`: `master`, `admin` with `admin/<sport>: true`, or
   `user`; none = read-only). `src/permissions.ts` mirrors those rules
-  client-side; change both together. Every save also appends an entry to
+  client-side; change both together. Every save to a tournament also appends an entry to
   `tournament_log/<id>` (who changed what).
 - New UI is a Lit component in `src/components/` (base class `LightElement`,
   light DOM, properties in and events out); the controller in `src/ui/` sets
