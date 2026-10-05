@@ -119,6 +119,11 @@ await check('user não termina torneio', false, update(ref(u), withLog(u, 'usr',
   'tournaments/t1/meta': { name: 'Novo Nome', sport: 'football', status: 'finished', createdAt: 1000 },
 })));
 
+// --- players (global) ---
+await check('anónimo lê players', true, get(ref(anon, 'players')));
+await check('admin grava players', true, update(ref(a), { 'players/p1': { id: 'p1', nome: 'Jogador 1', ratings: { football: { velocidade: 5 } } } }));
+await check('user não grava players', false, update(ref(u), { 'players/p2': { id: 'p2', nome: 'Hacker' } }));
+
 console.log(`\n${ok} ok, ${bad} falharam`);
 await env.cleanup();
 process.exit(bad ? 1 : 0);

@@ -20,9 +20,10 @@ export function renderDraftPlayerList() {
     return;
   }
 
+  const currentSport = state.meta?.sport || state.config?.sport || 'football';
   const sorted = state.players.slice().sort((a, b) => a.nome.localeCompare(b.nome));
   const rows = sorted.map((p) => {
-    const rating = getPlayerRating(p);
+    const rating = getPlayerRating(p, currentSport);
     const teamName = p.teamIdx !== null && p.teamIdx !== undefined ? getTeamName(p.teamIdx) : '';
     const badge = teamName ? `<span class="draft-player-team-badge">${escapeHtml(teamName)}</span>` : '';
     return (
@@ -55,8 +56,9 @@ export function renderDraftPlayerList() {
 export function renderDraftTeams(nomeA, nomeB, equipaA, equipaB) {
   if (!dom.draftTeamsResult) return;
 
-  const ratingA = getTeamTotalRating(equipaA);
-  const ratingB = getTeamTotalRating(equipaB);
+  const currentSport = state.meta?.sport || state.config?.sport || 'football';
+  const ratingA = getTeamTotalRating(equipaA, currentSport);
+  const ratingB = getTeamTotalRating(equipaB, currentSport);
   const diff = Math.abs(ratingA - ratingB).toFixed(1);
 
   function teamCard(nome, players, cls) {
@@ -71,7 +73,7 @@ export function renderDraftTeams(nomeA, nomeB, equipaA, equipaB) {
         `<div class="draft-team-player-row">` +
         `<span class="draft-pick-num">${i + 1}.</span>` +
         `<span style="flex:1; font-weight:600;">${escapeHtml(p.nome)}${currentDraft.mvp === p.id ? ' ⭐' : ''}${aCount ? ` <span style="font-size:12px; color:var(--ink-faint); font-weight:500;">${aCount} 🅰️</span>` : ''}</span>` +
-        `<span style="font-size:12px; color:var(--gold-dark); font-weight:700; margin-right:12px;">★ ${getPlayerRating(p).toFixed(1)}</span>` +
+        `<span style="font-size:12px; color:var(--gold-dark); font-weight:700; margin-right:12px;">★ ${getPlayerRating(p, currentSport).toFixed(1)}</span>` +
         `<div style="display:flex; align-items:center; gap:8px;">` +
         `<button class="btn btn-ghost" style="padding: 2px 8px; font-size:14px; color:var(--danger); border:1px solid var(--line);" data-action="draft-goal-sub" data-side="${isTeamA ? 'A' : 'B'}" data-pid="${escapeHtml(p.id)}">-</button>` +
         `<span style="font-weight:700; color:var(--pitch-600); min-width:14px; text-align:center;">${gCount}</span>` +

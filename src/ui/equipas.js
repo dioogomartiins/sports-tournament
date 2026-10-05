@@ -66,11 +66,12 @@ export function renderSquadList() {
     return;
   }
 
+  const currentSport = state.meta?.sport || state.config?.sport || 'football';
   const sortedSquad = squad.slice().sort((a, b) => a.num - b.num);
   const html = sortedSquad.map((p) => {
     // Procura o jogador na BD global para mostrar o rating
     const dbPlayer = state.players.find((pl) => pl.id === p.id);
-    const ratingStr = dbPlayer ? ` <span style="font-size:12px; color:var(--gold-dark); font-weight:700;">&#9733; ${getPlayerRating(dbPlayer).toFixed(1)}</span>` : '';
+    const ratingStr = dbPlayer ? ` <span style="font-size:12px; color:var(--gold-dark); font-weight:700;">&#9733; ${getPlayerRating(dbPlayer, currentSport).toFixed(1)}</span>` : '';
     return (
       `<div class="player-row">` +
       `<div class="player-info"><span class="player-num">${escapeHtml(p.num)}</span><span style="font-weight:600;">${escapeHtml(p.name)}</span>${ratingStr}</div>` +
@@ -82,7 +83,7 @@ export function renderSquadList() {
   }).join('');
 
   const squadPlayersObj = squad.map(p => state.players.find(pl => pl.id === p.id)).filter(Boolean);
-  const totalRating = getTeamTotalRating(squadPlayersObj);
+  const totalRating = getTeamTotalRating(squadPlayersObj, currentSport);
   const media = squadPlayersObj.length > 0 ? (totalRating / squadPlayersObj.length) : 0;
 
   const ratingHeaderHtml =

@@ -34,6 +34,7 @@ let isFirstLoad = true;
 let lastSynced = null; // último snapshot igual ao que está no Firebase
 let stopStateListener = null;
 let stopArquivoListener = null;
+let stopPlayersListener = null;
 
 export function setActiveTournamentId(id) {
   if (!id || id === activeTournamentId) return;
@@ -52,7 +53,7 @@ export function onFirebaseStateChange(callback) {
   onStateChangeCallback = callback;
 }
 
-// Start listening to the "tournaments/<id>" node and global "arquivo"
+// Start listening to the "tournaments/<id>" node, global "arquivo", and global "players"
 export function initFirebaseListener(tournamentId = activeTournamentId) {
   activeTournamentId = tournamentId || 'default';
   if (stopStateListener) {
@@ -81,6 +82,15 @@ export function initFirebaseListener(tournamentId = activeTournamentId) {
       } catch {
         // Ignora
       }
+
+      // Jogadores globais vivem em /players
+      try {
+        const playersSnap = await get(ref(database, 'players'));
+        const playersVal = playersSnap.val();
+        if (playersVal) data.players = playersVal;
+      } catch {
+        // Ignora
+      }
     }
     // Base de dados vazia: já está sincronizada, a primeira gravação envia tudo
     if (!data && !lastSynced) lastSynced = {};
@@ -100,6 +110,18 @@ export function initFirebaseListener(tournamentId = activeTournamentId) {
         onStateChangeCallback(current, false);
       }
     }, (err) => console.error("Firebase error reading arquivo:", err));
+  }
+
+  if (!stopPlayersListener) {
+    const playersRef = ref(database, 'players');
+    stopPlayersListener = onValue(playersRef, (snapshot) => {
+      const playersVal = snapshot.val();
+      if (playersVal && onStateChangeCallback && !isFirstLoad) {
+        const current = getSyncedSnapshot() || {};
+        current.players = playersVal;
+        onStateChangeCallback(current, false);
+      }
+    }, (err) => console.error("Firebase error reading players:", err));
   }
 }
 
@@ -139,6 +161,8 @@ export function pushStateToFirebase(newState, tournamentId = activeTournamentId)
   Object.keys(updates).forEach((p) => {
     if (p === 'arquivo') {
       rootUpdates['arquivo'] = updates[p];
+    } else if (p === 'players') {
+      rootUpdates['players'] = updates[p];
     } else {
       rootUpdates[`tournaments/${tournamentId}/${p}`] = updates[p];
     }
@@ -220,6 +244,21 @@ async function checkAndMigrateLegacyState() {
   Object.keys(legacyData).forEach((k) => {
     if (k === 'arquivo') {
       rootUpdates['arquivo'] = legacyData.arquivo;
+    } else if (k === 'players') {
+      const rawPlayers = legacyData.players || [];
+      const list = Array.isArray(rawPlayers) ? rawPlayers : Object.values(rawPlayers);
+      rootUpdates['players'] = list.map((p) => {
+        if (!p || typeof p !== 'object') return p;
+        const ratings = p.ratings || {};
+        if (!ratings.football && p.atributos) {
+          ratings.football = p.atributos;
+        }
+        return {
+          ...p,
+          ratings,
+          atributos: ratings.football || p.atributos,
+        };
+      });
     } else if (k !== 'logRef' && k !== 'version' && k !== 'meta') {
       rootUpdates[`tournaments/default/${k}`] = legacyData[k];
     }
