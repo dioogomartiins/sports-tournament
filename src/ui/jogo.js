@@ -1,7 +1,9 @@
 import { state } from '../state.js';
 import { getTeamName, safeColor, prefersReducedMotion } from '../utils.js';
-import { resultEvents } from '../algorithms.js';
+import { getSport } from '../sports/registry.js';
+import { RacketSport } from '../sports/RacketSport.js';
 import { FootballScore } from '../sports/football/FootballScore.js';
+import { PadelScore } from '../sports/padel/PadelScore.js';
 import { isAdminView } from './dom.js';
 import { en } from '../i18n/en.js';
 
@@ -10,10 +12,23 @@ import { en } from '../i18n/en.js';
 // ---------------------------------------------------------------------------
 let openGameGi = null;
 
+/** Score panel class per sport. */
+const SCORE_PANELS = { football: FootballScore, padel: PadelScore };
+
+function currentSport() {
+  return getSport(state.meta?.sport || state.config?.sport);
+}
+
+function newScorePanel() {
+  const Panel = SCORE_PANELS[currentSport().id] || FootballScore;
+  return new Panel();
+}
+
 /** What the score panel shows about one match, read from the state. */
 export function matchView(gi) {
   const g = state.schedule[gi];
   if (!g) return null;
+  const sport = currentSport();
   const team = (idx) => ({
     name: getTeamName(idx),
     color: typeof idx === 'number' && state.teams[idx] ? safeColor(state.teams[idx].color) : null,
@@ -24,11 +39,12 @@ export function matchView(gi) {
     home: team(g.home),
     away: team(g.away),
     result: state.results[gi],
+    format: sport instanceof RacketSport ? sport.format(state.config) : undefined,
   };
 }
 
 function openPanel() {
-  return document.querySelector('#gameModalContent football-score');
+  return document.querySelector('#gameModalContent football-score, #gameModalContent padel-score');
 }
 
 export function openGameModal(gi) {
@@ -36,7 +52,7 @@ export function openGameModal(gi) {
   if (!overlay) return;
   openGameGi = String(gi);
   const content = document.getElementById('gameModalContent');
-  content.replaceChildren(new FootballScore());
+  content.replaceChildren(newScorePanel());
   refreshGameModal();
   overlay.hidden = false;
   document.getElementById('gameModalClose').focus();
@@ -74,7 +90,7 @@ export function animateResultChanges({ silent = false } = {}) {
   baseline = JSON.parse(JSON.stringify(state.results || {}));
   if (silent || !prev || prefersReducedMotion()) return;
 
-  const events = resultEvents(prev, state.results);
+  const events = currentSport().resultEvents(prev, state.results, state.config);
   if (!events.length) return;
 
   // Wait for the redraw; several events on the same match play in turn
@@ -95,7 +111,7 @@ export function animateResultChanges({ silent = false } = {}) {
 function playOnCards(ev) {
   const view = matchView(ev.gi);
   if (!view) return;
-  const banner = new FootballScore();
+  const banner = newScorePanel();
   banner.match = view;
   document.querySelectorAll(`[data-game="${CSS.escape(String(ev.gi))}"]`).forEach((card) => {
     // Only what is on screen (active tab)

@@ -10,7 +10,7 @@ export function cacheDom() {
     'btnMobileMenu', 'tabs',
     'btnAdicionarVolta', 'btnGerarEliminatorias', 'calendarActions',
     'dashboardPodium', 'dashboardStandings', 'dashboardStats', 'dashboardScorers',
-    'cfgNome', 'cfgNumEquipas', 'cfgNumGrupos', 'cfgNumVoltas', 'cfgVitoria', 'cfgEmpate', 'cfgDerrota', 'cfgBonus', 'cfgGoleada', 'scheduleHint',
+    'cfgNome', 'cfgNumEquipas', 'cfgNumGrupos', 'cfgNumVoltas', 'cfgVitoria', 'cfgEmpate', 'cfgDerrota', 'cfgBonus', 'cfgGoleada', 'cfgSets', 'cfgGamesPerSet', 'cfgSuperTieBreak', 'scheduleHint',
     'cfgMataMata', 'cfgNumPlayoffTeams',
     'teamsList', 'squadTeamSelect', 'squadPlayerNum', 'squadPlayerFromDB', 'btnAddPlayerFromDB', 'squadList',
     'calendarList', 'resultsList', 'standingsWrapper', 'statsGrid',

@@ -331,6 +331,15 @@ export const en = {
     winsLabel: (count: number) => `${count} wins`,
     drawsLabel: (count: number) => `${count} draws`,
     diffLabel: (diff: number) => `(diff ${diff})`,
+    /** Labels for racket sports, where the points are games. */
+    racket: {
+      gamesPlayed: 'Games played',
+      gamesPerMatchAvg: 'Games / match avg',
+      mostGamesWon: '🔥 Most games won',
+      fewestGamesLost: '🧱 Fewest games lost',
+      gamesLabel: (count: number) => `${count} games`,
+      lostLabel: (count: number) => `${count} lost`,
+    },
   },
 
   historyTab: {
@@ -402,6 +411,21 @@ export const en = {
     cancelGoalTitle: 'Cancel last goal',
     kickOffButton: '▶ Kick off',
     fullTimeButton: '⏹ Full time',
+  },
+
+  padelScore: {
+    addGameTitle: 'Add game',
+    cancelGameTitle: 'Cancel last game',
+    setCol: (n: number) => `Set ${n}`,
+    superTieBreakCol: 'STB',
+    formatLine: (sets: number, games: number, stb: boolean) =>
+      `Best of ${sets} · ${games} games per set${stb ? ' · super tie-break' : ''}`,
+    noGamesYet: 'No games played yet.',
+    game: 'GAME',
+    set: 'SET!',
+    gameCancelled: 'GAME CANCELLED',
+    matchStart: 'MATCH START',
+    matchOver: 'MATCH OVER',
   },
 
   animations: {

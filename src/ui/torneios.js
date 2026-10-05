@@ -94,6 +94,13 @@ export function renderHeaderTournament(meta) {
     const icon = isKnown ? (sport.icon || '🏆') : (meta?.sport === 'padel' ? '🎾' : '🏆');
     dom.headerSportBadge.textContent = `${icon} ${label}`;
   }
+  // Settings that only apply to one sport
+  if (typeof document === 'undefined') return;
+  const sportId = getSport(meta?.sport).id;
+  document.body.dataset.sport = sportId;
+  document.querySelectorAll('[data-sport-only]').forEach((el) => {
+    el.hidden = el.dataset.sportOnly !== sportId;
+  });
 }
 
 /**

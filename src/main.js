@@ -2,7 +2,8 @@ import { state, persistConfigTeams, loadState, persistSchedule, persistResults, 
 import { closeGameModal, animateResultChanges, dom, cacheDom, renderAll, refreshComputed, renderScheduleHint, renderSquadList, renderSquadsDropdown, flashError, flashBackup, renderCalendar, renderResults, showToast, flashSaved, openConfirm, closeConfirm, openDangerConfirm, switchTab, confirmCallback, openScorerModal, openPlayerProfile, computeStatsSummary, renderPlayersList, openPlayerModal, renderSquadPlayerFromDBDropdown, renderDraftTeams, renderSingularHistorico, currentDraft, renderAuth, renderUsers, renderLog, openPickPlayerModal, squadPickList, renderTournamentsList, openNovoTorneioModal } from './ui.js';
 import { clamp, numOr, escapeHtml, buildPlayerIndex } from './utils.js';
 import { shareStandings, shareResult } from './share.js';
-import { bergerRounds, balancedDraft, buildFirstRoundSeeding, buildExtraVolta, getPlayoffWinner, buildArchiveEntry, GAME_STATUS, alignAssists, addGoal, removeGoal, setGameStatus } from './algorithms.js';
+import { bergerRounds, balancedDraft, buildFirstRoundSeeding, buildExtraVolta, buildArchiveEntry, GAME_STATUS, alignAssists } from './algorithms.js';
+import { getSport } from './sports/registry.js';
 import { initFirebaseListener, onFirebaseStateChange, onFirebasePushError, setSyncedSnapshot, initAuth, signInWithGoogle, signOutUser, getCurrentUser, getCurrentRole, getCurrentUserAdmin, listenUsers, listenLog, setUserRole, listenTournaments, createTournament, finishTournament, setActiveTournamentId } from './firebase.js';
 import { roleLabel } from './permissions.js';
 import { en } from './i18n/en.js';
@@ -17,6 +18,11 @@ export function onConfigFieldChange() {
   state.config.pontosDerrota = numOr(dom.cfgDerrota.value, 0);
   state.config.bonusGoleada = numOr(dom.cfgBonus.value, 1);
   state.config.golosGoleada = numOr(dom.cfgGoleada.value, 3);
+  state.config.setFormat = {
+    sets: [1, 3, 5].includes(+dom.cfgSets.value) ? +dom.cfgSets.value : 3,
+    gamesPerSet: clamp(parseInt(dom.cfgGamesPerSet.value, 10) || 6, 1, 9),
+    superTieBreak: dom.cfgSuperTieBreak.checked,
+  };
   state.config.mataMata = dom.cfgMataMata.checked;
   state.config.numPlayoffTeams = parseInt(dom.cfgNumPlayoffTeams.value, 10) || 4;
   state.config.numGrupos = parseInt(dom.cfgNumGrupos.value, 10) || 1;
@@ -97,7 +103,7 @@ function onSquadListClick(e) {
 /** Passa o vencedor de um jogo de eliminatória terminado para o jogo seguinte do bracket. */
 function propagatePlayoffWinner(gi) {
   const game = state.schedule[gi];
-  const winnerIdx = getPlayoffWinner(game, state.results[gi]);
+  const winnerIdx = currentSport().getPlayoffWinner(game, state.results[gi], state.config);
   if (winnerIdx === null || !game.nextMatchId) return;
 
   const [targetMatchId, targetSide] = game.nextMatchId.split('_');
@@ -121,8 +127,13 @@ function commitResult(gi, next) {
   refreshComputed();
 }
 
+/** The sport of the tournament on screen. */
+function currentSport() {
+  return getSport(state.meta?.sport || state.config?.sport);
+}
+
 function changeGameStatus(gi, status) {
-  commitResult(gi, setGameStatus(state.results[gi], status));
+  commitResult(gi, currentSport().setGameStatus(state.results[gi], status));
 }
 
 function onStatusBtnClick(btn) {
@@ -132,15 +143,20 @@ function onStatusBtnClick(btn) {
   changeGameStatus(btn.dataset.gi, cycle[current] ?? 'agendado');
 }
 
-/** Asks for the scorer (and assist) and then adds the goal. */
+/** Adds a point: in football asks for the scorer (and assist) first; in padel adds a game. */
 function onGoalAdd(gi, side) {
+  const sport = currentSport();
+  if (sport.id !== 'football') {
+    commitResult(gi, sport.addPoint(state.results[gi], side, state.config));
+    return;
+  }
   // O resultado é sempre calculado a partir do estado no momento de gravar:
   // entre o clique e a escolha do marcador pode chegar um golo de outro telemóvel.
   openScorerModal(gi, side, (pid) => {
     const game = state.schedule[gi];
     if (!game) return;
     const teamIdx = side === 'home' ? game.home : game.away;
-    const registerGoal = (aid) => commitResult(gi, addGoal(state.results[gi], side, pid, aid));
+    const registerGoal = (aid) => commitResult(gi, sport.addPoint(state.results[gi], side, state.config, pid, aid));
 
     // Autogolo não tem assistência
     if (pid === 'auto') registerGoal('');
@@ -149,7 +165,7 @@ function onGoalAdd(gi, side) {
 }
 
 function onGoalCancel(gi, side) {
-  commitResult(gi, removeGoal(state.results[gi], side));
+  commitResult(gi, currentSport().removePoint(state.results[gi], side, state.config));
 }
 
 function onScoreBtnClick(btn) {
@@ -854,9 +870,10 @@ export function bindEvents() {
 
   // Configuração
   dom.cfgNome.addEventListener('blur', onConfigFieldChange);
-  [dom.cfgVitoria, dom.cfgEmpate, dom.cfgDerrota, dom.cfgBonus, dom.cfgGoleada].forEach((el) => {
+  [dom.cfgVitoria, dom.cfgEmpate, dom.cfgDerrota, dom.cfgBonus, dom.cfgGoleada, dom.cfgGamesPerSet].forEach((el) => {
     el.addEventListener('blur', onConfigFieldChange);
   });
+  [dom.cfgSets, dom.cfgSuperTieBreak].forEach((el) => el.addEventListener('change', onConfigFieldChange));
   [dom.cfgNumEquipas, dom.cfgNumVoltas].forEach((el) => {
     el.addEventListener('input', renderScheduleHint);
     el.addEventListener('blur', onFormatFieldChange);

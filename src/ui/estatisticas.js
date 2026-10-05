@@ -1,7 +1,8 @@
 import { state } from '../state.js';
 import { getTeamName, getTeamDisplay, escapeHtml, buildPlayerIndex } from '../utils.js';
-import { computeStandings, GAME_STATUS } from '../algorithms.js';
+import { GAME_STATUS } from '../algorithms.js';
 import { getSport } from '../sports/registry.js';
+import { RacketSport } from '../sports/RacketSport.js';
 import { StatsTable } from '../components/StatsTable.js';
 import { dom } from './dom.js';
 import { en } from '../i18n/en.js';
@@ -42,17 +43,19 @@ export function computeScorerStats() {
 }
 
 export function statCardsHtml(summary) {
+  const t = summary.racket ? { ...en.statsTab, ...en.statsTab.racket } : null;
   const cards = [
     [en.statsTab.matchesPlayed, `${summary.played} / ${summary.total}`],
     [en.statsTab.remainingMatches, String(summary.pendentes)],
-    [en.statsTab.goalsScored, String(summary.totalGoals)],
-    [en.statsTab.goalsPerMatchAvg, summary.media.toFixed(2)],
-    [en.statsTab.bestAttack, summary.bestAtkLabel],
-    [en.statsTab.bestDefense, summary.bestDefLabel],
+    [t ? t.gamesPlayed : en.statsTab.goalsScored, String(summary.totalGoals)],
+    [t ? t.gamesPerMatchAvg : en.statsTab.goalsPerMatchAvg, summary.media.toFixed(2)],
+    [t ? t.mostGamesWon : en.statsTab.bestAttack, summary.bestAtkLabel],
+    [t ? t.fewestGamesLost : en.statsTab.bestDefense, summary.bestDefLabel],
     [en.statsTab.biggestBlowout, summary.biggestWinLabel],
     [en.statsTab.mostWins, summary.mostWinsLabel],
-    [en.statsTab.mostDraws, summary.mostDrawsLabel],
   ];
+  // No draws in racket sports
+  if (!summary.racket) cards.push([en.statsTab.mostDraws, summary.mostDrawsLabel]);
 
   return cards.map(([label, value]) =>
     `<div class="stat-card"><div class="stat-label">${label}</div><div class="stat-value">${escapeHtml(value)}</div></div>`
@@ -73,7 +76,9 @@ export function renderStatsGrid(summary) {
 // ---------------------------------------------------------------------------
 export function computeStatsSummary() {
   const teamsArray = state.teams.slice(0, state.scheduleTeamCount);
-  const groupsData = computeStandings(teamsArray, state.schedule, state.results, state.config);
+  const sport = getSport(state.meta?.sport);
+  const racket = sport instanceof RacketSport;
+  const groupsData = sport.computeStandings(teamsArray, state.schedule, state.results, state.config);
   let flatStandings = [];
   groupsData.forEach((g) => { flatStandings = flatStandings.concat(g.standings); });
 
@@ -83,7 +88,7 @@ export function computeStatsSummary() {
     const val = state.results[k];
     if (typeof val === 'object' && val.status === GAME_STATUS.AGENDADO) return false;
     const scoreStr = val ? (typeof val === 'object' ? val.score : String(val)) : '';
-    return /^\d+-\d+$/.test(scoreStr.trim());
+    return /^\d+-\d+( \d+-\d+)*$/.test((scoreStr || '').trim());
   });
 
   const played = playedKeys.length;
@@ -107,9 +112,9 @@ export function computeStatsSummary() {
     if (!resObj) return;
     if (typeof resObj === 'object' && resObj.status === GAME_STATUS.AGENDADO) return;
     const resStr = typeof resObj === 'object' ? resObj.score : String(resObj);
-    const m = /^(\d+)-(\d+)$/.exec(resStr.trim());
-    if (!m) return;
-    const diff = Math.abs(+m[1] - +m[2]);
+    const pts = sport.scoreTotals(resStr, state.config);
+    if (!pts) return;
+    const diff = Math.abs(pts.home - pts.away);
     if (!biggestWin || diff > biggestWin.diff) {
       biggestWin = { diff, text: `${getTeamName(g.home)} ${resStr} ${getTeamName(g.away)}` };
     }
@@ -138,8 +143,9 @@ export function computeStatsSummary() {
     pendentes: total - played,
     totalGoals,
     media,
-    bestAtkLabel: bestAtk ? `${bestAtk.name} — ${en.statsTab.goalsLabel(bestAtk.GM)}` : '—',
-    bestDefLabel: bestDef ? `${bestDef.name} — ${en.statsTab.concededLabel(bestDef.GS)}` : '—',
+    racket,
+    bestAtkLabel: bestAtk ? `${bestAtk.name} — ${racket ? en.statsTab.racket.gamesLabel(bestAtk.GM) : en.statsTab.goalsLabel(bestAtk.GM)}` : '—',
+    bestDefLabel: bestDef ? `${bestDef.name} — ${racket ? en.statsTab.racket.lostLabel(bestDef.GS) : en.statsTab.concededLabel(bestDef.GS)}` : '—',
     mostWinsLabel: mostWins ? `${mostWins.name} — ${en.statsTab.winsLabel(mostWins.V)}` : '—',
     mostDrawsLabel: mostDraws ? `${mostDraws.name} — ${en.statsTab.drawsLabel(mostDraws.E)}` : '—',
     biggestWinLabel: biggestWin ? `${biggestWin.text}  ${en.statsTab.diffLabel(biggestWin.diff)}` : '—',

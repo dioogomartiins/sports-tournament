@@ -137,6 +137,15 @@ export abstract class Sport {
   ): Score;
 
   /**
+   * Points per side in a score string (goals in football, games in padel),
+   * or null when the score is not a valid result.
+   */
+  scoreTotals(score: string | undefined): { home: number; away: number } | null {
+    const m = /^(\d+)-(\d+)$/.exec((score || '').trim());
+    return m ? { home: +m[1], away: +m[2] } : null;
+  }
+
+  /**
    * Updates the game status (scheduled, in progress, finished).
    */
   setGameStatus(res: MatchResult | undefined, status: GameStatus): Score {

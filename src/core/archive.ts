@@ -1,4 +1,5 @@
 import { getSport } from '../sports/registry.js';
+import type { Sport } from '../sports/Sport.js';
 import {
   GAME_STATUS,
   type ArchiveEntry,
@@ -23,13 +24,15 @@ import {
 export function getChampion(
   schedule: Match[],
   results: Record<string | number, MatchResult>,
-  groupsData: GroupStandings[]
+  groupsData: GroupStandings[],
+  sport: Sport = getSport(),
+  config?: Config
 ): number | null {
   const playoffs = schedule.map((g, gi) => ({ g, gi })).filter(({ g }) => g.isPlayoff);
   if (playoffs.length) {
     const final = playoffs.find(({ g }) => !g.nextMatchId);
     if (!final) return null;
-    const winner = getSport().getPlayoffWinner(final.g, results[final.gi]);
+    const winner = sport.getPlayoffWinner(final.g, results[final.gi], config);
     return typeof winner === 'number' ? winner : null;
   }
   if (groupsData.length !== 1) return null;
@@ -81,7 +84,7 @@ export function buildArchiveEntry(
     };
   };
 
-  const champIdx = getChampion(snap.schedule, snap.results, groupsData);
+  const champIdx = getChampion(snap.schedule, snap.results, groupsData, sport, snap.config);
   const tally = sport.tallyPlayerStats(snap.results, []);
   const jogadores: ArchivePlayer[] = Object.keys(tally)
     .map((pid) => ({

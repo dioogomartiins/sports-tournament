@@ -3,6 +3,8 @@ import { getTeamDisplay, escapeHtml } from '../utils.js';
 import { GAME_STATUS } from '../algorithms.js';
 import { dom } from './dom.js';
 import { openGameModal, refreshGameModal } from './jogo.js';
+import { getSport } from '../sports/registry.js';
+import { RacketSport } from '../sports/RacketSport.js';
 import { en } from '../i18n/en.js';
 
 // ---------------------------------------------------------------------------
@@ -89,6 +91,8 @@ export function renderResults() {
   });
 
   const parts = [];
+  const sport = getSport(state.meta?.sport);
+  const racket = sport instanceof RacketSport ? sport : null;
 
   state.roundsMeta.forEach((rm) => {
     const j = rm.jornada;
@@ -131,6 +135,11 @@ export function renderResults() {
           `</div>`;
       }
 
+      if (racket) {
+        parts.push(racketFixtureHtml(racket, g, gi, val, status));
+        return;
+      }
+
       parts.push(
         `<div class="fixture fixture-input" data-game="${gi}">` +
         `<span class="fx-home">${getTeamDisplay(g.home)}</span>` +
@@ -166,4 +175,31 @@ export function renderResults() {
   });
 
   refreshGameModal();
+}
+
+/**
+ * Result row of a racket sport: sets won with − / + one game per side, and
+ * the games of every set underneath. Scores are typed game by game only.
+ */
+function racketFixtureHtml(sport, g, gi, val, status) {
+  const sets = sport.setsOf(val);
+  const won = sets.length ? sport.setsWon(sets, sport.format(state.config)) : null;
+  const side = (s) =>
+    `<button class="score-btn" data-gi="${gi}" data-side="${s}" data-action="sub" title="${en.padelScore.cancelGameTitle}">-</button>` +
+    `<span class="res-box res-static" data-side="${s}">${won ? won[s] : ''}</span>` +
+    `<button class="score-btn" data-gi="${gi}" data-side="${s}" data-action="add" title="${en.padelScore.addGameTitle}">+</button>`;
+  const setsLine = sets.length
+    ? `<div class="sets-line">${escapeHtml(sport.formatSets(sets))}</div>`
+    : '';
+  return (
+    `<div class="fixture fixture-input" data-game="${gi}">` +
+    `<span class="fx-home">${getTeamDisplay(g.home)}</span>` +
+    `<div class="result-split">${side('home')}<span class="res-sep">-</span>${side('away')}</div>` +
+    `<span class="fx-away">${getTeamDisplay(g.away)}</span>` +
+    setsLine +
+    `<div class="fixture-actions">${getStatusBadge(status, gi)}` +
+    `<button class="mini-btn game-open-btn" data-gi="${gi}" title="${en.results.matchButtonTitle}">${en.results.matchButton}</button>` +
+    `</div>` +
+    `</div>`
+  );
 }

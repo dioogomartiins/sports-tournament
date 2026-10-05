@@ -162,7 +162,31 @@
           </div>
         </div>
 
-        <div class="card">
+        <div class="card" data-sport-only="padel" hidden>
+          <div class="section-title">🎾 Set format</div>
+          <div class="form-grid">
+            <div class="field">
+              <label for="cfgSets">Sets per match</label>
+              <select id="cfgSets" class="input">
+                <option value="1">1 set</option>
+                <option value="3">Best of 3</option>
+                <option value="5">Best of 5</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="cfgGamesPerSet">Games per set</label>
+              <input type="number" id="cfgGamesPerSet" class="input" min="1" max="9" step="1">
+            </div>
+            <div class="field" style="flex-direction:row;align-items:center;gap:10px;">
+              <input type="checkbox" id="cfgSuperTieBreak" style="width:18px;height:18px;cursor:pointer;">
+              <label for="cfgSuperTieBreak" style="margin:0;cursor:pointer;">Super tie-break in the deciding set</label>
+            </div>
+          </div>
+          <p class="field-note" style="margin-top:10px;">A set is won with a 2-game lead (6-4) or 7-6. The super
+            tie-break is played to 10 points by 2 and counts as one game in the standings.</p>
+        </div>
+
+        <div class="card" data-sport-only="football">
           <div class="section-title">📐 Scoring</div>
           <div class="form-grid">
             <div class="field"><label for="cfgVitoria">Win</label><input type="number" id="cfgVitoria" class="input"
@@ -365,8 +389,11 @@
           </div>
           <div class="table-wrap" id="standingsWrapper">
           </div>
-          <p class="field-note" style="margin-top:14px;">Tiebreaker criteria, in order: points → goal difference → goals
+          <p class="field-note" style="margin-top:14px;" data-sport-only="football">Tiebreaker criteria, in order: points → goal difference → goals
             scored → head-to-head (mini-table of matches between tied teams) → fewest goals conceded → alphabetical order.</p>
+          <p class="field-note" style="margin-top:14px;" data-sport-only="padel" hidden>Ranked by games won (GW). Tiebreaker
+            criteria, in order: game difference → head-to-head → fewest games lost → alphabetical order. A super tie-break
+            counts as one game.</p>
         </div>
       </section>
 

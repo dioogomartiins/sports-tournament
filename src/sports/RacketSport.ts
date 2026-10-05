@@ -145,6 +145,12 @@ export abstract class RacketSport extends Sport {
     return games;
   }
 
+  /** Games per side of a set score string, for summaries (biggest win…). */
+  scoreTotals(score: string | undefined, config?: Config | null): SetScore | null {
+    const sets = this.parseSets(score);
+    return sets.length ? this.gamesOf(sets, this.format(config)) : null;
+  }
+
   // -------------------------------------------------------------------------
   // Scoring, game by game
   // -------------------------------------------------------------------------

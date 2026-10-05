@@ -93,6 +93,22 @@
   margin: 0;
 }
 
+.res-static {
+  display: inline-block;
+  min-height: 1.4em;
+  line-height: 1.4em;
+}
+
+.sets-line {
+  grid-column: 1 / -1;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 13px;
+  letter-spacing: .04em;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
 .res-sep {
   color: var(--ink-faint);
   font-weight: 600;
