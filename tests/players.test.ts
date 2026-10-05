@@ -25,6 +25,12 @@ describe('defaultPlayerAttrs', () => {
       fisico: 0,
     });
   });
+
+  it('usa os atributos de cada modalidade', () => {
+    expect(defaultPlayerAttrs('padel')).toEqual({ volley: 0, smash: 0, lob: 0, walls: 0, defense: 0, fitness: 0 });
+    // Unknown sport falls back to football
+    expect(Object.keys(defaultPlayerAttrs('curling'))).toContain('velocidade');
+  });
 });
 
 describe('normalizePlayer', () => {

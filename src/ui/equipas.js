@@ -3,6 +3,8 @@ import { getTeamName, escapeHtml, safeColor } from '../utils.js';
 import { getPlayerRating, getTeamTotalRating } from '../algorithms.js';
 import { dom, isAdminView } from './dom.js';
 import { en } from '../i18n/en.js';
+import { getSport } from '../sports/registry.js';
+import { setConfirmCallback } from './modais.js';
 
 // ---------------------------------------------------------------------------
 // Render — Teams
@@ -67,13 +69,14 @@ export function renderSquadList() {
   }
 
   const currentSport = state.meta?.sport || state.config?.sport || 'football';
-  const sortedSquad = squad.slice().sort((a, b) => a.num - b.num);
+  const numbered = getSport(currentSport).usesJerseyNumbers;
+  const sortedSquad = squad.slice().sort((a, b) => (numbered ? a.num - b.num : a.name.localeCompare(b.name)));
   const html = sortedSquad.map((p) => {
     const dbPlayer = state.players.find((pl) => pl.id === p.id);
     const ratingStr = dbPlayer ? ` <span style="font-size:12px; color:var(--gold-dark); font-weight:700;">&#9733; ${getPlayerRating(dbPlayer, currentSport).toFixed(1)}</span>` : '';
     return (
       `<div class="player-row">` +
-      `<div class="player-info"><span class="player-num">${escapeHtml(p.num)}</span><span style="font-weight:600;">${escapeHtml(p.name)}</span>${ratingStr}</div>` +
+      `<div class="player-info">${numbered ? `<span class="player-num">${escapeHtml(p.num)}</span>` : ''}<span style="font-weight:600;">${escapeHtml(p.name)}</span>${ratingStr}</div>` +
       `<div style="display:flex; gap:6px;">` +
       `<button class="btn btn-ghost player-stats-btn" data-idx="${tIdx}" data-pid="${escapeHtml(p.id)}" style="color:var(--pitch-800); background:var(--paper); border:1px solid var(--line); padding:4px 8px; font-size:12px;">📊 ${en.common.stats}</button>` +
       `<button class="player-del" data-requires="admin" data-idx="${tIdx}" data-pid="${escapeHtml(p.id)}" title="${en.squads.removePlayerTitle}">&times;</button>` +
@@ -103,12 +106,60 @@ export function renderSquadPlayerFromDBDropdown() {
   const currentSquad = tIdx ? (state.squads[tIdx] || []) : [];
   const currentIds = new Set(currentSquad.map((p) => p.id));
 
+  const currentSport = state.meta?.sport || state.config?.sport || 'football';
   const opts = [`<option value="">${en.squads.selectPlayerPlaceholder}</option>`];
   const sorted = state.players.slice().sort((a, b) => a.nome.localeCompare(b.nome));
   sorted.forEach((pl) => {
     if (!currentIds.has(pl.id)) {
-      opts.push(`<option value="${escapeHtml(pl.id)}">${escapeHtml(pl.nome)} (★ ${getPlayerRating(pl).toFixed(1)})</option>`);
+      opts.push(`<option value="${escapeHtml(pl.id)}">${escapeHtml(pl.nome)} (★ ${getPlayerRating(pl, currentSport).toFixed(1)})</option>`);
     }
   });
   dom.squadPlayerFromDB.innerHTML = opts.join('');
+}
+
+/**
+ * Asks which players to draw into pairs (two per team, balanced by rating).
+ * @param {(ids: string[]) => void} onDraw - receives the chosen player ids.
+ */
+export function openDrawPairsModal(onDraw) {
+  const currentSport = state.meta?.sport || state.config?.sport || 'football';
+  const needed = state.scheduleTeamCount * 2;
+  const sorted = state.players.slice().sort((a, b) => a.nome.localeCompare(b.nome));
+  const rows = sorted.map((p) =>
+    `<label class="draft-player-row">` +
+    `<input type="checkbox" class="draft-checkbox" data-pid="${escapeHtml(p.id)}">` +
+    `<span class="draft-player-nome">${escapeHtml(p.nome)}</span>` +
+    `<span class="draft-player-rating">★ ${getPlayerRating(p, currentSport).toFixed(1)}</span>` +
+    `</label>`
+  ).join('');
+
+  dom.modalTitle.textContent = en.squads.drawPairsTitle;
+  dom.modalBody.innerHTML =
+    `<p class="field-note" style="margin-bottom:10px;">${escapeHtml(en.squads.drawPairsNote(needed))}</p>` +
+    `<p class="draft-selected-count" id="drawPairsCount">${escapeHtml(en.squads.drawPairsCount(0, needed))}</p>` +
+    (rows || `<p class="empty">${en.players.noPlayersAdmin}</p>`);
+
+  const boxes = Array.from(dom.modalBody.querySelectorAll('.draft-checkbox'));
+  const chosen = () => boxes.filter((b) => b.checked).map((b) => b.dataset.pid);
+  const refresh = () => {
+    const n = chosen().length;
+    document.getElementById('drawPairsCount').textContent = en.squads.drawPairsCount(n, needed);
+    dom.modalConfirm.disabled = n !== needed;
+    dom.modalConfirm.style.opacity = n === needed ? '' : '0.5';
+  };
+  boxes.forEach((b) => b.addEventListener('change', refresh));
+
+  dom.modalCancel.innerHTML = en.common.cancel;
+  dom.modalCancel.style.background = 'var(--paper)';
+  dom.modalCancel.style.color = 'var(--ink)';
+  dom.modalCancel.hidden = false;
+  dom.modalConfirm.innerHTML = en.squads.drawPairsButton;
+  dom.modalConfirm.style.background = 'var(--gold)';
+  dom.modalConfirm.style.color = '#000';
+  dom.modalConfirm.hidden = false;
+  dom.modalConfirm.style.display = '';
+  refresh();
+
+  setConfirmCallback(() => onDraw(chosen()));
+  dom.modalOverlay.hidden = false;
 }

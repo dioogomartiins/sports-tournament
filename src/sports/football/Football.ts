@@ -66,6 +66,10 @@ export class Football extends Sport {
     ];
   }
 
+  ratingAttributes(): Record<string, string> {
+    return en.players.attributes;
+  }
+
   playerStatColumns(): PlayerStatColumn[] {
     return [
       { key: 'golos', title: en.statsTab.topScorers, unit: en.common.goals, empty: en.statsTab.noGoalsYet },

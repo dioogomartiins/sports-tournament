@@ -8,12 +8,22 @@ import { setConfirmCallback, openConfirm } from './modais.js';
 import { renderDraftPlayerList } from './singular.js';
 import { computeAllTimeStats } from './historico.js';
 import { en } from '../i18n/en.js';
+import { getSport } from '../sports/registry.js';
 
 // ---------------------------------------------------------------------------
 // Render — Players (Database)
 // ---------------------------------------------------------------------------
 
-const ATTR_LABELS = en.players.attributes;
+/** Rating attribute labels of a sport (key → label). */
+function attrLabels(sportId) {
+  return getSport(sportId).ratingAttributes();
+}
+
+/** A player's ratings for one sport (football also reads the legacy `atributos`). */
+function sportAttrs(p, sportId) {
+  const id = getSport(sportId).id;
+  return (id === 'football' ? (p.ratings?.football || p.atributos) : p.ratings?.[id]) || {};
+}
 
 function playerInitials(nome) {
   return (nome || '?').split(' ').slice(0, 2).map((w) => w[0]).join('').toUpperCase();
@@ -35,8 +45,8 @@ export function renderPlayersList() {
   const cards = sorted.map((p) => {
     const rating = getPlayerRating(p, currentSport);
     const teamName = p.teamIdx !== null && p.teamIdx !== undefined ? getTeamName(p.teamIdx) : en.players.noTeam;
-    const playerAttrs = p.ratings?.[currentSport] || p.ratings?.football || p.atributos || {};
-    const attrs = Object.entries(ATTR_LABELS).map(([key, label]) =>
+    const playerAttrs = sportAttrs(p, currentSport);
+    const attrs = Object.entries(attrLabels(currentSport)).map(([key, label]) =>
       `<div class="player-attr-item">` +
       `<span class="player-attr-label">${label.substring(0, 3)}</span>` +
       `<span class="player-attr-val">${Number(playerAttrs[key]) || 0}</span>` +
@@ -103,8 +113,8 @@ export function openPlayerModal(pid = null) {
 
   const playerRatings = {
     football: { ...(existing?.ratings?.football || existing?.atributos || defaultPlayerAttrs('football')) },
-    padel: { ...(existing?.ratings?.padel || defaultPlayerAttrs('padel')) },
     ...(existing?.ratings || {}),
+    padel: { ...defaultPlayerAttrs('padel'), ...(existing?.ratings?.padel || {}) },
   };
 
   const teamOpts = [`<option value="">${en.players.noTeam}</option>`];
@@ -150,7 +160,8 @@ export function openPlayerModal(pid = null) {
 
   function updateRatingPreview() {
     const currentAttrs = getActiveAttrs();
-    const avg = Object.values(currentAttrs).reduce((s, v) => s + (Number(v) || 0), 0) / 6;
+    const keys = Object.keys(attrLabels(activeSport));
+    const avg = keys.reduce((s, k) => s + (Number(currentAttrs[k]) || 0), 0) / keys.length;
     const el = document.getElementById('playerModalRatingPreview');
     if (el) el.textContent = `★ ${avg.toFixed(1)}`;
   }
@@ -175,7 +186,7 @@ export function openPlayerModal(pid = null) {
 
   function renderStarRows() {
     const currentAttrs = getActiveAttrs();
-    const rows = Object.entries(ATTR_LABELS).map(([key, label]) => {
+    const rows = Object.entries(attrLabels(activeSport)).map(([key, label]) => {
       const val = currentAttrs[key] || 0;
       const stars = [1, 2, 3, 4, 5].map((n) =>
         `<button type="button" class="star-btn${n <= val ? ' filled' : ''}" data-attr="${key}" data-val="${n}">★</button>`
@@ -295,8 +306,8 @@ export function openPlayerProfile(pId, tIdx = null) {
     const currentSport = state.meta?.sport || state.config?.sport || 'football';
     const rating = getPlayerRating(dbPlayer, currentSport);
     const sportLabel = currentSport === 'padel' ? `🎾 ${en.common.padel}` : `⚽ ${en.common.football}`;
-    const playerAttrs = dbPlayer.ratings?.[currentSport] || dbPlayer.ratings?.football || dbPlayer.atributos || {};
-    const attrs = Object.entries(ATTR_LABELS).map(([key, label]) =>
+    const playerAttrs = sportAttrs(dbPlayer, currentSport);
+    const attrs = Object.entries(attrLabels(currentSport)).map(([key, label]) =>
       `<div class="player-attr-item">` +
       `<span class="player-attr-label">${label.substring(0, 3)}</span>` +
       `<span class="player-attr-val">${Number(playerAttrs[key]) || 0}</span>` +
@@ -319,7 +330,7 @@ export function openPlayerProfile(pId, tIdx = null) {
     `<div style="text-align:center; padding: 10px 0;">` +
     `<div style="font-size:40px; margin-bottom:10px;">👤</div>` +
     `<h2 style="font-size:24px; margin-bottom:4px;">${escapeHtml(player.name)}</h2>` +
-    `<div style="color:var(--ink-faint); font-weight:600;">${en.players.jerseyTeamLabel(player.num, escapeHtml(teamName))}</div>` +
+    `<div style="color:var(--ink-faint); font-weight:600;">${getSport(state.meta?.sport).usesJerseyNumbers ? en.players.jerseyTeamLabel(escapeHtml(player.num), escapeHtml(teamName)) : escapeHtml(teamName)}</div>` +
     `</div>` +
     attrsHtml +
     `<div class="stats-grid" style="margin-top:20px; grid-template-columns: 1fr 1fr;">` +

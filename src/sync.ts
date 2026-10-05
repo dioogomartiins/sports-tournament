@@ -12,8 +12,10 @@ import type {
   ArchivePlayer,
   Player,
   PlayerAttributes,
+  RatingAttributes,
 } from './types.js';
 import { en } from './i18n/en.js';
+import { getSport } from './sports/registry.js';
 
 function same(a: unknown, b: unknown): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
@@ -200,9 +202,9 @@ export function normalizeArquivo(arquivo?: unknown): ArchiveEntry[] {
   })) as unknown as ArchiveEntry[];
 }
 
-export function defaultPlayerAttrs(sport?: string): PlayerAttributes {
-  void sport;
-  return { velocidade: 0, finalizacao: 0, passe: 0, drible: 0, defesa: 0, fisico: 0 };
+/** All of a sport's rating attributes at 0 (football when the sport is unknown). */
+export function defaultPlayerAttrs(sport?: string): RatingAttributes {
+  return Object.fromEntries(Object.keys(getSport(sport).ratingAttributes()).map((k) => [k, 0]));
 }
 
 /**
@@ -217,13 +219,13 @@ export function normalizePlayer(p: unknown): Player | null {
     obj.ratings && typeof obj.ratings === 'object'
       ? (obj.ratings as Record<string, unknown>)
       : {};
-  const ratings: Record<string, PlayerAttributes> = {};
+  const ratings: Record<string, RatingAttributes> = {};
 
   Object.keys(ratingsRaw).forEach((s) => {
     if (ratingsRaw[s] && typeof ratingsRaw[s] === 'object') {
       ratings[s] = Object.assign(
         defaultPlayerAttrs(s),
-        ratingsRaw[s] as Partial<PlayerAttributes>,
+        ratingsRaw[s] as RatingAttributes,
       );
     }
   });
@@ -245,7 +247,7 @@ export function normalizePlayer(p: unknown): Player | null {
         ? (typeof obj.teamIdx === 'number' ? obj.teamIdx : Number(obj.teamIdx))
         : null,
     ratings,
-    atributos: ratings.football,
+    atributos: ratings.football as PlayerAttributes,
   };
 }
 

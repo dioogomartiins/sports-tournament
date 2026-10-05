@@ -1,18 +1,20 @@
-import type { Player, PlayerAttributes } from '../types.js';
+import type { Player } from '../types.js';
+import { getSport } from '../sports/registry.js';
 
 // ---------------------------------------------------------------------------
 // Player Ratings & Snake / Balanced Draft (Single Match / Jogo Singular)
 // ---------------------------------------------------------------------------
 
 export type PlayerWithAttributes = Partial<Player> & {
-  ratings?: Record<string, Partial<PlayerAttributes>>;
-  atributos?: Partial<PlayerAttributes>;
+  ratings?: Record<string, Record<string, unknown>>;
+  atributos?: Record<string, unknown>;
   [key: string]: unknown;
 };
 
 /**
- * Calculates a player's overall rating for a given sport (average of attributes, 0-5).
- * Defaults to football if not specified.
+ * Calculates a player's overall rating for a given sport: the average of that
+ * sport's rating attributes (0-5). Football also reads the legacy `atributos`;
+ * other sports only their own ratings.
  * @returns rating rounded to 1 decimal place.
  */
 export function getPlayerRating(
@@ -20,12 +22,13 @@ export function getPlayerRating(
   sport = 'football'
 ): number {
   if (!player) return 0;
+  const s = getSport(sport);
   const ratings = player.ratings || {};
-  const a = ratings[sport] || ratings.football || player.atributos;
+  const a = s.id === 'football' ? (ratings.football || player.atributos) : ratings[s.id];
   if (!a) return 0;
-  const vals = [a.velocidade, a.finalizacao, a.passe, a.drible, a.defesa, a.fisico];
-  const sum = vals.reduce((s, v) => s + (Number(v) || 0), 0);
-  return Math.round((sum / 6) * 10) / 10;
+  const keys = Object.keys(s.ratingAttributes());
+  const sum = keys.reduce((acc, k) => acc + (Number(a[k]) || 0), 0);
+  return Math.round((sum / keys.length) * 10) / 10;
 }
 
 /**
@@ -148,4 +151,22 @@ export function balancedDraft<T extends PlayerWithAttributes>(
     equipaA: sorted.filter((_, i) => inA[i]),
     equipaB: sorted.filter((_, i) => !inA[i]),
   };
+}
+
+/**
+ * Draws balanced pairs: players sorted by rating, the best paired with the
+ * worst, the second best with the second worst, and so on. An odd player out
+ * is left unpaired.
+ */
+export function balancedPairs<T extends PlayerWithAttributes>(
+  players: T[],
+  sport = 'football'
+): { pairs: [T, T][]; leftOver: T | null } {
+  const sorted = players.slice().sort((a, b) => getPlayerRating(b, sport) - getPlayerRating(a, sport));
+  const leftOver = sorted.length % 2 ? sorted.splice(Math.floor(sorted.length / 2), 1)[0] : null;
+  const pairs: [T, T][] = [];
+  for (let i = 0; i < sorted.length / 2; i++) {
+    pairs.push([sorted[i], sorted[sorted.length - 1 - i]]);
+  }
+  return { pairs, leftOver };
 }
