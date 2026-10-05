@@ -29,7 +29,10 @@
             <button class="theme-toggle-btn auth-btn" id="btnConta" title="Entrar com Google">🔑 Entrar</button>
           </div>
         </div>
-        <h1 id="tournamentTitle">Futebol ILOG</h1>
+        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+          <h1 id="tournamentTitle">Futebol ILOG</h1>
+          <span class="sport-badge" id="headerSportBadge">⚽ Futebol</span>
+        </div>
         <span class="marquee-ticker" id="marqueeTicker">—</span>
       </div>
     </header>
@@ -75,6 +78,15 @@
 
       <!-- DASHBOARD -->
       <section id="tab-dashboard" class="panel active">
+        <div class="card" id="cardTorneiosAtivos">
+          <div class="torneios-header">
+            <div class="section-title" style="margin-bottom:0;">🏆 Torneios Ativos</div>
+            <button class="btn btn-sm btn-gold" id="btnNovoTorneioModal" data-requires="admin">➕ Novo Torneio</button>
+          </div>
+          <p class="section-sub">Seleciona o torneio que pretendes acompanhar neste dispositivo.</p>
+          <div class="torneios-grid" id="listaTorneiosAtivos"></div>
+        </div>
+
         <div class="card">
           <div class="section-title">🏆 Classificação — Top 3</div>
           <div class="podium" id="dashboardPodium"></div>
@@ -408,11 +420,10 @@
         </div>
 
         <div class="card">
-          <div class="section-title">🗄️ Arquivar Torneio</div>
-          <p class="section-sub">Guarda a classificação final, o campeão e as estatísticas dos jogadores no
-            Histórico, e limpa o calendário e os resultados para começar um torneio novo. Equipas, plantéis,
-            jogadores e jogos singulares mantêm-se.</p>
-          <button class="btn btn-gold" id="btnArquivar" style="margin-top: 12px;">🗄️ Arquivar e Começar Novo</button>
+          <div class="section-title">🏁 Terminar e Arquivar Torneio</div>
+          <p class="section-sub">Termina o torneio atual, guarda a classificação final, campeão e estatísticas dos jogadores no
+            Histórico, e retira o torneio da lista de torneios ativos.</p>
+          <button class="btn btn-gold" id="btnArquivar" style="margin-top: 12px;">🏁 Terminar e Arquivar Torneio</button>
         </div>
 
         <div class="card" style="border-color: var(--danger);">

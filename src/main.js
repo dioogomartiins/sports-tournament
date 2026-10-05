@@ -1,10 +1,10 @@
-import { state, persistConfigTeams, loadState, persistSchedule, persistResults, persistJogosSingulares, persistArquivo, storeAllLayers, notifyPushError, currentTheme, setCurrentTheme, exportJSON, importJSON, applyGeneratedSchedule, applySnapshot, buildSnapshot, defaultTeams, defaultSquads, setStateHooks } from './state.js';
-import { closeGameModal, dom, cacheDom, renderAll, refreshComputed, renderScheduleHint, renderSquadList, renderSquadsDropdown, flashError, flashBackup, renderCalendar, renderResults, showToast, flashSaved, openConfirm, closeConfirm, openDangerConfirm, switchTab, confirmCallback, openScorerModal, openPlayerProfile, computeStatsSummary, renderPlayersList, openPlayerModal, renderSquadPlayerFromDBDropdown, renderDraftTeams, renderSingularHistorico, currentDraft, renderAuth, renderUsers, renderLog, openPickPlayerModal, squadPickList } from './ui.js';
+import { state, persistConfigTeams, loadState, persistSchedule, persistResults, persistJogosSingulares, storeAllLayers, notifyPushError, currentTheme, setCurrentTheme, exportJSON, importJSON, applyGeneratedSchedule, applySnapshot, buildSnapshot, defaultTeams, defaultSquads, setStateHooks, setCurrentTournamentId, getCurrentTournamentId } from './state.js';
+import { closeGameModal, dom, cacheDom, renderAll, refreshComputed, renderScheduleHint, renderSquadList, renderSquadsDropdown, flashError, flashBackup, renderCalendar, renderResults, showToast, flashSaved, openConfirm, closeConfirm, openDangerConfirm, switchTab, confirmCallback, openScorerModal, openPlayerProfile, computeStatsSummary, renderPlayersList, openPlayerModal, renderSquadPlayerFromDBDropdown, renderDraftTeams, renderSingularHistorico, currentDraft, renderAuth, renderUsers, renderLog, openPickPlayerModal, squadPickList, renderTournamentsList, openNovoTorneioModal } from './ui.js';
 import { clamp, numOr, escapeHtml, buildPlayerIndex } from './utils.js';
 import { shareStandings, shareResult } from './share.js';
 import { animateResultChanges } from './animations.js';
-import { bergerRounds, balancedDraft, buildFirstRoundSeeding, buildExtraVolta, getPlayoffWinner, buildArchiveEntry, countPlayedGames, GAME_STATUS, alignAssists, addGoal, removeGoal, setGameStatus } from './algorithms.js';
-import { initFirebaseListener, onFirebaseStateChange, onFirebasePushError, setSyncedSnapshot, initAuth, signInWithGoogle, signOutUser, getCurrentUser, getCurrentRole, listenUsers, listenLog, setUserRole } from './firebase.js';
+import { bergerRounds, balancedDraft, buildFirstRoundSeeding, buildExtraVolta, getPlayoffWinner, buildArchiveEntry, GAME_STATUS, alignAssists, addGoal, removeGoal, setGameStatus } from './algorithms.js';
+import { initFirebaseListener, onFirebaseStateChange, onFirebasePushError, setSyncedSnapshot, initAuth, signInWithGoogle, signOutUser, getCurrentUser, getCurrentRole, listenUsers, listenLog, setUserRole, listenTournaments, createTournament, finishTournament, setActiveTournamentId } from './firebase.js';
 import { roleLabel } from './permissions.js';
 
 // ---------------------------------------------------------------------------
@@ -304,12 +304,77 @@ export function onNovoTorneio() {
   });
 }
 
-export function onArquivar() {
-  if (!countPlayedGames(state.results)) {
-    showToast('Ainda não há jogos disputados para arquivar.', 'error');
-    return;
-  }
+// ---------------------------------------------------------------------------
+// Gestão de Torneios Ativos
+// ---------------------------------------------------------------------------
+const LAST_VIEWED_TOURNAMENT_KEY = 'torneio_last_viewed_tournament';
 
+export function getLastViewedTournamentId() {
+  try {
+    return localStorage.getItem(LAST_VIEWED_TOURNAMENT_KEY) || 'default';
+  } catch {
+    return 'default';
+  }
+}
+
+export function setLastViewedTournamentId(id) {
+  try {
+    if (id) {
+      localStorage.setItem(LAST_VIEWED_TOURNAMENT_KEY, id);
+    } else {
+      localStorage.removeItem(LAST_VIEWED_TOURNAMENT_KEY);
+    }
+  } catch {
+    // ignora em ambientes restritos
+  }
+}
+
+let allTournaments = [];
+
+export function getAllTournaments() {
+  return allTournaments;
+}
+
+export function setAllTournaments(tourneys) {
+  allTournaments = tourneys;
+}
+
+export function renderTournaments() {
+  renderTournamentsList(
+    allTournaments,
+    getCurrentTournamentId(),
+    onSelectTournament,
+    onTerminarTorneio,
+  );
+}
+
+export function onSelectTournament(id) {
+  if (!id || id === getCurrentTournamentId()) return;
+  setLastViewedTournamentId(id);
+  setCurrentTournamentId(id);
+  setActiveTournamentId(id);
+  const found = allTournaments.find((t) => t.id === id);
+  if (found) {
+    state.meta = { ...found };
+  }
+  renderTournaments();
+  renderAll();
+}
+
+export function onNovoTorneioModalClick() {
+  openNovoTorneioModal(async ({ name, sport, numEquipas }) => {
+    const res = await createTournament({ name, sport, numEquipas });
+    if (res && res.ok && res.tournamentId) {
+      showToast('Torneio criado com sucesso!', 'ok');
+      onSelectTournament(res.tournamentId);
+    } else {
+      showToast('Não foi possível criar o torneio.', 'error');
+    }
+  });
+}
+
+export function onTerminarTorneio(tid = getCurrentTournamentId()) {
+  const tourneyName = state.meta?.name || state.config?.nome || 'Torneio';
   const porJogar = state.schedule.filter((g, gi) => {
     const r = state.results[gi];
     return !(r && typeof r === 'object' ? r.status === GAME_STATUS.TERMINADO : typeof r === 'string');
@@ -320,30 +385,39 @@ export function onArquivar() {
     : '';
 
   openConfirm(
-    'Arquivar Torneio',
-    `<strong>${escapeHtml(state.config.nome)}</strong> vai para o Histórico com a classificação e as estatísticas atuais. ` +
-    'O calendário e os resultados são limpos para começares um torneio novo. Continuar?' + aviso,
+    'Terminar Torneio',
+    `Tem a certeza de que deseja terminar o torneio <strong>${escapeHtml(tourneyName)}</strong>? ` +
+    'A classificação e as estatísticas finais serão guardadas no Histórico e o torneio será marcado como terminado.' + aviso,
     async () => {
       const index = buildPlayerIndex();
       const names = {};
       Object.keys(index).forEach((pid) => { names[pid] = index[pid].name; });
 
       const entry = buildArchiveEntry(state, names, crypto.randomUUID(), new Date().toISOString());
-      state.arquivo = [...state.arquivo, entry];
-      state.results = {};
-      state.schedule = [];
-      state.roundsMeta = [];
-      state.scheduleTeamCount = 0;
-      state.scheduleVoltas = 0;
 
-      await persistArquivo();
-      await persistSchedule();
-      await persistResults();
-      renderAll();
+      const res = await finishTournament(tid, entry);
+      if (!res.ok) {
+        showToast('Erro ao terminar torneio: ' + (res.reason || 'sem permissão'), 'error');
+        return;
+      }
+
+      showToast('Torneio terminado e guardado no Histórico!', 'ok');
+
+      // Se o torneio terminado era o que estava a ser visualizado, muda para o próximo ativo
+      const remainingActive = allTournaments.filter((t) => t.id !== tid && t.status === 'active');
+      if (remainingActive.length > 0) {
+        onSelectTournament(remainingActive[0].id);
+      } else {
+        renderTournaments();
+        renderAll();
+      }
       switchTab('historico');
-      showToast('Torneio arquivado no Histórico!', 'ok');
     },
   );
+}
+
+export function onArquivar() {
+  onTerminarTorneio(getCurrentTournamentId());
 }
 
 export function onAtualizar() {
@@ -800,6 +874,9 @@ export function bindEvents() {
   // Jogo Singular — Draft
   if (dom.btnFazerDraft) dom.btnFazerDraft.addEventListener('click', onFazerDraft);
   if (dom.btnGuardarJogo) dom.btnGuardarJogo.addEventListener('click', onGuardarJogo);
+
+  // Torneios
+  if (dom.btnNovoTorneioModal) dom.btnNovoTorneioModal.addEventListener('click', onNovoTorneioModalClick);
 }
 
 // ---------------------------------------------------------------------------
@@ -820,10 +897,24 @@ function renderWhenIdle() {
   if (isEditingField()) { renderPending = true; return; }
   renderPending = false;
   renderAll();
+  renderTournaments();
 }
 
 export async function init() {
-  setStateHooks({ flashError, flashSaved, flashBackup, showToast, openConfirm, renderAll });
+  const initialTournamentId = getLastViewedTournamentId();
+  setCurrentTournamentId(initialTournamentId);
+
+  setStateHooks({
+    flashError,
+    flashSaved,
+    flashBackup,
+    showToast,
+    openConfirm,
+    renderAll: () => {
+      renderAll();
+      renderTournaments();
+    },
+  });
   cacheDom();
   bindEvents();
   await loadState();
@@ -831,7 +922,7 @@ export async function init() {
   renderAuth(null, null);
   initAuth(onAuthChange);
 
-  initFirebaseListener();
+  initFirebaseListener(initialTournamentId);
   onFirebasePushError(notifyPushError);
   onFirebaseStateChange((data, isFirstLoad) => {
     if (data) {
@@ -844,21 +935,42 @@ export async function init() {
     }
   });
 
+  listenTournaments((tournaments) => {
+    allTournaments = tournaments;
+    const currentId = getCurrentTournamentId();
+    const activeTournaments = tournaments.filter((t) => t.status === 'active');
+
+    // Se o torneio atual não for ativo mas existirem torneios ativos, muda para o primeiro ativo
+    if (activeTournaments.length > 0 && !activeTournaments.some((t) => t.id === currentId)) {
+      onSelectTournament(activeTournaments[0].id);
+      return;
+    }
+
+    renderTournaments();
+  });
+
   // Quem está a escrever num campo grava ao sair dele; só depois se redesenha
   document.addEventListener('focusout', () => {
     if (!renderPending) return;
     setTimeout(() => {
-      if (renderPending && !isEditingField()) { renderPending = false; renderAll(); }
+      if (renderPending && !isEditingField()) {
+        renderPending = false;
+        renderAll();
+        renderTournaments();
+      }
     }, 0);
   });
 
   renderAll();
+  renderTournaments();
   switchTab('dashboard');
 }
 
 // Ponto de entrada
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', init);
-} else {
-  init();
+if (typeof document !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
 }

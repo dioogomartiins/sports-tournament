@@ -12,5 +12,6 @@
 @import './dados.css'; /* Zona de perigo (apagar dados) e confirmação */
 @import './sessao.css'; /* Sessão, perfis e utilizadores */
 @import './historico.css'; /* Histórico de torneios arquivados */
+@import './torneios.css'; /* Lista de torneios ativos e cartões */
 @import './partilha.css'; /* Assistências, MVP e partilha */
 @import './jogo.css'; /* Janela do jogo e animações */

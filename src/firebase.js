@@ -1,7 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getDatabase, connectDatabaseEmulator, ref, onValue, update, push, query, orderByChild, limitToLast, serverTimestamp, get } from "firebase/database";
 import { getAuth, connectAuthEmulator, GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
-import { diffSnapshot, describeUpdates, onlyMetadata } from "./sync.js";
+import { diffSnapshot, describeUpdates, onlyMetadata, normalizeMeta, normalizeConfig } from "./sync.js";
 import { blockedPaths, roleLabel } from "./permissions.js";
 
 const firebaseConfig = {
@@ -302,4 +302,126 @@ export function setUserRole(uid, role, nome) {
     [`utilizadores/${uid}/role`]: role,
     ...logEntry(`Perfil de ${nome || uid} alterado para ${roleLabel(role)}`),
   });
+}
+
+// ---------------------------------------------------------------------------
+// Torneios (listar, criar e terminar)
+// ---------------------------------------------------------------------------
+export function listenTournaments(callback) {
+  return onValue(ref(database, 'tournaments'), async (snapshot) => {
+    let val = snapshot.val() || {};
+    if (Object.keys(val).length === 0) {
+      try {
+        const legacySnap = await get(ref(database, 'torneio_state'));
+        const legacyVal = legacySnap.val();
+        if (legacyVal) {
+          val = {
+            default: {
+              meta: {
+                name: (legacyVal.config && legacyVal.config.nome) || 'Futebol ILOG',
+                sport: 'football',
+                status: 'active',
+                createdAt: Date.now(),
+              },
+              config: legacyVal.config,
+            },
+          };
+        }
+      } catch {
+        // ignore
+      }
+    }
+    const list = Object.keys(val).map((id) => {
+      const t = val[id] || {};
+      const meta = normalizeMeta(t.meta, t.config);
+      return {
+        id,
+        ...meta,
+      };
+    });
+    callback(list);
+  }, (err) => console.error("Firebase error reading tournaments:", err));
+}
+
+export async function finishTournament(tournamentId = activeTournamentId, archiveEntry) {
+  if (!currentUser) return { ok: false, reason: 'sem-sessao' };
+  if (currentRole !== 'admin') return { ok: false, reason: 'sem-permissao' };
+
+  let currentMeta = {};
+  try {
+    const metaSnap = await get(ref(database, `tournaments/${tournamentId}/meta`));
+    currentMeta = metaSnap.val() || {};
+  } catch {
+    // fallback
+  }
+
+  const updatedMeta = {
+    name: currentMeta.name || 'Torneio',
+    sport: currentMeta.sport || 'football',
+    status: 'finished',
+    createdAt: currentMeta.createdAt || Date.now(),
+  };
+
+  const log = logEntry(`Torneio ${updatedMeta.name} terminado e arquivado`, tournamentId);
+  const logKey = Object.keys(log)[0].split('/')[2];
+
+  const rootUpdates = {
+    ...log,
+    [`tournaments/${tournamentId}/logRef`]: logKey,
+    [`tournaments/${tournamentId}/meta`]: updatedMeta,
+  };
+
+  if (archiveEntry && archiveEntry.id) {
+    rootUpdates[`arquivo/${archiveEntry.id}`] = archiveEntry;
+  }
+
+  await update(ref(database), rootUpdates);
+  return { ok: true };
+}
+
+export async function createTournament({ name, sport = 'football', numEquipas = 8, numVoltas = 2 }) {
+  if (!currentUser) return { ok: false, reason: 'sem-sessao' };
+  if (currentRole !== 'admin') return { ok: false, reason: 'sem-permissao' };
+
+  const tournamentId = 't_' + Date.now();
+  const meta = {
+    name: (name || 'Novo Torneio').slice(0, 100),
+    sport,
+    status: 'active',
+    createdAt: Date.now(),
+  };
+
+  const config = normalizeConfig({
+    nome: meta.name,
+    sport,
+    numEquipas: Number(numEquipas) || 8,
+    numVoltas: Number(numVoltas) || 2,
+  });
+
+  const emptyTeams = Array.from({ length: 32 }, () => ({ name: '', color: '#2F7A4F' }));
+  const emptySquads = Array.from({ length: 32 }, () => []);
+
+  const log = logEntry(`Criação do torneio ${meta.name} (${sport})`, tournamentId);
+  const logKey = Object.keys(log)[0].split('/')[2];
+
+  const rootUpdates = {
+    ...log,
+    [`tournaments/${tournamentId}/logRef`]: logKey,
+    [`tournaments/${tournamentId}/meta`]: meta,
+    [`tournaments/${tournamentId}/config`]: config,
+    [`tournaments/${tournamentId}/teams`]: emptyTeams,
+    [`tournaments/${tournamentId}/squads`]: emptySquads,
+    [`tournaments/${tournamentId}/schedule`]: [],
+    [`tournaments/${tournamentId}/roundsMeta`]: [],
+    [`tournaments/${tournamentId}/scheduleTeamCount`]: config.numEquipas,
+    [`tournaments/${tournamentId}/scheduleVoltas`]: config.numVoltas,
+    [`tournaments/${tournamentId}/results`]: {},
+    [`tournaments/${tournamentId}/players`]: [],
+    [`tournaments/${tournamentId}/jogosSingulares`]: [],
+    [`tournaments/${tournamentId}/version`]: 9,
+    [`tournaments/${tournamentId}/exportedAt`]: new Date().toISOString(),
+  };
+
+  await update(ref(database), rootUpdates);
+  return { ok: true, tournamentId };
 }
