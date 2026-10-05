@@ -44,11 +44,11 @@ export class DashboardPodium extends LightElement {
     return html`
       <table class="mini-table">
         <thead><tr>
-          <th>${en.standings.cols.pos}</th><th style="text-align:left;">${en.standings.cols.team}</th>
-          <th>${en.standings.cols.p}</th><th>${en.standings.cols.pts}</th>
+          <th class="num">${en.standings.cols.pos}</th><th>${en.standings.cols.team}</th>
+          <th class="num">${en.standings.cols.p}</th><th class="num">${en.standings.cols.pts}</th>
         </tr></thead>
         <tbody>${rest.map((s, i) => html`
-          <tr><td class="num">${i + 4}</td><td style="text-align:left;">${teamLabel(this.teams, s.idx)}</td><td class="num">${s.J}</td><td class="num">${s.Pts}</td></tr>`)}
+          <tr><td class="num">${i + 4}</td><td>${teamLabel(this.teams, s.idx)}</td><td class="num">${s.J}</td><td class="num">${s.Pts}</td></tr>`)}
         </tbody>
       </table>`;
   }

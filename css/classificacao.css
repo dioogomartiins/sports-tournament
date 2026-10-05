@@ -207,3 +207,8 @@ tr.pos-bronze {
   padding: 6px 8px;
   font-size: 13px;
 }
+
+/* Numbers stay in narrow columns so the team name takes the free width */
+.mini-table .num {
+  width: 3.5rem;
+}
