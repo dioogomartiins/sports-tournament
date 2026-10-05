@@ -6,10 +6,9 @@ Database. Deployed to GitHub Pages at `/torneio-ilog/` on release tags (`release
 
 ## Language policy
 
-- **Code, comments, commit messages and documentation** are in **English**.
-- **UI-facing text** (labels, toasts, button captions shown to the user) stays
-  in **European Portuguese** (the app's audience). Keep new user-visible strings
-  consistent with the existing ones.
+- **Code, comments, commit messages, documentation and UI text** are in
+  **English**. Every user-visible string lives in `src/i18n/en.ts`; add new
+  ones there instead of writing them inline.
 
 ## Conventions
 
