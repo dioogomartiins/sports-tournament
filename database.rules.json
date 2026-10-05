@@ -1,7 +1,7 @@
 {
   "rules": {
     "torneio_state": {
-      ".read": true,
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'master' || root.child('users').child(auth.uid).child('admin').child('football').val() === true)",
       ".write": false
     },
     "torneio_log": {
@@ -35,11 +35,13 @@
         },
         "ratings": {
           "$sport": {
-            ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'master' || root.child('users').child(auth.uid).child('admin').child($sport).val() === true)"
+            ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'master' || root.child('users').child(auth.uid).child('admin').child($sport).val() === true)",
+            ".validate": "data.exists() || root.child('users').child(auth.uid).child('role').val() === 'master' || root.child('users').child(auth.uid).child('admin').child($sport).val() === true"
           }
         },
         "atributos": {
-          ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'master' || root.child('users').child(auth.uid).child('admin').child('football').val() === true)"
+          ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'master' || root.child('users').child(auth.uid).child('admin').child('football').val() === true)",
+          ".validate": "data.exists() || root.child('users').child(auth.uid).child('role').val() === 'master' || root.child('users').child(auth.uid).child('admin').child('football').val() === true"
         },
         "$outro": {
           ".validate": false

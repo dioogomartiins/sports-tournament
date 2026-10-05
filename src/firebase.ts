@@ -281,7 +281,7 @@ export function pushStateToFirebase(newState: Snapshot, tournamentId: string = a
     if (p === 'players') {
       const next = (newState.players || []) as Player[];
       if (!playersKeyed && isMaster(currentRole)) globalWrites['players'] = keyById(next);
-      else Object.assign(globalWrites, playerUpdates((prev.players || []) as Player[], next));
+      else Object.assign(globalWrites, playerUpdates((prev.players || []) as Player[], next, (s) => isSportAdmin(currentRole, s, currentUserAdmin)));
     } else if (p === 'arquivo') {
       const next = normalizeArquivo(newState.arquivo);
       if (!arquivoKeyed && isMaster(currentRole)) globalWrites['arquivo'] = keyById(next);
@@ -437,6 +437,7 @@ async function migrateLegacyRoles(): Promise<void> {
 function syncSinglesListener(): void {
   if (!canSeeSingleMatches(currentRole, currentUserAdmin)) {
     if (stopSinglesListener) { stopSinglesListener(); stopSinglesListener = null; }
+    clearHiddenSingles();
     return;
   }
   if (stopSinglesListener) return;
@@ -448,6 +449,21 @@ function syncSinglesListener(): void {
   }, (err) => console.error("Firebase error reading single matches:", err));
 }
 
+/**
+ * Drops the single matches this browser loaded while signed in with access
+ * (only the ones still stored in the tournament stay), so the next person on
+ * a shared phone does not see them, here or in the local copy.
+ */
+function clearHiddenSingles(): void {
+  if (!onStateChangeCallback || isFirstLoad) return;
+  const current = getSyncedSnapshot();
+  if (!current) return;
+  const visible = mergeSingles(legacySingles, null);
+  if (JSON.stringify(current.jogosSingulares || []) === JSON.stringify(visible)) return;
+  current.jogosSingulares = visible;
+  onStateChangeCallback(current, false);
+}
+
 // One-time rewrite by the master: players and the archive keyed by id (older
 // saves wrote arrays), and single matches moved out of the tournaments, which
 // anyone can read, into /singleMatches
@@ -455,6 +471,16 @@ let globalRecordsChecked = false;
 async function migrateGlobalRecords(): Promise<void> {
   if (globalRecordsChecked) return;
   globalRecordsChecked = true;
+  try {
+    await moveGlobalRecords();
+  } catch (err) {
+    // A failed read or write is tried again on the next role update
+    globalRecordsChecked = false;
+    throw err;
+  }
+}
+
+async function moveGlobalRecords(): Promise<void> {
   const [playersSnap, arqSnap, tournamentsSnap] = await Promise.all([
     get(ref(database, 'players')), get(ref(database, 'arquivo')), get(ref(database, 'tournaments')),
   ]);

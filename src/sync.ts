@@ -147,23 +147,41 @@ export function keyedUpdates<T extends Keyed>(node: string, prev: T[] | null | u
  * Root paths for player changes. A new or deleted player is written whole;
  * an edit is split per field and per sport's ratings, so an admin can only
  * change the ratings of their own sport.
+ *
+ * `canRate` says which sports' ratings the writer may set. Ratings the editor
+ * only filled in with defaults (all zeros, where the player had none) are left
+ * out for the other sports, so renaming a player or adding one does not try
+ * to write ratings outside the writer's sport. Football's ratings include the
+ * legacy `atributos`.
  */
-export function playerUpdates(prev: Player[] | null | undefined, next: Player[] | null | undefined): Record<string, unknown> {
+export function playerUpdates(
+  prev: Player[] | null | undefined,
+  next: Player[] | null | undefined,
+  canRate: (sport: string) => boolean = () => true,
+): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   const before = new Map((prev || []).filter((p) => p && p.id).map((p) => [p.id, p]));
   const after = new Map((next || []).filter((p) => p && p.id).map((p) => [p.id, p]));
+  const filledIn = (sport: string, had: unknown, value: unknown): boolean =>
+    !canRate(sport) && (had === undefined || had === null) && isDefaultRating(sport, value);
   after.forEach((p, id) => {
     const old = before.get(id);
     if (!old) {
-      out[`players/${id}`] = p;
+      const ratings: Record<string, RatingAttributes> = {};
+      Object.entries(p.ratings || {}).forEach(([sport, r]) => { if (!filledIn(sport, undefined, r)) ratings[sport] = r; });
+      const rec: Record<string, unknown> = { ...p, ratings };
+      if (filledIn('football', undefined, p.atributos)) delete rec.atributos;
+      out[`players/${id}`] = rec;
       return;
     }
     (['nome', 'teamIdx', 'atributos'] as const).forEach((f) => {
+      if (f === 'atributos' && filledIn('football', old.atributos, p.atributos)) return;
       if (!same(old[f], p[f])) out[`players/${id}/${f}`] = p[f] ?? null;
     });
     const a = old.ratings || {};
     const b = p.ratings || {};
     new Set([...Object.keys(a), ...Object.keys(b)]).forEach((sport) => {
+      if (filledIn(sport, a[sport], b[sport])) return;
       if (!same(a[sport], b[sport])) out[`players/${id}/ratings/${sport}`] = b[sport] ?? null;
     });
   });
@@ -319,6 +337,13 @@ export function normalizeArquivo(arquivo?: unknown): ArchiveEntry[] {
 /** All of a sport's rating attributes at 0 (football when the sport is unknown). */
 export function defaultPlayerAttrs(sport?: string): RatingAttributes {
   return Object.fromEntries(Object.keys(getSport(sport).ratingAttributes()).map((k) => [k, 0]));
+}
+
+/** Whether ratings are only the editor's defaults: every attribute at zero. */
+function isDefaultRating(sport: string, value: unknown): boolean {
+  if (!value || typeof value !== 'object') return false;
+  const keys = Object.keys(defaultPlayerAttrs(sport));
+  return Object.entries(value as Record<string, unknown>).every(([k, v]) => keys.includes(k) && v === 0);
 }
 
 /**

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { canWritePath, canWriteGlobalPath, canSeeSingleMatches, blockedPaths, roleLabel, isMaster, isSportAdmin } from '../src/permissions.js';
 
 describe('canWritePath', () => {
-  it('master pode gravar tudo exceto campos imutáveis', () => {
+  it('master writes everything except immutable fields', () => {
     expect(canWritePath('master', 'config')).toBe(true);
     expect(canWritePath('master', 'players')).toBe(true);
     expect(canWritePath('master', 'meta')).toBe(true);
@@ -10,7 +10,7 @@ describe('canWritePath', () => {
     expect(canWritePath('master', 'meta/sport')).toBe(false);
   });
 
-  it('admin com modalidade autorizada pode gravar config do seu desporto', () => {
+  it('an admin writes the config of their own sport', () => {
     const footAdminOpts = { sport: 'football', userAdmin: { football: true } };
     expect(canWritePath('admin', 'config', footAdminOpts)).toBe(true);
     expect(canWritePath('admin', 'schedule', footAdminOpts)).toBe(true);
@@ -18,7 +18,7 @@ describe('canWritePath', () => {
     expect(canWritePath('admin', 'meta/sport', footAdminOpts)).toBe(false);
   });
 
-  it('admin NÃO altera config nem resultados de modalidade diferente', () => {
+  it('an admin does NOT change config or results of another sport', () => {
     const footAdminOnPadel = { sport: 'padel', userAdmin: { football: true } };
     expect(canWritePath('admin', 'config', footAdminOnPadel)).toBe(false);
     expect(canWritePath('admin', 'schedule', footAdminOnPadel)).toBe(false);
@@ -27,13 +27,13 @@ describe('canWritePath', () => {
     expect(canWritePath('admin', 'schedule/1/home', footAdminOnPadel)).toBe(false);
   });
 
-  it('admin sem contexto de modalidade mantém compatibilidade', () => {
+  it('an admin with no sport context keeps the old behaviour', () => {
     expect(canWritePath('admin', 'config')).toBe(true);
     expect(canWritePath('admin', 'players')).toBe(true);
     expect(canWritePath('admin', 'meta/sport')).toBe(false);
   });
 
-  it('utilizador não grava jogos singulares, resultados nem vencedores de playoff', () => {
+  it('a user does not write single matches, results or playoff winners', () => {
     expect(canWritePath('user', 'results/3')).toBe(false);
     expect(canWritePath('user', 'schedule/4/home')).toBe(false);
     expect(canWritePath('user', 'schedule/4/away')).toBe(false);
@@ -41,7 +41,7 @@ describe('canWritePath', () => {
     expect(canWritePath('user', 'exportedAt')).toBe(true);
   });
 
-  it('utilizador não altera configuração, equipas, jogadores nem metadados', () => {
+  it('a user does not change config, teams, players or metadata', () => {
     expect(canWritePath('user', 'config')).toBe(false);
     expect(canWritePath('user', 'meta')).toBe(false);
     expect(canWritePath('user', 'meta/name')).toBe(false);
@@ -52,13 +52,13 @@ describe('canWritePath', () => {
     expect(canWritePath('user', 'roundsMeta')).toBe(false);
   });
 
-  it('utilizador não apaga nem reescreve o calendário', () => {
+  it('a user does not delete or rewrite the schedule', () => {
     expect(canWritePath('user', 'schedule')).toBe(false);
     expect(canWritePath('user', 'schedule/4')).toBe(false);
     expect(canWritePath('user', 'schedule/4/jornada')).toBe(false);
   });
 
-  it('pendentes e visitantes não gravam nada', () => {
+  it('pending users and visitors write nothing', () => {
     expect(canWritePath(null, 'results/0')).toBe(false);
     expect(canWritePath(undefined, 'exportedAt')).toBe(false);
     expect(canWritePath('outro', 'results/0')).toBe(false);
@@ -66,7 +66,7 @@ describe('canWritePath', () => {
 });
 
 describe('blockedPaths', () => {
-  it('devolve só os caminhos proibidos', () => {
+  it('returns only the forbidden paths', () => {
     const updates = { 'results/1': {}, config: {}, exportedAt: 'x' };
     expect(blockedPaths('user', updates)).toEqual(['results/1', 'config']);
     expect(blockedPaths('master', updates)).toEqual([]);
@@ -76,8 +76,8 @@ describe('blockedPaths', () => {
   });
 });
 
-describe('roleLabel, isMaster e isSportAdmin', () => {
-  it('mostra etiquetas corretas', () => {
+describe('roleLabel, isMaster and isSportAdmin', () => {
+  it('shows the right labels', () => {
     expect(roleLabel('master')).toBe('Master Admin');
     expect(roleLabel('admin')).toBe('Admin');
     expect(roleLabel('admin', { football: true })).toBe('Admin (Football)');
@@ -86,13 +86,13 @@ describe('roleLabel, isMaster e isSportAdmin', () => {
     expect(roleLabel(null)).toBe('Pending');
   });
 
-  it('isMaster valida corretamente', () => {
+  it('isMaster checks the role', () => {
     expect(isMaster('master')).toBe(true);
     expect(isMaster('admin')).toBe(false);
     expect(isMaster('user')).toBe(false);
   });
 
-  it('isSportAdmin valida modalidade', () => {
+  it('isSportAdmin checks the sport', () => {
     expect(isSportAdmin('master', 'football')).toBe(true);
     expect(isSportAdmin('master', 'padel')).toBe(true);
     expect(isSportAdmin('admin', 'football', { football: true })).toBe(true);

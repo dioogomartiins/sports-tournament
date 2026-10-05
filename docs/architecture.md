@@ -128,9 +128,9 @@ Notes:
 - `results` is indexed by the match's **position** in `schedule`. That is why the extra round and the playoffs append matches at the end and never reorder existing ones.
 - In `scorers`, `'auto'` is an own goal. `assists` is aligned with `scorers` (same position = same goal; `''` = no assist).
 - Player names in `arquivo` are copied when archiving, so the history survives deleted players.
-- In the app, the snapshot of the current tournament also carries `players`, `arquivo` and `jogosSingulares`; `pushStateToFirebase` writes them to the root nodes one record at a time (`keyedUpdates`, and `playerUpdates`, which also splits a player edit per field and per sport's ratings), so the rules can check each change. Older saves stored players and the archive as arrays: the Master Admin's first load rewrites them keyed by id (`migrateGlobalRecords`), and until then other admins' player and archive saves are refused with a toast.
+- In the app, the snapshot of the current tournament also carries `players`, `arquivo` and `jogosSingulares`; `pushStateToFirebase` writes them to the root nodes one record at a time (`keyedUpdates`, and `playerUpdates`, which also splits a player edit per field and per sport's ratings), so the rules can check each change. Ratings the player editor only filled in with zeros, for a sport the writer does not administer, are left out, so renaming or adding a player never touches another sport. Older saves stored players and the archive as arrays: the Master Admin's first load rewrites them keyed by id (`migrateGlobalRecords`), and until then other admins' player and archive saves are refused with a toast.
 - A tournament exists only once it is created (`createTournament`). While the id being viewed has no node (no tournament yet, or the last one was removed), the app shows an empty tournament but saves only `players` and `arquivo`, with no `tournament_log` entry since there is no tournament to log against; any change to the tournament itself is refused with a toast, so it is never created with default settings and listed as active.
-- Legacy nodes from before multiple tournaments (`torneio_state`, `torneio_log`, `utilizadores`) are read-only. `firebase.ts` falls back to `torneio_state` while `tournaments/default` does not exist, and migrates it the first time a Master Admin signs in (see [Setup](configuration.md#setting-up-firebase-once)).
+- Legacy nodes from before multiple tournaments (`torneio_state`, `torneio_log`, `utilizadores`) are read-only. `firebase.ts` falls back to `torneio_state` while `tournaments/default` does not exist (only the Master Admin and football Admins may read it, since it holds old single matches), and migrates it the first time a Master Admin signs in (see [Setup](configuration.md#setting-up-firebase-once)).
 
 Each device also keeps a copy in localStorage, to show the tournament as soon as it opens, before Firebase replies, and remembers the last tournament viewed.
 
@@ -157,12 +157,13 @@ The Firebase rules are the real protection; the client only hides buttons and wa
 | Path | Read | Write |
 |---|---|---|
 | `tournaments/<id>` | Everyone | `exportedAt`, `version`: User, sport admin and Master Admin. `results`, `schedule`, `meta` and the other sections: sport admin and Master Admin. `meta/sport` cannot change. |
-| `players` | Everyone | Adding a player: any Admin. Name and team: any Admin. `ratings/<sport>`: that sport's admins (`atributos`: football admins). Deleting a player or rewriting the whole node: Master Admin. |
+| `players` | Everyone | Adding a player: any Admin, with ratings only for their own sports. Name and team: any Admin. `ratings/<sport>`: that sport's admins (`atributos`: football admins). Deleting a player or rewriting the whole node: Master Admin. |
 | `arquivo` | Everyone | Each entry: Master Admin or an admin of the entry's sport, which cannot be changed to another sport (entries saved without a sport count as football). The whole node: Master Admin. |
 | `singleMatches` | Football admins and Master Admin | Football admins and Master Admin, one match at a time. |
 | `users` | Master Admin (all); each user their own | Each user their own name, email, photo and last access; `role` and `admin`: Master Admin only. |
 | `tournament_log/<id>` | Master Admin and the tournament's sport admins | User, Admin and Master Admin, new entries only, with their own `uid` and the server time. |
-| `torneio_state`, `torneio_log`, `utilizadores` | Legacy | Nobody. |
+| `torneio_state` | Master Admin and football Admins (it holds old single matches) | Nobody. |
+| `torneio_log`, `utilizadores` | Legacy | Nobody. |
 
 Besides who can write, the rules validate what is written: scores in the `"2-1"` format, known statuses (`agendado`, `decorrer`, `terminado`), per-side lists of scorers and assists, the fields of `meta`, and length-limited text. Every write to a tournament's sections (other than `exportedAt` and `version`) must also bring a new `logRef` (see [Activity log](#activity-log)).
 

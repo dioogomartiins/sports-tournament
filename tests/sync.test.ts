@@ -110,6 +110,20 @@ describe('keyed global records', () => {
     expect(playerUpdates([p], [])).toEqual({ 'players/p1': null });
   });
 
+  it('leaves out default ratings the editor filled in for sports the writer cannot rate', () => {
+    const footballOnly = (s: string) => s === 'football';
+    const p = { id: 'p1', nome: 'A', teamIdx: null, ratings: { football: { velocidade: 3 } }, atributos: { velocidade: 3 } };
+    const renamed = { ...p, nome: 'B', ratings: { ...p.ratings, padel: { smash: 0 } } };
+    expect(playerUpdates([p], [renamed], footballOnly)).toEqual({ 'players/p1/nome': 'B' });
+    // A real padel change is still sent, so the save is refused rather than lost
+    const rated = { ...p, ratings: { ...p.ratings, padel: { smash: 2 } } };
+    expect(playerUpdates([p], [rated], footballOnly)).toEqual({ 'players/p1/ratings/padel': { smash: 2 } });
+
+    const padelOnly = (s: string) => s === 'padel';
+    const created = { id: 'p2', nome: 'C', teamIdx: null, ratings: { football: { velocidade: 0 }, padel: { smash: 4 } }, atributos: { velocidade: 0 } };
+    expect(playerUpdates([], [created], padelOnly)).toEqual({ 'players/p2': { id: 'p2', nome: 'C', teamIdx: null, ratings: { padel: { smash: 4 } } } });
+  });
+
   it('tells arrays from records keyed by id', () => {
     expect(isKeyedById(null)).toBe(true);
     expect(isKeyedById({ p1: { id: 'p1' } })).toBe(true);
