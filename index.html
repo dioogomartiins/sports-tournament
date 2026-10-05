@@ -89,15 +89,14 @@
 
         <div class="card">
           <div class="section-title">🏆 Standings — Top 3</div>
-          <div class="podium" id="dashboardPodium"></div>
-          <div id="dashboardStandings"></div>
+          <dashboard-podium id="dashboardPodium"></dashboard-podium>
         </div>
         <div class="card">
           <div class="section-title">⚽ Stats</div>
-          <div class="stats-grid" id="dashboardStats"></div>
+          <div class="stats-grid"><stat-cards id="dashboardStats"></stat-cards></div>
         </div>
         <div class="card">
-          <div id="dashboardScorers"></div>
+          <top-scorers id="dashboardScorers"></top-scorers>
         </div>
       </section>
 
@@ -406,7 +405,7 @@
       <section id="tab-stats" class="panel">
         <div class="card">
           <div class="section-title">📊 Stats</div>
-          <div class="stats-grid" id="statsGrid"></div>
+          <div class="stats-grid"><stat-cards id="statsCards"></stat-cards><stats-table id="statsTable"></stats-table></div>
         </div>
       </section>
 
@@ -415,11 +414,11 @@
         <div class="card">
           <div class="section-title">🌟 All-Time Stats</div>
           <p class="section-sub">All archived tournaments, the current tournament, and single matches.</p>
-          <div id="historicoSempre"></div>
+          <all-time-stats id="historicoSempre"></all-time-stats>
         </div>
         <div class="card">
           <div class="section-title">🗄️ Archived Tournaments</div>
-          <div id="arquivoList"></div>
+          <archive-list id="arquivoList"></archive-list>
         </div>
       </section>
 

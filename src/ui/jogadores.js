@@ -2,11 +2,11 @@ import { state, normalizePlayer, defaultPlayerAttrs, persistPlayers, persistConf
 import { getTeamName, escapeHtml } from '../utils.js';
 import { getPlayerRating } from '../algorithms.js';
 import { dom, isAdminView } from './dom.js';
-import { showToast } from './avisos.js';
+import { showToast } from './toasts.js';
 import { renderSquadList, renderSquadPlayerFromDBDropdown } from './equipas.js';
 import { setConfirmCallback, openConfirm } from './modais.js';
 import { renderDraftPlayerList } from './singular.js';
-import { computeAllTimeStats } from './historico.js';
+import { computeAllTimeStats } from './history.js';
 import { en } from '../i18n/en.js';
 import { getSport } from '../sports/registry.js';
 

@@ -3,11 +3,13 @@ import { dom } from './dom.js';
 import { en } from '../i18n/en.js';
 
 // ---------------------------------------------------------------------------
-// Toasts and Save Status Indicators
+// Toasts and save status pills
 // ---------------------------------------------------------------------------
-let flashSavedTimer = null;
+let flashSavedTimer: number | undefined;
 
-export function showToast(msg, type) {
+export type ToastType = 'ok' | 'error';
+
+export function showToast(msg: string, type?: ToastType): void {
   const t = document.createElement('div');
   t.className = `toast${type === 'error' ? ' toast-error' : type === 'ok' ? ' toast-ok' : ''}`;
   t.textContent = msg;
@@ -19,23 +21,24 @@ export function showToast(msg, type) {
   }, 3200);
 }
 
-export function flashSaved() {
+export function flashSaved(): void {
   dom.savePill.textContent = en.common.savedCheck;
   dom.savePill.classList.remove('pill-error');
   dom.savePill.classList.add('pill-ok');
   clearTimeout(flashSavedTimer);
-  flashSavedTimer = setTimeout(() => {
+  flashSavedTimer = window.setTimeout(() => {
     dom.savePill.textContent = en.common.saved;
     dom.savePill.classList.remove('pill-ok');
   }, 1600);
 }
 
-export function flashError() {
+export function flashError(): void {
   dom.savePill.textContent = en.common.error;
   dom.savePill.classList.add('pill-error');
 }
 
-export function flashBackup(isoTimestamp) {
+export function flashBackup(isoTimestamp?: string): void {
+  if (!isoTimestamp) return;
   dom.backupPill.textContent = `💾 ${en.common.backup} ${fmtTimestamp(isoTimestamp)}`;
   dom.backupPill.classList.add('pill-fresh');
 }

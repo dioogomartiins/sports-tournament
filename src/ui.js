@@ -1,31 +1,31 @@
 import { state } from './state.js';
 import { GAME_STATUS } from './algorithms.js';
 import { dom } from './ui/dom.js';
-import { populateConfigForm, renderScheduleHint } from './ui/config.js';
+import { populateConfigForm, renderScheduleHint } from './ui/settings.js';
 import { renderTeams, renderSquadsDropdown, renderSquadPlayerFromDBDropdown } from './ui/equipas.js';
 import { renderCalendar, renderResults } from './ui/calendario.js';
-import { renderStandingsWrapper } from './ui/classificacao.js';
-import { renderStatsGrid, computeStatsSummary, renderDashboard, updateTicker } from './ui/estatisticas.js';
+import { renderStandingsWrapper } from './ui/standings.js';
+import { renderStatsGrid, computeStatsSummary, renderDashboard, updateTicker } from './ui/stats.js';
 import { renderPlayersList } from './ui/jogadores.js';
 import { renderDraftPlayerList, renderSingularHistorico } from './ui/singular.js';
-import { renderHistorico } from './ui/historico.js';
+import { renderHistorico } from './ui/history.js';
 import { renderHeaderTournament } from './ui/torneios.js';
 
 // The rest of the interface lives in src/ui/, one module per section; this file
 // brings everything together for modules importing from './ui.js'.
 export * from './ui/dom.js';
-export * from './ui/avisos.js';
-export * from './ui/navegacao.js';
-export * from './ui/config.js';
+export * from './ui/toasts.js';
+export * from './ui/navigation.js';
+export * from './ui/settings.js';
 export * from './ui/equipas.js';
 export * from './ui/calendario.js';
-export * from './ui/classificacao.js';
-export * from './ui/estatisticas.js';
+export * from './ui/standings.js';
+export * from './ui/stats.js';
 export * from './ui/modais.js';
 export * from './ui/jogadores.js';
 export * from './ui/singular.js';
 export * from './ui/admin.js';
-export * from './ui/historico.js';
+export * from './ui/history.js';
 export * from './ui/jogo.js';
 export * from './ui/torneios.js';
 

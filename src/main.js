@@ -1,5 +1,5 @@
 import { state, persistConfigTeams, loadState, persistSchedule, persistResults, persistJogosSingulares, storeAllLayers, notifyPushError, currentTheme, setCurrentTheme, exportJSON, importJSON, applyGeneratedSchedule, applySnapshot, buildSnapshot, defaultTeams, defaultSquads, setStateHooks, setCurrentTournamentId, getCurrentTournamentId } from './state.js';
-import { closeGameModal, animateResultChanges, dom, cacheDom, renderAll, refreshComputed, renderScheduleHint, renderSquadList, renderSquadsDropdown, flashError, flashBackup, renderCalendar, renderResults, showToast, flashSaved, openConfirm, closeConfirm, openDangerConfirm, switchTab, confirmCallback, openScorerModal, openPlayerProfile, computeStatsSummary, renderPlayersList, openPlayerModal, renderSquadPlayerFromDBDropdown, renderDraftTeams, renderSingularHistorico, currentDraft, renderAuth, renderUsers, renderLog, openPickPlayerModal, squadPickList, renderTournamentsList, openNovoTorneioModal, openDrawPairsModal } from './ui.js';
+import { closeGameModal, animateResultChanges, dom, cacheDom, renderAll, refreshComputed, renderScheduleHint, renderSquadList, renderSquadsDropdown, flashError, flashBackup, renderCalendar, renderResults, showToast, flashSaved, openConfirm, closeConfirm, openDangerConfirm, switchTab, confirmCallback, openScorerModal, openPlayerProfile, computeStatsSummary, renderPlayersList, openPlayerModal, renderSquadPlayerFromDBDropdown, renderDraftTeams, renderSingularHistorico, currentDraft, renderAuth, renderUsers, renderLog, openPickPlayerModal, squadPickList, renderTournamentsList, openNovoTorneioModal, openDrawPairsModal, bindHistoryEvents } from './ui.js';
 import { clamp, numOr, escapeHtml, buildPlayerIndex } from './utils.js';
 import { shareStandings, shareResult } from './share.js';
 import { bergerRounds, balancedDraft, balancedPairs, buildFirstRoundSeeding, buildExtraVolta, buildArchiveEntry, GAME_STATUS, alignAssists } from './algorithms.js';
@@ -808,6 +808,7 @@ function bindMenuDrawer() {
 // ---------------------------------------------------------------------------
 export function bindEvents() {
   bindMenuDrawer();
+  bindHistoryEvents();
 
   Array.from(document.querySelectorAll('.tab')).forEach((btn) => {
     btn.addEventListener('click', () => {

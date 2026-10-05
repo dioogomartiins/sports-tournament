@@ -3,18 +3,19 @@
 // ---------------------------------------------------------------------------
 // Light DOM with `display: contents`, so each card is a direct item of the
 // stats grid next to the summary cards, styled by the app's CSS.
-import { LitElement, html } from 'lit';
+import { html } from 'lit';
 import type { TemplateResult } from 'lit';
 import type { PlayerStatColumn, Sport } from '../sports/Sport.js';
 import type { PlayerStats } from '../types.js';
 import { en } from '../i18n/en.js';
+import { LightElement } from './LightElement.js';
 
 export interface PlayerInfo {
   name: string;
   team: string;
 }
 
-export class StatsTable extends LitElement {
+export class StatsTable extends LightElement {
   static properties = {
     sport: { attribute: false },
     tally: { attribute: false },
@@ -37,14 +38,7 @@ export class StatsTable extends LitElement {
     this.limit = 10;
   }
 
-  protected createRenderRoot(): HTMLElement {
-    return this;
-  }
-
-  connectedCallback(): void {
-    super.connectedCallback();
-    this.style.display = 'contents';
-  }
+  protected hostDisplay = 'contents' as const;
 
   render(): TemplateResult {
     const columns = this.sport ? this.sport.playerStatColumns() : [];
