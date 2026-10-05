@@ -26,7 +26,7 @@
             <span class="save-pill" id="savePill">Saved</span>
             <span class="backup-pill" id="backupPill">No backup</span>
             <button class="theme-toggle-btn" id="btnDarkMode" title="Toggle Dark/Light Mode">🌙</button>
-            <button class="theme-toggle-btn auth-btn" id="btnConta" title="Sign in with Google">🔑 Sign In</button>
+            <button class="theme-toggle-btn auth-btn" id="btnConta" title="Sign in with Google"></button>
           </div>
         </div>
         <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
@@ -84,7 +84,7 @@
             <button class="btn btn-sm btn-gold" id="btnNovoTorneioModal" data-requires="admin">➕ New Tournament</button>
           </div>
           <p class="section-sub">Select the tournament you want to follow on this device.</p>
-          <div class="torneios-grid" id="listaTorneiosAtivos"></div>
+          <tournament-list class="torneios-grid" id="listaTorneiosAtivos"></tournament-list>
         </div>
 
         <div class="card">
@@ -315,7 +315,7 @@
 
             <div class="section-title" style="font-size:14px; margin-bottom:12px;">Select Available Players
             </div>
-            <div id="draftPlayerList" style="margin-bottom:20px;"></div>
+            <player-picker id="draftPlayerList" style="margin-bottom:20px;"></player-picker>
 
             <button class="btn btn-gold" id="btnFazerDraft" style="width:100%; justify-content:center;" disabled>⚽ Run
               Draft</button>
@@ -323,7 +323,7 @@
 
           <div class="card" id="draftResultCard" style="display:none;">
             <div class="section-title">👥 Generated Teams</div>
-            <div id="draftTeamsResult"></div>
+            <draft-teams id="draftTeamsResult"></draft-teams>
 
             <div style="margin-top:24px; padding-top:16px; border-top:1px solid var(--line);">
               <div class="section-title" style="font-size:14px; margin-bottom:12px;">📝 Record Result</div>
@@ -351,7 +351,7 @@
         <div id="singular-historico" class="singular-panel">
           <div class="card">
             <div class="section-title">📅 Single Matches History</div>
-            <div id="singularHistoricoList"></div>
+            <single-match-history id="singularHistoricoList"></single-match-history>
           </div>
         </div>
       </section>
@@ -426,12 +426,12 @@
           <div class="section-title">👮 Users</div>
           <p class="section-sub">Users who sign in with Google start as pending (read-only) until you assign them a role.
             Users record results and single matches; admins can configure everything.</p>
-          <div id="usersList"><p class="empty">Loading…</p></div>
+          <user-list id="usersList"></user-list>
         </div>
         <div class="card">
           <div class="section-title">📜 Activity Log</div>
           <p class="section-sub">The last 200 changes, along with who made them.</p>
-          <div id="logList"><p class="empty">Loading…</p></div>
+          <activity-log id="logList"></activity-log>
         </div>
       </section>
 

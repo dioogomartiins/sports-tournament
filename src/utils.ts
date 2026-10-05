@@ -52,17 +52,6 @@ export function getTeamName(idx: number | string): string {
   return t && t.name ? t.name : `Team ${idx + 1}`;
 }
 
-export function getTeamDisplay(idx: number | string): string {
-  if (typeof idx === 'string') {
-    return `<span style="color:var(--ink-faint); font-style:italic; font-size:12px;">${escapeHtml(idx)}</span>`;
-  }
-  const teams = state.teams as Team[] | null | undefined;
-  const t = teams?.[idx] || { name: `Team ${idx + 1}`, color: '#2F7A4F' };
-  const name = escapeHtml(t.name || `Team ${idx + 1}`);
-  const colorBadge = `<span style="display:inline-block; width:10px; height:10px; border-radius:50%; background-color:${safeColor(t.color)}; margin-right:6px; box-shadow:0 0 2px rgba(0,0,0,0.3);"></span>`;
-  return `<span style="display:inline-flex; align-items:center; white-space:nowrap;">${colorBadge}${name}</span>`;
-}
-
 export function getActiveTeamNames(): string[] {
   const arr: string[] = [];
   const count = state.scheduleTeamCount || 0;
