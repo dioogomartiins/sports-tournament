@@ -68,7 +68,7 @@ export class PlayerCards extends LightElement {
         <div class="player-db-actions">
           <button class="btn btn-ghost" style=${SMALL_BTN} @click=${() => this.emit('player-profile', p.id)}>${en.players.statsButton}</button>
           <button class="btn btn-ghost" style=${SMALL_BTN} data-requires="admin" @click=${() => this.emit('player-edit', p.id)}>${en.players.editButton}</button>
-          <button class="btn btn-ghost" style="font-size:12px; padding:4px 10px; border:1px solid var(--danger); color:var(--danger);" data-requires="admin"
+          <button class="btn btn-ghost" style="font-size:12px; padding:4px 10px; border:1px solid var(--danger); color:var(--danger);" data-requires="master"
             @click=${() => this.emit('player-delete', p.id)}>${en.players.deleteButton}</button>
         </div>
       </div>`;

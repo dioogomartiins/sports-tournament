@@ -12,6 +12,7 @@ import type {
   ArchiveStandingRow,
   ArchivePlayer,
   Player,
+  SingleMatch,
   PlayerAttributes,
   RatingAttributes,
 } from './types.js';
@@ -97,7 +98,7 @@ export function onlyMetadata(updates: Record<string, unknown>): boolean {
 }
 
 /** Sections stored outside the tournament, at the database root. */
-const GLOBAL_SECTIONS: readonly string[] = ['players', 'arquivo'];
+const GLOBAL_SECTIONS: readonly string[] = ['players', 'arquivo', 'jogosSingulares'];
 
 /**
  * The part of an update that can be saved while the current tournament does
@@ -113,6 +114,117 @@ export function globalUpdatesOnly(updates: Record<string, unknown>): { updates: 
     else if (!META_SECTIONS.includes(p)) blocked = true;
   });
   return { updates: out, blocked };
+}
+
+/** Database node of each global section, at the root. */
+export const GLOBAL_NODES: Readonly<Record<string, string>> = {
+  players: 'players',
+  arquivo: 'arquivo',
+  jogosSingulares: 'singleMatches',
+};
+
+type Keyed = { id: string };
+
+/**
+ * Root paths for the change from one list of records to the next, one path
+ * per record id (null deletes it). Each record is written whole, so the rules
+ * can check who may change it without seeing the rest of the list.
+ */
+export function keyedUpdates<T extends Keyed>(node: string, prev: T[] | null | undefined, next: T[] | null | undefined): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  const before = new Map((prev || []).filter((r) => r && r.id).map((r) => [r.id, r]));
+  const after = new Map((next || []).filter((r) => r && r.id).map((r) => [r.id, r]));
+  after.forEach((r, id) => {
+    if (!same(before.get(id), r)) out[`${node}/${id}`] = r;
+  });
+  before.forEach((_, id) => {
+    if (!after.has(id)) out[`${node}/${id}`] = null;
+  });
+  return out;
+}
+
+/**
+ * Root paths for player changes. A new or deleted player is written whole;
+ * an edit is split per field and per sport's ratings, so an admin can only
+ * change the ratings of their own sport.
+ *
+ * `canRate` says which sports' ratings the writer may set. Ratings the editor
+ * only filled in with defaults (all zeros, where the player had none) are left
+ * out for the other sports, so renaming a player or adding one does not try
+ * to write ratings outside the writer's sport. Football's ratings include the
+ * legacy `atributos`.
+ */
+export function playerUpdates(
+  prev: Player[] | null | undefined,
+  next: Player[] | null | undefined,
+  canRate: (sport: string) => boolean = () => true,
+): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  const before = new Map((prev || []).filter((p) => p && p.id).map((p) => [p.id, p]));
+  const after = new Map((next || []).filter((p) => p && p.id).map((p) => [p.id, p]));
+  const filledIn = (sport: string, had: unknown, value: unknown): boolean =>
+    !canRate(sport) && (had === undefined || had === null) && isDefaultRating(sport, value);
+  after.forEach((p, id) => {
+    const old = before.get(id);
+    if (!old) {
+      const ratings: Record<string, RatingAttributes> = {};
+      Object.entries(p.ratings || {}).forEach(([sport, r]) => { if (!filledIn(sport, undefined, r)) ratings[sport] = r; });
+      const rec: Record<string, unknown> = { ...p, ratings };
+      if (filledIn('football', undefined, p.atributos)) delete rec.atributos;
+      out[`players/${id}`] = rec;
+      return;
+    }
+    (['nome', 'teamIdx', 'atributos'] as const).forEach((f) => {
+      if (f === 'atributos' && filledIn('football', old.atributos, p.atributos)) return;
+      if (!same(old[f], p[f])) out[`players/${id}/${f}`] = p[f] ?? null;
+    });
+    const a = old.ratings || {};
+    const b = p.ratings || {};
+    new Set([...Object.keys(a), ...Object.keys(b)]).forEach((sport) => {
+      if (filledIn(sport, a[sport], b[sport])) return;
+      if (!same(a[sport], b[sport])) out[`players/${id}/ratings/${sport}`] = b[sport] ?? null;
+    });
+  });
+  before.forEach((_, id) => {
+    if (!after.has(id)) out[`players/${id}`] = null;
+  });
+  return out;
+}
+
+/**
+ * Whether a global node already stores its records keyed by their id (the
+ * shape the rules expect). Older saves wrote them as arrays.
+ */
+export function isKeyedById(value: unknown): boolean {
+  if (value === null || value === undefined) return true;
+  if (Array.isArray(value) || typeof value !== 'object') return false;
+  return Object.entries(value as Record<string, unknown>).every(
+    ([k, v]) => !!v && typeof v === 'object' && (v as Partial<Keyed>).id === k,
+  );
+}
+
+/**
+ * The records of a global node keyed by their id, for a one-time rewrite.
+ * A record saved without an id gets one, so none is lost.
+ */
+export function keyById(value: unknown): Record<string, unknown> {
+  const list = Array.isArray(value) ? value : value && typeof value === 'object' ? Object.values(value) : [];
+  const out: Record<string, unknown> = {};
+  (list as unknown[]).forEach((r, i) => {
+    if (!r || typeof r !== 'object') return;
+    const rec = r as Partial<Keyed>;
+    const id = typeof rec.id === 'string' && rec.id ? rec.id : `legacy_${i}`;
+    out[id] = { ...rec, id };
+  });
+  return out;
+}
+
+/** Single matches stored keyed by id, oldest first (the order they were played). */
+export function normalizeSingleMatches(value: unknown): SingleMatch[] {
+  const list = Array.isArray(value) ? value : value && typeof value === 'object' ? Object.values(value) : [];
+  return (list as SingleMatch[])
+    .filter((m) => m && typeof m === 'object' && typeof m.id === 'string')
+    .sort((a, b) => String(a.data || '').localeCompare(String(b.data || '')));
 }
 
 /**
@@ -225,6 +337,13 @@ export function normalizeArquivo(arquivo?: unknown): ArchiveEntry[] {
 /** All of a sport's rating attributes at 0 (football when the sport is unknown). */
 export function defaultPlayerAttrs(sport?: string): RatingAttributes {
   return Object.fromEntries(Object.keys(getSport(sport).ratingAttributes()).map((k) => [k, 0]));
+}
+
+/** Whether ratings are only the editor's defaults: every attribute at zero. */
+function isDefaultRating(sport: string, value: unknown): boolean {
+  if (!value || typeof value !== 'object') return false;
+  const keys = Object.keys(defaultPlayerAttrs(sport));
+  return Object.entries(value as Record<string, unknown>).every(([k, v]) => keys.includes(k) && v === 0);
 }
 
 /**

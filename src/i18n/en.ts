@@ -589,6 +589,7 @@ export const en = {
     dbStillConnecting: 'Still connecting to the database. Try again shortly.',
     dbSignInRequired: 'Sign in with your Google account to make changes.',
     noTournamentToSave: 'There is no tournament yet. Create one first.',
+    dataNeedsUpgrade: 'The saved data needs a one-time update. Ask the master admin to open the app, then try again.',
     onlyAdminCanChange: 'Only an admin can make this change.',
     accountNotApproved: 'Your account has not been approved by an admin yet.',
   },
@@ -631,6 +632,7 @@ export const en = {
     roleChanged: (name: string, role: string) => `${name}'s role changed to ${role}`,
     tournamentFinished: (name: string) => `Tournament ${name} finished and archived`,
     tournamentCreated: (name: string, sport: string) => `Tournament ${name} created (${sport})`,
+    singleMatchesMoved: 'Single matches moved out of the tournament',
   },
 };
 

@@ -1,6 +1,6 @@
 import { html, render } from 'lit';
 import { state } from '../state.js';
-import { roleLabel } from '../permissions.js';
+import { roleLabel, canSeeSingleMatches } from '../permissions.js';
 import { listSports } from '../sports/registry.js';
 import type { UserProfile } from '../types.js';
 import type { UserList } from '../components/UserList.js';
@@ -36,6 +36,8 @@ export function renderAuth(user: AuthUser | null, role: string | null, userAdmin
 
   document.body.dataset.role = effectiveRole;
   document.body.dataset.master = role === 'master' ? 'true' : 'false';
+  // Single matches are for football admins only (the rules hide them too)
+  document.body.dataset.singles = user && canSeeSingleMatches(role, userAdmin) ? 'true' : 'false';
 
   // Editable fields and empty list messages depend on permissions
   if (state.config) { renderTeams(); renderSquadList(); renderPlayersList(); renderCalendar(); renderResults(); }

@@ -9,6 +9,10 @@ body:not([data-role="master"]) [data-requires="master"] {
   display: none !important;
 }
 
+body:not([data-singles="true"]) [data-requires="singles"] {
+  display: none !important;
+}
+
 body[data-role="admin"] [data-hide-for="admin"],
 body[data-role="master"] [data-hide-for="admin"] {
   display: none !important;
