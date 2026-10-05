@@ -54,14 +54,19 @@ Database. Deployed to GitHub Pages at `/sports-tournament/` on release tags (`re
 - Commit messages follow conventional commits (`feat:`, `fix:`, `refactor:`, ...).
 - Documentation illustrations use the `ian-xiaohei-illustrations` skill (same
   style as the CarCity docs); the shot list and prompts live in issue #10.
-- UI work uses two external design skills (installed, not committed here):
-  - **Impeccable** (Apache 2.0, `npx impeccable install`, or
-    `/plugin marketplace add pbakaus/impeccable`). Run `/impeccable audit` on a
+- UI work uses two third-party design skills, vendored under `.claude/skills/`
+  with their licences (ESLint ignores that folder). Refresh them by copying
+  from upstream again rather than editing them here:
+  - **Impeccable** (Apache 2.0, `pbakaus/impeccable`, folder `impeccable/`;
+    its launcher downloads an engine binary on first run, and the skill falls
+    back to reading its references when it can't). Run `/impeccable audit` on a
     page before a UI PR and `/impeccable polish` on the result. It checks
     contrast, touch targets, dark mode and responsive behaviour, which is what
     breaks first on a phone at the side of a pitch.
-  - **Emil Kowalski's skills** (MIT, `npx skills@latest add emilkowalski/skills`).
-    Use `review-animations` or `animate` whenever a transition, a modal or the
+  - **Emil Kowalski's skills** (MIT, `emilkowalski/skills`: `emil-design-eng`,
+    `animate`, `review-animations`, `improve-animations`,
+    `find-animation-opportunities`, `animation-vocabulary`, `mobile-native`,
+    `break-ui`). Use `review-animations` or `animate` whenever a transition, a modal or the
     goal animation changes. The motion tokens in `css/base.css` (`--ease-out`,
     `--ease-in-out`, `--press`, `--quick`, `--slide`) come from those rules:
     `ease-out` for anything entering or leaving, nothing over 300ms, and no
