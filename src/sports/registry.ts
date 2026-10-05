@@ -1,6 +1,7 @@
 import type { Sport } from './Sport.js';
 import { football } from './football/Football.js';
 import { padel } from './padel/Padel.js';
+import { tennis } from './tennis/Tennis.js';
 
 const sportsRegistry = new Map<string, Sport>();
 
@@ -8,6 +9,7 @@ const sportsRegistry = new Map<string, Sport>();
 sportsRegistry.set('football', football);
 sportsRegistry.set('futebol', football); // alias
 sportsRegistry.set('padel', padel);
+sportsRegistry.set('tennis', tennis);
 
 export function registerSport(sport: Sport): void {
   sportsRegistry.set(sport.id, sport);

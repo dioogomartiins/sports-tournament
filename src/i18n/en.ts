@@ -26,6 +26,7 @@ export const en = {
     sport: 'Sport',
     football: 'Football',
     padel: 'Padel',
+    tennis: 'Tennis',
     unnamed: 'Unnamed',
     unknownPlayer: 'Unknown Player',
     noTeam: 'No Team',
@@ -182,7 +183,7 @@ export const en = {
     drawPairsTitle: '🎲 Draw pairs',
     drawPairsButton: '🎲 Draw pairs',
     drawPairsNote: (needed: number) =>
-      `Pick ${needed} players. The best is paired with the weakest, and so on, by padel rating. This replaces the current pairs and team names.`,
+      `Pick ${needed} players. The best is paired with the weakest, and so on, by rating. This replaces the current pairs and team names.`,
     drawPairsCount: (n: number, needed: number) => `${n} / ${needed} players selected`,
   },
 
@@ -234,6 +235,14 @@ export const en = {
       lob: 'Lob',
       walls: 'Wall play',
       defense: 'Defense',
+      fitness: 'Fitness',
+    },
+    tennisAttributes: {
+      serve: 'Serve',
+      return: 'Return',
+      forehand: 'Forehand',
+      backhand: 'Backhand',
+      volley: 'Volley',
       fitness: 'Fitness',
     },
   },
@@ -430,7 +439,7 @@ export const en = {
     fullTimeButton: '⏹ Full time',
   },
 
-  padelScore: {
+  racketScore: {
     addGameTitle: 'Add game',
     cancelGameTitle: 'Cancel last game',
     setCol: (n: number) => `Set ${n}`,

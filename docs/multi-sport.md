@@ -195,9 +195,10 @@ The phases below are the original ones. The current phases (TypeScript and `Spor
 How the code on `main` differs from the proposal above:
 
 - **A class, not an object.** `src/sports/Sport.ts` is an abstract class with `id`, `name`, `icon` and the methods that vary (`computeStandings`, `resolveHeadToHead`, `getPlayoffWinner`, `tallyPlayerStats`, `mergePlayerStats`, `addGoal`, `removeGoal`, …). `Football` in `src/sports/football/Football.ts` implements it; `src/algorithms.ts` re-exports its methods for older modules.
-- **Registry.** `src/sports/registry.ts` exposes `getSport(id)`, `registerSport()` and `listSports()`. `football` (with `futebol` as an alias) and `padel` are registered; unknown ids fall back to football.
+- **Registry.** `src/sports/registry.ts` exposes `getSport(id)`, `registerSport()` and `listSports()`. `football` (with `futebol` as an alias), `padel` and `tennis` are registered; unknown ids fall back to football.
 - **The sport lives in the tournament.** It is `meta.sport` (and `config.sport`), chosen when the tournament is created and fixed afterwards; there is no `tipoDesporto`. Data saved before this defaults to `football`.
 - **Ratings per sport.** Players are global (`/players`) with `ratings.<sport>`; each sport declares its own attributes (`Sport.ratingAttributes()`).
 - **Padel.** `src/sports/RacketSport.ts` (shared by set-based sports) and `src/sports/padel/Padel.ts`, with `<padel-score>`, a configurable set format, game-based standings, pairs fixed or drawn by rating, and rules that accept set scores in padel tournaments. The rules are in [Rules](rules.md#padel).
+- **Tennis.** `src/sports/tennis/Tennis.ts` reuses `RacketSport` with a full deciding set by default; singles or doubles. `<tennis-score>` and `<padel-score>` share `RacketScore`. See [Rules](rules.md#tennis).
 - **Per-sport admins.** `users/<uid>/admin/<sport>`, enforced by `database.rules.json` (see [Architecture](architecture.md#permissions)).
-- **Not done yet:** the other sports (tennis can reuse `RacketSport`), and Americano/Mexicano padel formats.
+- **Not done yet:** basketball, handball and volleyball, and Americano/Mexicano padel formats.

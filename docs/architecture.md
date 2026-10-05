@@ -39,7 +39,7 @@ It is a single page app in TypeScript and JavaScript (ES Modules) with no framew
 | `src/main.ts` | Wires UI events to actions (generate schedule, record goals, create, switch and finish tournaments, …) and starts the app. Lit components emit events (`open-match`, `score-commit`, …) that bubble to their container, where `main.ts` handles them through `onEvent<T>()` (typed detail); the single match tab wires its own events (`bindSingleMatchEvents`). Remembers the last tournament viewed on the device. |
 | `src/state.ts` | Global state (including the current tournament id; `loadedConfig()`, `loadedTeams()` and `loadedSquads()` return the sections handlers rely on), default values, snapshots (`buildSnapshot` / `applySnapshot`), persistence in localStorage and pushes to Firebase. Undoes local changes Firebase would not accept. Does not import `ui.ts`: notices and `renderAll` come in through `setStateHooks`, called by `main.ts` at startup. |
 | `src/core/` | Core tournament logic in TypeScript: Berger, schedule, extra round and first-round seeding (`schedule.ts`), the knockout bracket and winner advancement (`playoffs.ts`), ratings and draft (`draft.ts`), archive and champion (`archive.ts`). |
-| `src/sports/` | Multi-sport architecture: the abstract `Sport.ts` class, the sport registry (`registry.ts`, `getSport(id)`, falling back to football), and one class per sport. `football/Football.ts` has standings, tiebreaks, playoff winner, player stats and goals. `RacketSport.ts` holds what set-based sports share (set format, set and match winner, game-by-game scoring, game-based standings), and `padel/Padel.ts` extends it with padel's default format. Each sport also declares its standings columns, player leaderboards, rating attributes and whether squads use jersey numbers. The UI asks the tournament's sport (`getSport(state.meta.sport)`) instead of calling football directly. |
+| `src/sports/` | Multi-sport architecture: the abstract `Sport.ts` class, the sport registry (`registry.ts`, `getSport(id)`, falling back to football), and one class per sport. `football/Football.ts` has standings, tiebreaks, playoff winner, player stats and goals. `RacketSport.ts` holds what set-based sports share (set format, set and match winner, game-by-game scoring, game-based standings), and `padel/Padel.ts` and `tennis/Tennis.ts` extend it with each sport's default format. Each sport also declares its standings columns, player leaderboards, rating attributes and whether squads use jersey numbers. The UI asks the tournament's sport (`getSport(state.meta.sport)`) instead of calling football directly. |
 | `src/algorithms.ts` | Re-exports core and football functions for compatibility with existing modules. |
 | `src/sync.ts` | Diffs between snapshots for `update()`, normalisation of data saved by Firebase or by older versions (config, meta, results, archive, players) and the activity log text. |
 | `src/firebase.ts` | Firebase connection: listens to `tournaments/<id>`, `players` and `arquivo`, pushes changes, lists, creates and finishes tournaments, migrates legacy data, Google sign-in, user role, user list and activity log. |
@@ -50,7 +50,7 @@ It is a single page app in TypeScript and JavaScript (ES Modules) with no framew
 | `src/components/` | Lit components of the sections, rendered in the light DOM so the app's CSS applies (`LightElement` is their base class; `templates.ts` has the team label and colour dot). Properties in, events out: `<standings-table>`, `<stats-table>`, `<stat-cards>`, `<dashboard-podium>`, `<top-scorers>`, `<all-time-stats>`, `<archive-list>` (emits `archive-delete`), `<schedule-list>` and `<results-list>` (emit `open-match`, `status-click`, `score-step` and `score-commit`; `rounds.ts` groups the schedule by round), `<teams-editor>` (`team-change`), `<squad-list>` (`squad-remove`, `player-stats`), `<player-cards>` (`player-profile`, `player-edit`, `player-delete`), `<player-picker>` (`selection-change`), `<player-editor>`, `<draft-teams>` (`draft-goal-add`, `draft-goal-sub`, `draft-mvp`), `<single-match-history>` (`single-delete`), `<user-list>` (`role-change`), `<activity-log>` and `<tournament-list>` (`tournament-select`, `tournament-finish`). Every dialog goes through `openDialog()` in `ui/modals.ts`: a title, a Lit template as body and two buttons; `setConfirmEnabled()` lets a body hold the confirm button until its input is valid. Lit escapes every value, so they need no `escapeHtml`. |
 | `src/components/ScoreBase.ts` | Lit base class of the live score panel: header, admin controls (emits `point`, `cancelled`, `started`, `finished`) and the event banners (kick-off, goal, goal cancelled, full time) with the score bump. Turned off with *reduced motion*. |
 | `src/sports/football/FootballScore.ts` | `<football-score>`: the match window for football (goal banners, goals timeline, MVP and share). |
-| `src/sports/padel/PadelScore.ts` | `<padel-score>`: the match window for padel (sets won, a set grid with the current set highlighted, GAME / SET! banners). `ui/match.ts` picks the panel by sport. |
+| `src/sports/RacketScore.ts` | Base of the racket match windows (sets won, a set grid with the current set highlighted, GAME / SET! banners), following the rules of its `sport`. `padel/PadelScore.ts` (`<padel-score>`) and `tennis/TennisScore.ts` (`<tennis-score>`) only name their sport. `ui/match.ts` picks the panel by sport. |
 | `src/share.ts` | Draws the standings and result PNG images on a `<canvas>` and shares them. |
 | `src/utils.ts` | Small helpers: `escapeHtml`, `safeColor`, team and player names (`playerName`, `buildPlayerIndex`), dates, `prefersReducedMotion`. |
 | `database.rules.json` | Realtime Database security rules, published by the deployment. |
@@ -63,14 +63,14 @@ Each tournament lives in its own node, `tournaments/<id>` (`default` for the tou
 
 | Section | Contents |
 |---|---|
-| `meta` | `{ name, sport, status, createdAt }`. `status` is `active` or `finished`; `sport` (`football`, `padel`, …) is fixed at creation. |
-| `config` | Name, sport, number of teams, groups, rounds, scoring, playoffs. Padel tournaments also have `setFormat: { sets, gamesPerSet, superTieBreak }` (defaults 3, 6, true). |
+| `meta` | `{ name, sport, status, createdAt }`. `status` is `active` or `finished`; `sport` (`football`, `padel`, `tennis`, …) is fixed at creation. |
+| `config` | Name, sport, number of teams, groups, rounds, scoring, playoffs. Padel and tennis tournaments also have `setFormat: { sets, gamesPerSet, superTieBreak }` (defaults 3, 6, true in padel; 3, 6, false in tennis). |
 | `teams` | 32 slots `{ name, color, group }` (unused ones have an empty name). |
-| `squads` | 32 lists of players per team `{ id, num, name }`. In padel a squad is a pair and `num` (1, 2) only keeps the order. |
+| `squads` | 32 lists of players per team `{ id, num, name }`. In padel a squad is a pair, and in tennis one player or a pair; `num` (1, 2) only keeps the order. |
 | `schedule` | List of matches `{ jornada, home, away, group }`; playoff matches have `isPlayoff`, `playoffMatchId` and `nextMatchId`. |
 | `roundsMeta` | One entry per matchday, with the team that has a bye. |
 | `scheduleTeamCount`, `scheduleVoltas` | Teams and rounds the schedule was generated with. |
-| `results` | By the match's index in `schedule`: `{ score: "2-1", status, scorers: { home, away }, assists: { home, away }, mvp, penalties }`. In padel `score` holds the games of each set (`"6-4 3-6 10-7"`) and there are no scorers, assists or penalties; the rules only accept that format in tournaments whose `meta.sport` is `padel`. |
+| `results` | By the match's index in `schedule`: `{ score: "2-1", status, scorers: { home, away }, assists: { home, away }, mvp, penalties }`. In padel and tennis `score` holds the games of each set (`"6-4 3-6 10-7"`) and there are no scorers, assists or penalties; the rules only accept that format in tournaments whose `meta.sport` is `padel` or `tennis`. |
 | `jogosSingulares` | The tournament's single matches, with both teams, score, scorers, assists and MVP. |
 | `version`, `exportedAt` | Format version (`SNAPSHOT_VERSION`, currently 10) and date of the last save. |
 | `logRef` | Key of the `tournament_log/<id>` entry of the last save (see [Activity log](#activity-log)). |
@@ -79,7 +79,7 @@ Shared by every tournament, at the root of the database:
 
 | Node | Contents |
 |---|---|
-| `players` | Global players database `{ id, nome, teamIdx, ratings: { <sport>: attributes }, atributos }`. Each sport has its own attribute keys (`Sport.ratingAttributes()`: football `velocidade`, `finalizacao`, …; padel `volley`, `smash`, `lob`, `walls`, `defense`, `fitness`). `atributos` is a copy of the football ratings, kept for older data. |
+| `players` | Global players database `{ id, nome, teamIdx, ratings: { <sport>: attributes }, atributos }`. Each sport has its own attribute keys (`Sport.ratingAttributes()`: football `velocidade`, `finalizacao`, …; padel `volley`, `smash`, `lob`, `walls`, `defense`, `fitness`; tennis `serve`, `return`, `forehand`, `backhand`, `volley`, `fitness`). `atributos` is a copy of the football ratings, kept for older data. |
 | `arquivo` | Archived tournaments: name, sport, date, champion, final tables and per-player stats. |
 | `users/<uid>` | Name, email, photo, last access, `role` (`master`, `admin` or `user`; none = pending) and `admin: { <sport>: true }` for per-sport admins. |
 | `tournament_log/<id>` | Activity log of each tournament. |
@@ -173,6 +173,7 @@ npm run test:rules   # Firebase rules in the emulator (needs Java)
 |---|---|
 | `tests/football.test.ts` | Football logic: standings, head-to-head, playoff winner, player stats, goals, animation events, rank moves |
 | `tests/padel.test.ts` | Padel logic: set format, parsing sets, set and match winner, adding and removing games, super tie-break, game-based standings and head-to-head, playoff winner, animation events |
+| `tests/tennis.test.ts` | Tennis: registry, default format with a full deciding set, best of 5, scoring a three-set match, games in the standings |
 | `tests/core/` | Core logic: `schedule.test.ts` (Berger, rounds, seeding), `draft.test.ts` (ratings per sport, drafts, balanced pairs), `archive.test.ts` (archive), `playoffs.test.ts` (bracket, seeds, winner advancement) |
 | `tests/sync.test.ts` | `diffSnapshot`, `normalizeResults`, `onlyMetadata`, `describeUpdates`, `normalizeArquivo`, `normalizeConfig`, `normalizeMeta` |
 | `tests/state.test.ts` | `SNAPSHOT_VERSION`, `applySnapshot` with version 7, 8, 9 and 10 snapshots (meta derived for older ones), `buildSnapshot`, `defaultConfig`, `defaultMeta`, current tournament id |

@@ -7,6 +7,7 @@ import { ScoreBase } from '../components/ScoreBase.js';
 import type { ScoreMatch } from '../components/ScoreBase.js';
 import { FootballScore } from '../sports/football/FootballScore.js';
 import { PadelScore } from '../sports/padel/PadelScore.js';
+import { TennisScore } from '../sports/tennis/TennisScore.js';
 import type { GameEvent, MatchResult } from '../types.js';
 import { isAdminView } from './dom.js';
 import { en } from '../i18n/en.js';
@@ -17,7 +18,7 @@ import { en } from '../i18n/en.js';
 let openGameGi: string | null = null;
 
 /** Score panel class per sport id; sports without one use football's. */
-const SCORE_PANELS: Record<string, new () => ScoreBase> = { football: FootballScore, padel: PadelScore };
+const SCORE_PANELS: Record<string, new () => ScoreBase> = { football: FootballScore, padel: PadelScore, tennis: TennisScore };
 
 function currentSport(): Sport {
   return getSport(state.meta?.sport || state.config?.sport);

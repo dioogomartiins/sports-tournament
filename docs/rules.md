@@ -2,9 +2,9 @@
 
 [← Back to the README](../README.md)
 
-How the app gets to the numbers it shows. The schedule, draft and archive logic lives in `src/core/`, and each sport's rules (standings, tiebreaks, playoff winner, player stats) in its class: `src/sports/football/Football.ts`, and `src/sports/RacketSport.ts` with `src/sports/padel/Padel.ts`. Tests are in `tests/core/`, `tests/football.test.ts` and `tests/padel.test.ts`.
+How the app gets to the numbers it shows. The schedule, draft and archive logic lives in `src/core/`, and each sport's rules (standings, tiebreaks, playoff winner, player stats) in its class: `src/sports/football/Football.ts`, and `src/sports/RacketSport.ts` with `src/sports/padel/Padel.ts` and `src/sports/tennis/Tennis.ts`. Tests are in `tests/core/`, `tests/football.test.ts`, `tests/padel.test.ts` and `tests/tennis.test.ts`.
 
-Scoring, standings and player stats depend on the tournament's sport. The schedule, groups, playoffs and champion work the same for every sport. Padel's own rules are in [Padel](#padel).
+Scoring, standings and player stats depend on the tournament's sport. The schedule, groups, playoffs and champion work the same for every sport. Padel's own rules are in [Padel](#padel), and tennis follows them with the differences in [Tennis](#tennis).
 
 - [Scoring](#scoring)
 - [Standings and tiebreaks](#standings-and-tiebreaks)
@@ -16,10 +16,11 @@ Scoring, standings and player stats depend on the tournament's sport. The schedu
 - [Balanced teams (Single Match)](#balanced-teams-single-match)
 - [Player stats](#player-stats)
 - [Padel](#padel)
+- [Tennis](#tennis)
 
 ## Scoring
 
-Football. Padel has no points per match (see [Padel](#padel)).
+Football. Padel and tennis have no points per match (see [Padel](#padel)).
 
 ![Blowout bonus](assets/illustrations/03-bonus-de-goleada.jpg)
 
@@ -91,7 +92,7 @@ The number of qualified teams is *qualified per group × number of groups* and m
 
 ## Champion
 
-- With playoffs: the winner of the final (on penalties in football if it ends level; in padel, the pair that wins the most sets).
+- With playoffs: the winner of the final (on penalties in football if it ends level; in padel and tennis, the side that wins the most sets).
 - Without playoffs and with a single group: the league leader.
 - With several groups and no playoffs there is no automatic champion.
 
@@ -105,6 +106,7 @@ Each player has 0 to 5 stars in six attributes per sport, kept separately:
 |---|---|
 | ⚽ Football | Pace, Shooting, Passing, Dribbling, Defending, Physical |
 | 🎾 Padel | Volley, Smash, Lob, Wall play, Defense, Fitness |
+| 🎾 Tennis | Serve, Return, Forehand, Backhand, Volley, Fitness |
 
 The **★ rating** is the average of that sport's six attributes for the tournament's sport, with one decimal place. A player never rated in a sport has ★ 0.0 there. A team's rating is the sum of its players' ratings.
 
@@ -167,8 +169,15 @@ A super tie-break counts as **one game** for the pair that wins it (10-7 counts 
 Each team is a pair of two players, without jersey numbers. In 👕 Squads an admin can:
 
 - **Fix the pairs:** add two players to each team.
-- **🎲 Draw pairs:** tick exactly two players per team. The players are sorted by padel rating, and the best is paired with the weakest, the second best with the second weakest, and so on. The pairs fill the teams in order, each team is renamed after its pair (e.g. "Rui / Nuno"), and the existing pairs are replaced.
+- **🎲 Draw pairs:** tick exactly two players per team. The players are sorted by the sport's rating, and the best is paired with the weakest, the second best with the second weakest, and so on. The pairs fill the teams in order, each team is renamed after its pair (e.g. "Rui / Nuno"), and the existing pairs are replaced.
 
 ### Stats
 
 Padel records no goals, assists or MVP. The Stats tab shows games played, games per match, most games won, fewest games lost, the biggest win (by game difference) and most wins.
+
+## Tennis
+
+Tennis uses the same rules as padel: scored **game by game** (no 15-30-40), saved as the games of each set, ranked by games won, with the same tiebreaks and stats. The differences:
+
+- **Set format defaults:** best of 3 sets of 6 games, and the deciding set is a **full set** (super tie-break off). An admin can switch on the super tie-break, or play 1 set or best of 5, in ⚙️ Settings → *Set format*.
+- **Singles or doubles:** a team is one player (singles) or two (doubles). In 👕 Squads add one or two players per team, or use **🎲 Draw pairs** for doubles, balanced by tennis rating.
