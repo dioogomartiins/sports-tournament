@@ -20,6 +20,6 @@ EXPOSE 9000 9099 4000 4400
 
 COPY docker/firebase/seed.mjs /usr/local/bin/seed.mjs
 COPY docker/firebase/entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh
+RUN sed -i 's/\r$//' /usr/local/bin/entrypoint.sh && chmod +x /usr/local/bin/entrypoint.sh
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
