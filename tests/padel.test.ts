@@ -109,7 +109,7 @@ describe('scoring game by game', () => {
   });
 });
 
-describe('standings by games', () => {
+describe('standings by matches won', () => {
   const teams = ['A', 'B', 'C'];
   const schedule: Match[] = [
     { jornada: 1, home: 0, away: 1 },
@@ -118,37 +118,55 @@ describe('standings by games', () => {
     { jornada: 3, home: 0, away: 1, isPlayoff: true },
   ];
 
-  it('ranks by games won, not by matches won', () => {
+  it('gives the win points per match won and counts sets and games', () => {
     const results: Record<string, MatchResult> = {
-      0: { score: '6-4 6-4', status: 'terminado' }, // A 12-8 B
-      1: { score: '6-0 6-0', status: 'terminado' }, // B 12-0 C
-      2: { score: '3-6 3-6', status: 'terminado' }, // A 6-12 C
+      0: { score: '6-4 6-4', status: 'terminado' }, // A beats B 2-0
+      1: { score: '6-0 6-0', status: 'terminado' }, // B beats C 2-0
+      2: { score: '3-6 6-3 10-8', status: 'terminado' }, // A beats C 2-1
     };
     const [group] = padel.computeStandings(teams, schedule, results, config());
-    expect(group.standings.map((r) => r.name)).toEqual(['B', 'A', 'C']);
-    const b = group.standings[0];
-    expect([b.J, b.V, b.D, b.GM, b.GS, b.DG]).toEqual([2, 1, 1, 20, 12, 8]);
+    expect(group.standings.map((r) => r.name)).toEqual(['A', 'B', 'C']);
+    const a = group.standings[0];
+    expect([a.J, a.V, a.D, a.SW, a.SL, a.Pts]).toEqual([2, 2, 0, 4, 1, 2]);
+    const [three] = padel.computeStandings(teams, schedule, results, config({ winPoints: 3 }));
+    expect(three.standings.map((r) => r.Pts)).toEqual([6, 3, 0]);
   });
 
-  it('breaks ties on games and difference with head-to-head', () => {
+  it('breaks level wins on set difference, then game difference', () => {
+    // One win each. A +1 set (0 games), B 0 sets (+8 games), C -1 set: sets come first
+    const circle: Record<string, MatchResult> = {
+      0: { score: '6-4 6-4', status: 'terminado' }, // A beats B 2-0
+      1: { score: '6-0 6-0', status: 'terminado' }, // B beats C 2-0
+      2: { score: '6-4 2-6 4-6', status: 'terminado' }, // C beats A 2-1
+    };
+    expect(padel.computeStandings(teams, schedule, circle, config())[0].standings.map((r) => r.name)).toEqual(['A', 'B', 'C']);
+    // A and C both beat B 2-0: A has the better game difference
+    const games: Record<string, MatchResult> = {
+      0: { score: '6-4 6-4', status: 'terminado' }, // A beats B
+      1: { score: '0-6 0-6', status: 'terminado' }, // C beats B
+    };
+    expect(padel.computeStandings(teams, schedule, games, config())[0].standings.map((r) => r.name)).toEqual(['C', 'A', 'B']);
+  });
+
+  it('goes to head-to-head when wins, sets and games are level', () => {
     const results: Record<string, MatchResult> = {
-      0: { score: '6-3', status: 'terminado' }, // A 6-3 B
-      2: { score: '3-6', status: 'terminado' }, // A 3-6 C
-      1: { score: '6-3', status: 'terminado' }, // B 6-3 C
+      0: { score: '6-3', status: 'terminado' }, // A beats B
+      2: { score: '3-6', status: 'terminado' }, // C beats A
+      1: { score: '6-3', status: 'terminado' }, // B beats C
     };
     const fmt = config({ setFormat: { sets: 1, gamesPerSet: 6, superTieBreak: false } });
     const [group] = padel.computeStandings(teams, schedule, results, fmt);
-    // all 9-9 and the same head-to-head totals: fewest games lost, then name
+    // all one win, 1-1 sets, 9-9 games, and a circle in head-to-head: fewest games lost, then name
     expect(group.standings.map((r) => r.name)).toEqual(['A', 'B', 'C']);
   });
 
-  it('puts the pair that won more games between them first', () => {
+  it('puts the pair that won the match between them first', () => {
     const rows = [
-      { idx: 0, name: 'Zeta', J: 1, V: 1, E: 0, D: 0, GM: 9, GS: 9, DG: 0, Pts: 9 },
-      { idx: 1, name: 'Alfa', J: 1, V: 0, E: 0, D: 1, GM: 9, GS: 9, DG: 0, Pts: 9 },
+      { idx: 0, name: 'Zeta', J: 1, V: 1, E: 0, D: 0, GM: 9, GS: 9, DG: 0, Pts: 1 },
+      { idx: 1, name: 'Alfa', J: 1, V: 1, E: 0, D: 0, GM: 9, GS: 9, DG: 0, Pts: 1 },
     ];
-    const games: Match[] = [{ jornada: 1, home: 0, away: 1 }];
-    const sorted = padel.resolveHeadToHead(rows, games, { 0: { score: '6-4', status: 'terminado' } }, config());
+    const games: Match[] = [{ jornada: 1, home: 1, away: 0 }];
+    const sorted = padel.resolveHeadToHead(rows, games, { 0: { score: '4-6', status: 'terminado' } }, config());
     expect(sorted.map((r) => r.name)).toEqual(['Zeta', 'Alfa']);
   });
 
@@ -159,6 +177,13 @@ describe('standings by games', () => {
     };
     const [group] = padel.computeStandings(teams, schedule, results, config());
     expect(group.standings.every((r) => r.J === 0)).toBe(true);
+  });
+
+  it('reads the win points from the settings (1 by default, 0 to 10)', () => {
+    expect(padel.winPoints(config())).toBe(1);
+    expect(padel.winPoints(config({ winPoints: 3 }))).toBe(3);
+    expect(padel.winPoints(config({ winPoints: 0 }))).toBe(0);
+    expect(padel.winPoints(config({ winPoints: 99 }))).toBe(1);
   });
 });
 

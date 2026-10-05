@@ -119,7 +119,7 @@ describe('padel played to points', () => {
     expect(groups).toHaveLength(1);
     expect(groups[0].standings[0].Pts).toBe(20);
     expect(padel.standingsColumns(cfg)[0].label).toBe('PW');
-    expect(padel.standingsColumns()[0].label).toBe('GW');
+    expect(padel.standingsColumns()[0].label).toBe('Pts');
   });
 
   it('reports points, never sets, as live events', () => {

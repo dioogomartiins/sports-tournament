@@ -44,6 +44,7 @@ export function onConfigFieldChange(): void {
   const padelFormat = fieldValue('cfgPadelFormat');
   config.padelFormat = isRotationFormat(padelFormat) ? padelFormat : 'pairs';
   config.matchPoints = clamp(parseInt(fieldValue('cfgMatchPoints'), 10) || DEFAULT_MATCH_POINTS, 4, 99);
+  config.winPoints = clamp(Math.round(numOr(fieldValue('cfgWinPoints'), 1)), 0, 10);
   persistConfigTeams();
   refreshComputed();
 }
@@ -751,6 +752,7 @@ export function bindEvents(): void {
   dom.cfgNumGrupos.addEventListener('change', () => { onConfigFieldChange(); renderScheduleHint(); });
   dom.cfgPadelFormat.addEventListener('change', () => { onConfigFieldChange(); renderAll(); });
   dom.cfgMatchPoints.addEventListener('blur', onConfigFieldChange);
+  dom.cfgWinPoints.addEventListener('blur', onConfigFieldChange);
   dom.cfgMataMata.addEventListener('change', onConfigFieldChange);
   dom.cfgNumPlayoffTeams.addEventListener('change', onConfigFieldChange);
 

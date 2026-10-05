@@ -338,14 +338,14 @@ export const en = {
       gd: 'GD',
     },
     racketCols: {
+      pts: 'Pts',
       p: 'P',
       w: 'W',
       l: 'L',
-      gw: 'GW',
-      gl: 'GL',
+      sd: 'SD',
       gd: 'GD',
     },
-    racketNote: 'Ranked by games won (GW). Tiebreaker criteria, in order: game difference → head-to-head → fewest games lost → alphabetical order. A super tie-break counts as one game.',
+    racketNote: 'Ranked by points (Pts, from matches won). Tiebreaker criteria, in order: set difference (SD) → game difference (GD) → head-to-head (matches won, then set and game difference between the tied pairs) → fewest games lost → alphabetical order. A super tie-break counts as a set and as one game.',
     rotationNote: 'Each player is ranked on their own by points won (PW). Tiebreaker criteria, in order: point difference → matches won → alphabetical order.',
     /** Americano / Mexicano: points instead of games. */
     pointsCols: {

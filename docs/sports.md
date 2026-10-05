@@ -10,7 +10,7 @@ Every tournament has one sport, chosen when it is created and fixed afterwards (
 | **Entered** | ＋ / − per goal (scorer and assist) or typed | ＋ / − one game | ＋ / − one point | ＋ / − one game |
 | **Default format** | Configurable points per win, draw and loss, blowout bonus | Best of 3, 6 games, super tie-break | 24 points per match | Best of 3, 6 games, full deciding set |
 | **Draws** | Yes (penalties in playoffs) | No | Yes (equal points) | No |
-| **Ranked by** | Pts → GD → GF → head-to-head | Games won → game difference → head-to-head | Points won → point difference → wins | Games won → game difference → head-to-head |
+| **Ranked by** | Pts → GD → GF → head-to-head | Matches won (Win points, 1 by default) → set difference → game difference → head-to-head | Points won → point difference → wins | Matches won (Win points, 1 by default) → set difference → game difference → head-to-head |
 | **Team** | A squad with jersey numbers | A pair, fixed or drawn by rating | One player; partners rotate every round | One player (singles) or two (doubles) |
 | **Player stats** | Goals, assists, MVP | Games (no player events) | The standings are per player | Games (no player events) |
 | **Player profile** | Matches, wins, goals, assists, MVP, scoring matches, record | Matches, wins | Matches, wins | Matches, wins |

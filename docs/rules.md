@@ -21,7 +21,7 @@ Scoring, standings and player stats depend on the tournament's sport. The schedu
 
 ## Scoring
 
-Football. Padel and tennis have no points per match (see [Padel](#padel)).
+Football. Padel and tennis only give points per match won (see [Padel](#padel)).
 
 ![Blowout bonus](assets/illustrations/03-bonus-de-goleada.jpg)
 
@@ -159,15 +159,16 @@ Set per tournament in ⚙️ Settings → *Set format*. Defaults are in brackets
 
 ![Super tie-break in standings](assets/illustrations/20-super-tie-break.jpg)
 
-There are no points per win. Pairs are ranked by:
+Each match won is worth the **Win** points set in ⚙️ Settings → *Scoring* (1 by default, 0 to 10); a lost match is worth nothing. Pairs are ranked by:
 
-1. Games won (**GW**)
-2. Game difference (**GD**)
-3. Head-to-head: games won, then game difference, in the matches between the tied pairs
-4. Fewest games lost (**GL**)
-5. Alphabetical order
+1. Points (**Pts**), that is matches won
+2. Set difference (**SD**: sets won − sets lost)
+3. Game difference (**GD**: games won − games lost)
+4. Head-to-head: matches won, then set difference, then game difference, in the matches between the tied pairs
+5. Fewest games lost
+6. Alphabetical order
 
-A super tie-break counts as **one game** for the pair that wins it (10-7 counts as 1-0), so it does not outweigh a whole set. The table also shows matches played (P), won (W) and lost (L).
+A super tie-break counts as a set, and as **one game** for the pair that wins it (10-7 counts as 1-0), so it does not outweigh a whole set. The table also shows matches played (P), won (W) and lost (L).
 
 ### Pairs
 

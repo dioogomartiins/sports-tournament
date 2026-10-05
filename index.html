@@ -212,6 +212,17 @@
             tie-break is played to 10 points by 2 and counts as one game in the standings.</p>
         </div>
 
+        <div class="card" data-sport-only="padel tennis" hidden>
+          <div class="section-title">📐 Scoring</div>
+          <div class="form-grid">
+            <div class="field"><label for="cfgWinPoints">Win</label><input type="number" id="cfgWinPoints" class="input"
+                min="0" max="10" step="1"></div>
+          </div>
+          <p class="field-note" style="margin-top:10px;">Points per match won (1 by default). Pairs are ranked by points,
+            then set difference, game difference and head-to-head. Not used in Americano and Mexicano, which rank
+            players by points won.</p>
+        </div>
+
         <div class="card" data-sport-only="football">
           <div class="section-title">📐 Scoring</div>
           <div class="form-grid">
@@ -420,9 +431,10 @@
           </div>
           <p class="field-note" style="margin-top:14px;" data-sport-only="football">Tiebreaker criteria, in order: points → goal difference → goals
             scored → head-to-head (mini-table of matches between tied teams) → fewest goals conceded → alphabetical order.</p>
-          <p id="standingsNoteRacket" class="field-note" style="margin-top:14px;" data-sport-only="padel tennis" hidden>Ranked by games won (GW). Tiebreaker
-            criteria, in order: game difference → head-to-head → fewest games lost → alphabetical order. A super tie-break
-            counts as one game.</p>
+          <p id="standingsNoteRacket" class="field-note" style="margin-top:14px;" data-sport-only="padel tennis" hidden>Ranked by points (Pts, from matches won).
+            Tiebreaker criteria, in order: set difference (SD) → game difference (GD) → head-to-head (matches won, then set
+            and game difference between the tied pairs) → fewest games lost → alphabetical order. A super tie-break counts
+            as a set and as one game.</p>
         </div>
       </section>
 

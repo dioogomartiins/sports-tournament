@@ -37,6 +37,7 @@ export function populateConfigForm(): void {
   field('cfgSets').value = String(f.sets);
   field('cfgGamesPerSet').value = String(f.gamesPerSet);
   field('cfgSuperTieBreak').checked = f.superTieBreak;
+  field('cfgWinPoints').value = String((sport instanceof RacketSport ? sport : padel).winPoints(c));
   field('cfgPadelFormat').value = padel.rotation(c) || 'pairs';
   field('cfgMatchPoints').value = String(padel.pointsPerMatch({ ...c, padelFormat: 'americano' }));
 }

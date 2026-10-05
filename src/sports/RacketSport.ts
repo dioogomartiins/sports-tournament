@@ -288,7 +288,7 @@ export abstract class RacketSport extends Sport {
 
     const rows: StandingsRow[] = teamsArray.map((t, idx) => {
       const name = typeof t === 'string' ? t : (t && t.name ? t.name : `Team ${idx + 1}`);
-      return { idx, name, J: 0, V: 0, E: 0, D: 0, GM: 0, GS: 0, Pts: 0 };
+      return { idx, name, J: 0, V: 0, E: 0, D: 0, GM: 0, GS: 0, SW: 0, SL: 0, Pts: 0 };
     });
 
     this.countedMatches(schedule, results).forEach(({ home, away, sets }) => {
@@ -296,33 +296,48 @@ export abstract class RacketSport extends Sport {
       const a = rows[away];
       if (!h || !a) return;
       const games = this.gamesOf(sets, format);
+      const won = this.setsWon(sets, format);
       h.J++;
       a.J++;
       h.GM += games.home;
       h.GS += games.away;
       a.GM += games.away;
       a.GS += games.home;
+      h.SW! += won.home;
+      h.SL! += won.away;
+      a.SW! += won.away;
+      a.SL! += won.home;
       const winner = this.matchWinner(sets, format);
       if (winner === 'home') { h.V++; a.D++; }
       if (winner === 'away') { a.V++; h.D++; }
     });
 
+    const winPoints = this.winPoints(config);
     rows.forEach((r) => {
       r.DG = r.GM - r.GS;
-      r.Pts = r.GM; // ranking value: games won
+      r.Pts = r.V * winPoints;
       const t = teamsArray[r.idx];
       let g = typeof t === 'object' && t !== null && t.group !== undefined ? t.group : 0;
       if (g >= nGroups) g = nGroups - 1;
       groups[g].standings.push(r);
     });
 
+    // Matches won (points), set difference, game difference; pairs still level
+    // go to head-to-head
+    const key = (r: StandingsRow) => [r.Pts, r.V, setDiff(r), r.DG ?? 0];
+    const compare = (x: StandingsRow, y: StandingsRow) => {
+      const kx = key(x);
+      const ky = key(y);
+      for (let i = 0; i < kx.length; i++) if (ky[i] !== kx[i]) return ky[i] - kx[i];
+      return 0;
+    };
     groups.forEach((group) => {
-      const sorted = group.standings.sort((x, y) => y.GM - x.GM || (y.DG ?? 0) - (x.DG ?? 0));
+      const sorted = group.standings.sort(compare);
       let ordered: StandingsRow[] = [];
       let i = 0;
       while (i < sorted.length) {
         let j = i + 1;
-        while (j < sorted.length && sorted[j].GM === sorted[i].GM && sorted[j].DG === sorted[i].DG) j++;
+        while (j < sorted.length && compare(sorted[i], sorted[j]) === 0) j++;
         const cluster = sorted.slice(i, j);
         ordered = ordered.concat(cluster.length > 1 ? this.resolveHeadToHead(cluster, schedule, results, config) : cluster);
         i = j;
@@ -333,7 +348,16 @@ export abstract class RacketSport extends Sport {
     return groups;
   }
 
-  /** Among tied pairs: games won between them, then game difference, then fewest games lost, then name. */
+  /** Standings points per match won (0 to 10, 1 by default). */
+  winPoints(config?: Partial<Config> | null): number {
+    const n = Number(config?.winPoints);
+    return Number.isInteger(n) && n >= 0 && n <= 10 ? n : 1;
+  }
+
+  /**
+   * Among tied pairs, their matches against each other: matches won, then set
+   * difference, then game difference; then fewest games lost overall, then name.
+   */
   resolveHeadToHead(
     cluster: StandingsRow[],
     schedule: Match[],
@@ -341,25 +365,30 @@ export abstract class RacketSport extends Sport {
     config: Config
   ): StandingsRow[] {
     const format = this.format(config);
-    const mini = new Map<number, SetScore>();
-    cluster.forEach((c) => mini.set(c.idx, { home: 0, away: 0 })); // home = won, away = lost
+    const mini = new Map<number, { won: number; sets: number; games: number }>();
+    cluster.forEach((c) => mini.set(c.idx, { won: 0, sets: 0, games: 0 }));
 
     this.countedMatches(schedule, results).forEach(({ home, away, sets }) => {
       const h = mini.get(home);
       const a = mini.get(away);
       if (!h || !a) return;
       const games = this.gamesOf(sets, format);
-      h.home += games.home;
-      h.away += games.away;
-      a.home += games.away;
-      a.away += games.home;
+      const won = this.setsWon(sets, format);
+      const winner = this.matchWinner(sets, format);
+      if (winner === 'home') h.won++;
+      if (winner === 'away') a.won++;
+      h.sets += won.home - won.away;
+      a.sets += won.away - won.home;
+      h.games += games.home - games.away;
+      a.games += games.away - games.home;
     });
 
     return cluster.slice().sort((x, y) => {
       const mx = mini.get(x.idx)!;
       const my = mini.get(y.idx)!;
-      return (my.home - mx.home) ||
-        ((my.home - my.away) - (mx.home - mx.away)) ||
+      return (my.won - mx.won) ||
+        (my.sets - mx.sets) ||
+        (my.games - mx.games) ||
         (x.GS - y.GS) ||
         x.name.localeCompare(y.name);
     });
@@ -471,7 +500,19 @@ export abstract class RacketSport extends Sport {
 
   /** Games won first; in a match played to points, points won (PW, PL, PD). */
   standingsColumns(config?: Config | null): StandingsColumn[] {
-    const c = this.pointsPerMatch(config) ? en.standings.pointsCols : en.standings.racketCols;
+    const diff = (d: number) => (d > 0 ? '+' : '') + d;
+    if (!this.pointsPerMatch(config)) {
+      const c = en.standings.racketCols;
+      return [
+        { label: c.pts, value: (s) => s.Pts, className: 'pts-cell' },
+        { label: c.p, value: (s) => s.J },
+        { label: c.w, value: (s) => s.V },
+        { label: c.l, value: (s) => s.D },
+        { label: c.sd, value: (s) => diff(setDiff(s)) },
+        { label: c.gd, value: (s) => diff(s.DG ?? s.GM - s.GS) },
+      ];
+    }
+    const c = en.standings.pointsCols;
     return [
       { label: c.gw, value: (s) => s.GM, className: 'pts-cell' },
       { label: c.p, value: (s) => s.J },
@@ -492,4 +533,9 @@ export abstract class RacketSport extends Sport {
   tallyPlayerStats(): Record<string, PlayerStats> {
     return {};
   }
+}
+
+/** Sets won minus sets lost of a standings row. */
+function setDiff(r: StandingsRow): number {
+  return (r.SW ?? 0) - (r.SL ?? 0);
 }
