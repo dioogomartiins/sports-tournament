@@ -98,7 +98,7 @@ export function renderDraftTeams(nomeA, nomeB, equipaA, equipaB) {
     teamCard(nomeA, equipaA, 'team-a') +
     teamCard(nomeB, equipaB, 'team-b') +
     `<div class="draft-balance-bar">${escapeHtml(en.singleMatch.ratingDifference)}<span class="draft-balance-diff">${diff} ★</span></div>` +
-    `<button class="btn btn-ghost draft-mvp-btn" data-action="draft-mvp">⭐ MVP: ${currentDraft.mvp ? escapeHtml(playerName(currentDraft.mvp)) : escapeHtml(en.singleMatch.pickMvpButton)}</button>` +
+    `<button class="btn btn-ghost draft-mvp-btn" data-action="draft-mvp">⭐ MVP: ${currentDraft.mvp ? escapeHtml(playerName(currentDraft.mvp)) : escapeHtml(en.singleMatch.chooseMvp)}</button>` +
     `</div>`;
 
   // Draft goals and assists: assist lists stay aligned with scorers
@@ -119,7 +119,7 @@ export function renderDraftTeams(nomeA, nomeB, equipaA, equipaB) {
       const pid = btn.dataset.pid;
       const team = side === 'A' ? equipaA : equipaB;
       const mates = team.filter((p) => p.id !== pid).map((p) => ({ id: p.id, label: p.nome }));
-      openPickPlayerModal(en.singleMatch.pickAssistTitle, mates, en.singleMatch.noAssist, (aid) => {
+      openPickPlayerModal(en.singleMatch.pickAssistTitle, mates, en.singleMatch.noAssistLabel, (aid) => {
         const { scorers, assists } = lists(side);
         scorers.push(pid);
         assists.push(aid);
@@ -148,7 +148,7 @@ export function renderDraftTeams(nomeA, nomeB, equipaA, equipaB) {
   if (mvpBtn) {
     mvpBtn.addEventListener('click', () => {
       const all = [...equipaA, ...equipaB].map((p) => ({ id: p.id, label: p.nome }));
-      openPickPlayerModal(en.singleMatch.pickMvpTitle, all, en.singleMatch.noMvp, (pid) => {
+      openPickPlayerModal(en.singleMatch.pickMvpTitle, all, en.singleMatch.noMvpLabel, (pid) => {
         currentDraft.mvp = pid;
         rerender();
       });
