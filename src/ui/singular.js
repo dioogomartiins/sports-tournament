@@ -3,9 +3,10 @@ import { getTeamName, escapeHtml, fmtTimestamp, playerName } from '../utils.js';
 import { getPlayerRating, getTeamTotalRating } from '../algorithms.js';
 import { dom } from './dom.js';
 import { openConfirm, openPickPlayerModal } from './modais.js';
+import { en } from '../i18n/en.js';
 
 // ---------------------------------------------------------------------------
-// Render — Jogo Singular (Draft + Histórico)
+// Render — Single Match (Draft + History)
 // ---------------------------------------------------------------------------
 
 // Stores current draft state (module-level, not persisted)
@@ -15,7 +16,7 @@ export function renderDraftPlayerList() {
   if (!dom.draftPlayerList) return;
 
   if (!state.players.length) {
-    dom.draftPlayerList.innerHTML = '<p class="empty">Ainda não há jogadores na base de dados. Cria-os primeiro na aba 👤 Jogadores.</p>';
+    dom.draftPlayerList.innerHTML = `<p class="empty">${escapeHtml(en.singleMatch.noPlayersInDB)}</p>`;
     if (dom.btnFazerDraft) dom.btnFazerDraft.disabled = true;
     return;
   }
@@ -37,7 +38,7 @@ export function renderDraftPlayerList() {
   }).join('');
 
   dom.draftPlayerList.innerHTML =
-    `<p class="draft-selected-count" id="draftSelectedCount">0 jogadores selecionados</p>` +
+    `<p class="draft-selected-count" id="draftSelectedCount">${escapeHtml(en.singleMatch.playersSelected(0))}</p>` +
     rows;
 
   // Update counter + enable button
@@ -45,7 +46,7 @@ export function renderDraftPlayerList() {
     cb.addEventListener('change', () => {
       const count = dom.draftPlayerList.querySelectorAll('.draft-checkbox:checked').length;
       const el = document.getElementById('draftSelectedCount');
-      if (el) el.textContent = `${count} jogador${count !== 1 ? 'es' : ''} selecionado${count !== 1 ? 's' : ''}`;
+      if (el) el.textContent = en.singleMatch.playersSelected(count);
       if (dom.btnFazerDraft) dom.btnFazerDraft.disabled = count < 2;
     });
   });
@@ -86,7 +87,7 @@ export function renderDraftTeams(nomeA, nomeB, equipaA, equipaB) {
     return (
       `<div class="draft-team-card ${cls}">` +
       `<div class="draft-team-name">${escapeHtml(nome)}</div>` +
-      `<div class="draft-team-rating-total">Rating total: ${cls === 'team-a' ? ratingA : ratingB}</div>` +
+      `<div class="draft-team-rating-total">${escapeHtml(en.singleMatch.totalRating(cls === 'team-a' ? ratingA : ratingB))}</div>` +
       rows +
       `</div>`
     );
@@ -96,11 +97,11 @@ export function renderDraftTeams(nomeA, nomeB, equipaA, equipaB) {
     `<div class="draft-teams-grid">` +
     teamCard(nomeA, equipaA, 'team-a') +
     teamCard(nomeB, equipaB, 'team-b') +
-    `<div class="draft-balance-bar">Diferença de rating: <span class="draft-balance-diff">${diff} ★</span></div>` +
-    `<button class="btn btn-ghost draft-mvp-btn" data-action="draft-mvp">⭐ MVP: ${currentDraft.mvp ? escapeHtml(playerName(currentDraft.mvp)) : 'escolher'}</button>` +
+    `<div class="draft-balance-bar">${escapeHtml(en.singleMatch.ratingDifference)}<span class="draft-balance-diff">${diff} ★</span></div>` +
+    `<button class="btn btn-ghost draft-mvp-btn" data-action="draft-mvp">⭐ MVP: ${currentDraft.mvp ? escapeHtml(playerName(currentDraft.mvp)) : escapeHtml(en.singleMatch.pickMvpButton)}</button>` +
     `</div>`;
 
-  // Golos e assistências do draft: as listas de assistências ficam alinhadas com as de marcadores
+  // Draft goals and assists: assist lists stay aligned with scorers
   const lists = (side) => {
     const sc = side === 'A' ? 'scorersA' : 'scorersB';
     const as = side === 'A' ? 'assistsA' : 'assistsB';
@@ -118,7 +119,7 @@ export function renderDraftTeams(nomeA, nomeB, equipaA, equipaB) {
       const pid = btn.dataset.pid;
       const team = side === 'A' ? equipaA : equipaB;
       const mates = team.filter((p) => p.id !== pid).map((p) => ({ id: p.id, label: p.nome }));
-      openPickPlayerModal('Assistência', mates, 'Sem assistência', (aid) => {
+      openPickPlayerModal(en.singleMatch.pickAssistTitle, mates, en.singleMatch.noAssist, (aid) => {
         const { scorers, assists } = lists(side);
         scorers.push(pid);
         assists.push(aid);
@@ -147,7 +148,7 @@ export function renderDraftTeams(nomeA, nomeB, equipaA, equipaB) {
   if (mvpBtn) {
     mvpBtn.addEventListener('click', () => {
       const all = [...equipaA, ...equipaB].map((p) => ({ id: p.id, label: p.nome }));
-      openPickPlayerModal('MVP do Jogo', all, 'Sem MVP', (pid) => {
+      openPickPlayerModal(en.singleMatch.pickMvpTitle, all, en.singleMatch.noMvp, (pid) => {
         currentDraft.mvp = pid;
         rerender();
       });
@@ -155,8 +156,8 @@ export function renderDraftTeams(nomeA, nomeB, equipaA, equipaB) {
   }
 
   // Update score labels
-  if (dom.draftLabelA) dom.draftLabelA.textContent = nomeA || 'Equipa A';
-  if (dom.draftLabelB) dom.draftLabelB.textContent = nomeB || 'Equipa B';
+  if (dom.draftLabelA) dom.draftLabelA.textContent = nomeA || en.singleMatch.teamA;
+  if (dom.draftLabelB) dom.draftLabelB.textContent = nomeB || en.singleMatch.teamB;
 
   if (dom.draftResultCard) dom.draftResultCard.style.display = 'block';
 }
@@ -165,7 +166,7 @@ export function renderSingularHistorico() {
   if (!dom.singularHistoricoList) return;
 
   if (!state.jogosSingulares.length) {
-    dom.singularHistoricoList.innerHTML = '<p class="empty">Ainda não há jogos registados.</p>';
+    dom.singularHistoricoList.innerHTML = `<p class="empty">${escapeHtml(en.singleMatch.noMatchesRecorded)}</p>`;
     return;
   }
 
@@ -207,7 +208,7 @@ export function renderSingularHistorico() {
   dom.singularHistoricoList.querySelectorAll('[data-action="del-jogo"]').forEach((btn) => {
     btn.addEventListener('click', async () => {
       const jid = btn.dataset.jid;
-      openConfirm('Apagar Jogo', 'Tens a certeza que queres apagar este registo do histórico?', async () => {
+      openConfirm(en.singleMatch.deleteMatchTitle, en.singleMatch.deleteMatchPrompt, async () => {
         state.jogosSingulares = state.jogosSingulares.filter((j) => j.id !== jid);
         await persistJogosSingulares();
         renderSingularHistorico();

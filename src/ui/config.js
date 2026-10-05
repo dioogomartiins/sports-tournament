@@ -1,9 +1,10 @@
 import { state } from '../state.js';
 import { escapeHtml, clamp } from '../utils.js';
 import { dom } from './dom.js';
+import { en } from '../i18n/en.js';
 
 // ---------------------------------------------------------------------------
-// Formulário de configuração
+// Settings Form
 // ---------------------------------------------------------------------------
 export function populateConfigForm() {
   dom.cfgNome.value = state.config.nome;
@@ -22,10 +23,14 @@ export function populateConfigForm() {
 export function renderScheduleHint() {
   const confN = clamp(parseInt(dom.cfgNumEquipas.value, 10) || state.config.numEquipas, 2, 32);
   const confV = clamp(parseInt(dom.cfgNumVoltas.value, 10) || state.config.numVoltas, 1, 20);
-  let live = `Calendário atual: <strong>${escapeHtml(state.scheduleTeamCount)} equipas / ${escapeHtml(state.scheduleVoltas)} volta(s)</strong> · ${state.schedule.length} jogos.`;
+  let live = en.config.scheduleHintCurrent(
+    escapeHtml(state.scheduleTeamCount),
+    escapeHtml(state.scheduleVoltas),
+    state.schedule.length,
+  );
 
   if (confN !== state.scheduleTeamCount || confV !== state.scheduleVoltas) {
-    live += ` Configurado agora: ${confN} equipas / ${confV} volta(s) — clica em 🔄 Gerar Calendário para aplicar.`;
+    live += en.config.scheduleHintConfigured(confN, confV);
   }
 
   dom.scheduleHint.innerHTML = live;

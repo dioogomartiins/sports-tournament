@@ -1,22 +1,23 @@
 import { state } from '../state.js';
 import { getTeamName, escapeHtml, safeColor, playerName } from '../utils.js';
 import { GAME_STATUS, gameGoals } from '../algorithms.js';
+import { en } from '../i18n/en.js';
 
 // ---------------------------------------------------------------------------
-// Janela do jogo — resultado, cronologia de golos e assistências
+// Match window — score, timeline of goals and assists
 // ---------------------------------------------------------------------------
 let openGameGi = null;
 
 function goalScorerName(pid) {
-  if (pid === 'auto') return 'Autogolo';
-  return pid ? playerName(pid) : 'Golo';
+  if (pid === 'auto') return en.gameModal.ownGoal;
+  return pid ? playerName(pid) : en.gameModal.goal;
 }
 
 function gameStatusLine(val) {
   const status = val && typeof val === 'object' ? (val.status || GAME_STATUS.AGENDADO) : (val ? GAME_STATUS.TERMINADO : GAME_STATUS.AGENDADO);
-  if (status === GAME_STATUS.DECORRER) return '<span class="gm-live">● A decorrer</span>';
-  if (status === GAME_STATUS.TERMINADO) return 'Terminado';
-  return 'Agendado';
+  if (status === GAME_STATUS.DECORRER) return `<span class="gm-live">${escapeHtml(en.gameModal.liveStatus)}</span>`;
+  if (status === GAME_STATUS.TERMINADO) return escapeHtml(en.gameModal.finishedStatus);
+  return escapeHtml(en.gameModal.scheduledStatus);
 }
 
 function gameTeamHtml(idx, cls) {
@@ -31,13 +32,13 @@ function gameTeamHtml(idx, cls) {
 
 function gameModalHtml(gi) {
   const g = state.schedule[gi];
-  if (!g) return '<p class="empty">Este jogo já não existe.</p>';
+  if (!g) return `<p class="empty">${escapeHtml(en.gameModal.matchNotFound)}</p>`;
   const val = state.results[gi];
   const score = (val && typeof val === 'object' ? val.score : val) || '';
   const m = /^(\d+)-(\d+)$/.exec(score);
   const [h, a] = m ? [m[1], m[2]] : ['–', '–'];
-  const ronda = typeof g.jornada === 'number' ? `Jornada ${g.jornada}` : String(g.jornada || '');
-  const pen = val && val.penalties ? `<div class="gm-pen">Penáltis ${escapeHtml(val.penalties)}</div>` : '';
+  const ronda = typeof g.jornada === 'number' ? en.gameModal.roundLabel(g.jornada) : String(g.jornada || '');
+  const pen = val && val.penalties ? `<div class="gm-pen">${escapeHtml(en.gameModal.penalties(val.penalties))}</div>` : '';
 
   const goals = gameGoals(val);
   const goalCard = (goal) => {
@@ -57,13 +58,13 @@ function gameModalHtml(gi) {
       `</div>`
     : '';
 
-  // MVP e partilha só fazem sentido com o jogo terminado
+  // MVP and sharing only make sense with the match finished
   const terminado = val && (typeof val !== 'object' || val.status === GAME_STATUS.TERMINADO);
   const mvpNome = val && val.mvp ? escapeHtml(playerName(val.mvp)) : '';
   const mvp = terminado && typeof val === 'object'
     ? `<div class="gm-actions">` +
-      `<button class="btn gm-action" data-action="mvp" title="Escolher o MVP do jogo">⭐ ${mvpNome ? `MVP: <strong>${mvpNome}</strong>` : 'Escolher MVP'}</button>` +
-      `<button class="btn gm-action" data-action="share" title="Partilhar a imagem do resultado">📤 Partilhar imagem</button>` +
+      `<button class="btn gm-action" data-action="mvp" title="${escapeHtml(en.gameModal.pickMvpTitle)}">⭐ ${mvpNome ? `MVP: <strong>${mvpNome}</strong>` : escapeHtml(en.gameModal.pickMvpButton)}</button>` +
+      `<button class="btn gm-action" data-action="share" title="${escapeHtml(en.gameModal.shareImageTitle)}">${escapeHtml(en.gameModal.shareImageButton)}</button>` +
       `</div>`
     : (mvpNome ? `<div class="gm-mvp">⭐ MVP: <strong>${mvpNome}</strong></div>` : '');
 
@@ -78,7 +79,7 @@ function gameModalHtml(gi) {
     `<div class="gm-status">${gameStatusLine(val)}</div>${pen}` +
     `</div>` +
     `<div class="gm-body">` +
-    (cols || '<p class="empty gm-empty">Ainda não há golos neste jogo.</p>') +
+    (cols || `<p class="empty gm-empty">${escapeHtml(en.gameModal.noGoalsInMatch)}</p>`) +
     mvp +
     `</div>`
   );

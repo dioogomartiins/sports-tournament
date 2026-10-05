@@ -84,32 +84,32 @@ describe('describeUpdates', () => {
   it('descreve o resultado com os nomes das equipas', () => {
     const r = { score: '2-1', status: 'terminado', scorers: { home: [], away: [] } };
     expect(describeUpdates({ 'results/0': r, exportedAt: 'x' }, snap))
-      .toBe('Resultado Leões vs Águias: 2-1, terminado');
+      .toBe('Result Leões vs Águias: 2-1, terminado');
   });
 
   it('inclui penáltis e resultados apagados', () => {
     expect(describeUpdates({ 'results/1': { score: '1-1', penalties: '4-3' } }, snap))
-      .toBe('Resultado Vencedor A vs Águias: 1-1 (g.p. 4-3)');
-    expect(describeUpdates({ 'results/0': null }, snap)).toBe('Resultado apagado: Leões vs Águias');
+      .toBe('Result Vencedor A vs Águias: 1-1 (pen. 4-3)');
+    expect(describeUpdates({ 'results/0': null }, snap)).toBe('Result deleted: Leões vs Águias');
   });
 
   it('resume secções e ignora metadados', () => {
     expect(describeUpdates({ meta: {}, config: {}, teams: [], exportedAt: 'x', version: 5 }, snap))
-      .toBe('Detalhes do torneio alterados; Configuração alterada; Equipas alteradas');
+      .toBe('Tournament details updated; Settings updated; Teams updated');
     expect(describeUpdates({ exportedAt: 'x', version: 5 }, snap)).toBe('');
   });
 
   it('resume vários resultados apagados numa só frase', () => {
     expect(describeUpdates({ schedule: [], 'results/0': null, 'results/1': null, arquivo: [] }, snap))
-      .toBe('2 resultados apagados; Calendário alterado; Histórico de torneios alterado');
+      .toBe('2 results deleted; Schedule updated; Tournament history updated');
   });
 
   it('jogo sem calendário usa o número', () => {
-    expect(describeUpdates({ 'results/7': { score: '0-0' } }, snap)).toBe('Resultado jogo 8: 0-0');
+    expect(describeUpdates({ 'results/7': { score: '0-0' } }, snap)).toBe('Result match 8: 0-0');
   });
 
   it('alterações campo a campo do calendário aparecem uma vez', () => {
-    expect(describeUpdates({ 'schedule/3/home': 0, 'schedule/3/away': 1 }, snap)).toBe('Calendário alterado');
+    expect(describeUpdates({ 'schedule/3/home': 0, 'schedule/3/away': 1 }, snap)).toBe('Schedule updated');
   });
 });
 

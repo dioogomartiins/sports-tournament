@@ -26,6 +26,7 @@ import type {
   SingleMatch,
   ArchiveEntry,
 } from './types.js';
+import { en } from './i18n/en.js';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -96,7 +97,7 @@ export function ensureTeamsStructure(arr?: unknown[]): Team[] {
       return obj;
     }
     return {
-      name: typeof t === 'string' ? t : `Equipa ${i + 1}`,
+      name: typeof t === 'string' ? t : `Team ${i + 1}`,
       color: DEFAULT_COLOR,
     };
   });
@@ -180,7 +181,7 @@ const STORAGE_PREFIX = 'torneio_ilog_';
 export function warnNoStorage(): void {
   if (storageWarned) return;
   storageWarned = true;
-  ui.showToast('O teu navegador bloqueia a gravação — os dados não serão guardados.', 'error');
+  ui.showToast(en.toasts.browserStorageBlocked, 'error');
 }
 
 /** Async to facilitate future migration to IndexedDB without breaking caller APIs. */
@@ -278,8 +279,8 @@ export async function persistBackup(): Promise<void> {
 }
 
 const REJECT_MESSAGES: Record<string, string> = {
-  'sem-sync': 'Ainda a ligar à base de dados. Tenta de novo daqui a pouco.',
-  'sem-sessao': 'Entra com a tua conta Google para fazer alterações.',
+  'sem-sync': en.toasts.dbStillConnecting,
+  'sem-sessao': en.toasts.dbSignInRequired,
 };
 
 let lastErrorToast = { msg: '', at: 0 };
@@ -298,8 +299,8 @@ export function notifyPushError(err?: { code?: string; message?: string } | Erro
   const denied = /permission/i.test(codeOrMsg);
   showSaveError(
     denied
-      ? 'A alteração foi recusada pela base de dados (sem permissão). Foi desfeita.'
-      : 'Não foi possível gravar a alteração na base de dados. Foi desfeita.',
+      ? en.toasts.dbRejectedPermission
+      : en.toasts.dbSaveFailed,
   );
 }
 
@@ -309,8 +310,8 @@ async function rejectLocalChange(reason?: string): Promise<void> {
   if (!msg) {
     msg =
       getCurrentRole() === 'user'
-        ? 'Só um admin pode fazer esta alteração.'
-        : 'A tua conta ainda não foi aprovada por um admin.';
+        ? en.toasts.onlyAdminCanChange
+        : en.toasts.accountNotApproved;
   }
   showSaveError(msg);
 
@@ -492,7 +493,7 @@ export async function loadState(): Promise<void> {
   } else if (validateSnapshot(bk)) {
     applySnapshot(bk);
     await storeAllLayers();
-    ui.showToast('Estado restaurado a partir do backup automático.', 'ok');
+    ui.showToast(en.toasts.backupRestored, 'ok');
     ui.flashBackup(bk.exportedAt);
   } else {
     state.config = defaultConfig();
@@ -515,7 +516,7 @@ export function exportJSON(): void {
   const snap = buildSnapshot();
   const blob = new Blob([JSON.stringify(snap, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
-  const safeName = (state.config?.nome || 'torneio').replace(/[^a-z0-9_-]/gi, '_').toLowerCase();
+  const safeName = (state.config?.nome || 'tournament').replace(/[^a-z0-9_-]/gi, '_').toLowerCase();
   const ts = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
 
   const a = document.createElement('a');
@@ -526,7 +527,7 @@ export function exportJSON(): void {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 
-  ui.showToast('Torneio exportado com sucesso!', 'ok');
+  ui.showToast(en.toasts.tournamentExported, 'ok');
 }
 
 export function importJSON(file: File | null): void {
@@ -538,21 +539,21 @@ export function importJSON(file: File | null): void {
     try {
       snap = JSON.parse(e.target?.result as string);
     } catch {
-      ui.showToast('Ficheiro inválido.', 'error');
+      ui.showToast(en.toasts.invalidFile, 'error');
       return;
     }
 
     if (!validateSnapshot(snap)) {
-      ui.showToast('Estrutura inválida.', 'error');
+      ui.showToast(en.toasts.invalidStructure, 'error');
       return;
     }
 
-    ui.openConfirm('Importar torneio', 'Isto vai substituir TODO o estado atual. Continuar?', async () => {
+    ui.openConfirm(en.confirmations.importTournamentTitle, en.confirmations.importTournamentPrompt, async () => {
       applySnapshot(snap);
       await storeAllLayers();
       await persistBackup();
       ui.renderAll();
-      ui.showToast('Torneio importado com sucesso!', 'ok');
+      ui.showToast(en.toasts.tournamentImported, 'ok');
     });
   };
 

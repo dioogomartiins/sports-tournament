@@ -3,19 +3,20 @@ import { getTeamDisplay, escapeHtml } from '../utils.js';
 import { GAME_STATUS } from '../algorithms.js';
 import { dom } from './dom.js';
 import { openGameModal, refreshGameModal } from './jogo.js';
+import { en } from '../i18n/en.js';
 
 // ---------------------------------------------------------------------------
-// Render — calendário
+// Render — Schedule
 // ---------------------------------------------------------------------------
 export function getStatusBadge(status, gi) {
   const labels = {
-    [GAME_STATUS.AGENDADO]: '📅 Agendado',
-    [GAME_STATUS.DECORRER]: '⏳ A Decorrer',
-    [GAME_STATUS.TERMINADO]: '✅ Terminado',
+    [GAME_STATUS.AGENDADO]: en.results.statusScheduled,
+    [GAME_STATUS.DECORRER]: en.results.statusInProgress,
+    [GAME_STATUS.TERMINADO]: en.results.statusFinished,
   };
-  // O estado vem do Firebase: só aceitar valores conhecidos (vai para um atributo)
+  // Status comes from Firebase: only accept known values
   const safe = Object.prototype.hasOwnProperty.call(labels, status) ? status : GAME_STATUS.AGENDADO;
-  return `<button class="status-badge status-${safe}" data-gi="${escapeHtml(gi)}" title="Clique para mudar estado">${labels[safe]}</button>`;
+  return `<button class="status-badge status-${safe}" data-gi="${escapeHtml(gi)}" title="${en.results.changeStatusTitle}">${labels[safe]}</button>`;
 }
 
 export function renderCalendar() {
@@ -23,7 +24,7 @@ export function renderCalendar() {
   dom.calendarActions.style.display = hasSchedule ? 'block' : 'none';
 
   if (!hasSchedule) {
-    dom.calendarList.innerHTML = '<p class="empty">Ainda não há calendário. Vai a Configuração e clica em 🔄 Gerar Calendário.</p>';
+    dom.calendarList.innerHTML = `<p class="empty">${en.schedule.empty}</p>`;
     return;
   }
 
@@ -42,20 +43,21 @@ export function renderCalendar() {
   state.roundsMeta.forEach((rm) => {
     const j = rm.jornada;
     const games = byRound[j] || [];
-    parts.push(`<div class="round-card"><div class="round-head">Jornada ${escapeHtml(j)}</div><div class="round-games">`);
+    const roundTitle = typeof j === 'number' ? en.schedule.roundHead(j) : escapeHtml(j);
+    parts.push(`<div class="round-card"><div class="round-head">${roundTitle}</div><div class="round-games">`);
 
     games.forEach(({ g, gi }) => {
       const val = state.results[gi];
       const status = val && val.status ? val.status : GAME_STATUS.AGENDADO;
       parts.push(
-        `<div class="fixture fixture-open" data-game="${gi}" title="Ver o jogo"><span class="fx-home">${getTeamDisplay(g.home)}</span>` +
+        `<div class="fixture fixture-open" data-game="${gi}" title="${en.schedule.viewMatchTitle}"><span class="fx-home">${getTeamDisplay(g.home)}</span>` +
         `<span class="fx-vs">${getStatusBadge(status, gi)} VS</span>` +
         `<span class="fx-away">${getTeamDisplay(g.away)}</span></div>`
       );
     });
 
     if (byeMap[j] !== undefined) {
-      parts.push(`<div class="fixture fixture-bye">💤 ${getTeamDisplay(byeMap[j])} — folga esta jornada</div>`);
+      parts.push(`<div class="fixture fixture-bye">${en.schedule.byeRound(getTeamDisplay(byeMap[j]))}</div>`);
     }
 
     parts.push('</div></div>');
@@ -63,7 +65,6 @@ export function renderCalendar() {
 
   dom.calendarList.innerHTML = parts.join('');
 
-  // O clique no estado é tratado no main.js (delegação em dom.calendarList)
   Array.from(dom.calendarList.querySelectorAll('.fixture-open')).forEach((row) => {
     row.addEventListener('click', (e) => {
       if (e.target.closest('.status-badge')) return;
@@ -73,11 +74,11 @@ export function renderCalendar() {
 }
 
 // ---------------------------------------------------------------------------
-// Render — resultados
+// Render — Results
 // ---------------------------------------------------------------------------
 export function renderResults() {
   if (!state.schedule.length) {
-    dom.resultsList.innerHTML = '<p class="empty">Sem jogos agendados.</p>';
+    dom.resultsList.innerHTML = `<p class="empty">${en.schedule.noScheduledMatches}</p>`;
     return;
   }
 
@@ -94,7 +95,8 @@ export function renderResults() {
     const games = byRound[j] || [];
     if (!games.length) return;
 
-    parts.push(`<div class="round-card"><div class="round-head">Jornada ${escapeHtml(j)}</div><div class="round-games">`);
+    const roundTitle = typeof j === 'number' ? en.schedule.roundHead(j) : escapeHtml(j);
+    parts.push(`<div class="round-card"><div class="round-head">${roundTitle}</div><div class="round-games">`);
 
     games.forEach(({ g, gi }) => {
       const val = state.results[gi];
@@ -122,7 +124,7 @@ export function renderResults() {
       if (isTerminado && isTie && isPlayoff) {
         penaltiesHtml =
           `<div class="penalties-split">` +
-          `<span class="pen-label">Penáltis</span>` +
+          `<span class="pen-label">${en.results.penalties}</span>` +
           `<input type="number" class="input pen-box" data-gi="${gi}" data-side="home" value="${escapeHtml(pHome)}" min="0" max="99" inputmode="numeric">` +
           `<span class="res-sep">-</span>` +
           `<input type="number" class="input pen-box" data-gi="${gi}" data-side="away" value="${escapeHtml(pAway)}" min="0" max="99" inputmode="numeric">` +
@@ -144,7 +146,7 @@ export function renderResults() {
         `<span class="fx-away">${getTeamDisplay(g.away)}</span>` +
         penaltiesHtml +
         `<div class="fixture-actions">${getStatusBadge(status, gi)}` +
-        `<button class="mini-btn game-open-btn" data-gi="${gi}" title="Ver golos, assistências e MVP">📋 Jogo</button>` +
+        `<button class="mini-btn game-open-btn" data-gi="${gi}" title="${en.results.matchButtonTitle}">${en.results.matchButton}</button>` +
         `</div>` +
         `</div>`
       );
@@ -159,7 +161,6 @@ export function renderResults() {
     btn.addEventListener('click', () => openGameModal(btn.dataset.gi));
   });
 
-  // Gravar resultados, golos e estado é ligado no main.js (delegação em dom.resultsList)
   Array.from(dom.resultsList.querySelectorAll('.res-box, .pen-box')).forEach((inp) => {
     inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') inp.blur(); });
   });

@@ -2,9 +2,10 @@ import { state } from '../state.js';
 import { getTeamName, getTeamDisplay, escapeHtml, buildPlayerIndex } from '../utils.js';
 import { computeStandings, GAME_STATUS, tallyPlayerStats } from '../algorithms.js';
 import { dom } from './dom.js';
+import { en } from '../i18n/en.js';
 
 // ---------------------------------------------------------------------------
-// Estatísticas — marcadores
+// Stats — Scorers
 // ---------------------------------------------------------------------------
 
 export function computeScorerStats() {
@@ -14,7 +15,7 @@ export function computeScorerStats() {
   function addGoal(pId) {
     if (pId === 'auto') return;
     if (!stats[pId]) {
-      const info = playerIndex[pId] || { name: 'Jogador Desconhecido', team: 'Sem Equipa' };
+      const info = playerIndex[pId] || { name: en.common.unknownPlayer, team: en.common.noTeam };
       stats[pId] = { name: info.name, team: info.team, count: 0 };
     }
     stats[pId].count++;
@@ -40,15 +41,15 @@ export function computeScorerStats() {
 
 export function statCardsHtml(summary) {
   const cards = [
-    ['Jogos realizados', `${summary.played} / ${summary.total}`],
-    ['Jogos em falta', String(summary.pendentes)],
-    ['Golos marcados', String(summary.totalGoals)],
-    ['Média de golos / jogo', summary.media.toFixed(2)],
-    ['🔥 Melhor ataque', summary.bestAtkLabel],
-    ['🧱 Melhor defesa', summary.bestDefLabel],
-    ['Maior goleada', summary.biggestWinLabel],
-    ['Mais vitórias', summary.mostWinsLabel],
-    ['Mais empates', summary.mostDrawsLabel],
+    [en.statsTab.matchesPlayed, `${summary.played} / ${summary.total}`],
+    [en.statsTab.remainingMatches, String(summary.pendentes)],
+    [en.statsTab.goalsScored, String(summary.totalGoals)],
+    [en.statsTab.goalsPerMatchAvg, summary.media.toFixed(2)],
+    [en.statsTab.bestAttack, summary.bestAtkLabel],
+    [en.statsTab.bestDefense, summary.bestDefLabel],
+    [en.statsTab.biggestBlowout, summary.biggestWinLabel],
+    [en.statsTab.mostWins, summary.mostWinsLabel],
+    [en.statsTab.mostDraws, summary.mostDrawsLabel],
   ];
 
   return cards.map(([label, value]) =>
@@ -62,11 +63,11 @@ export function renderStatsGrid(summary) {
 
   const scorerRows = scorers.length
     ? scorers.map((s) =>
-      `<div style="padding:6px 0; border-bottom:1px solid var(--line);"><strong>${s.count}</strong> golos — ${escapeHtml(s.name)} <span style="color:var(--ink-faint); font-size:13px;">(${escapeHtml(s.team)})</span></div>`
+      `<div style="padding:6px 0; border-bottom:1px solid var(--line);"><strong>${s.count}</strong> ${en.common.goals} — ${escapeHtml(s.name)} <span style="color:var(--ink-faint); font-size:13px;">(${escapeHtml(s.team)})</span></div>`
     ).join('')
-    : '<p class="empty">Nenhum golo registado ainda.</p>';
+    : `<p class="empty">${en.statsTab.noGoalsYet}</p>`;
 
-  html += `<div class="card stats-half"><div class="section-title">👟 Tabela de Marcadores</div>${scorerRows}</div>`;
+  html += `<div class="card stats-half"><div class="section-title">${en.statsTab.topScorers}</div>${scorerRows}</div>`;
 
   const tally = tallyPlayerStats(state.results, state.jogosSingulares);
   const index = buildPlayerIndex();
@@ -77,19 +78,19 @@ export function renderStatsGrid(summary) {
       .slice(0, 10);
     return rows.length
       ? rows.map((pid) => {
-        const info = index[pid] || { name: 'Jogador Desconhecido', team: 'Sem Equipa' };
+        const info = index[pid] || { name: en.common.unknownPlayer, team: en.common.noTeam };
         return `<div style="padding:6px 0; border-bottom:1px solid var(--line);"><strong>${tally[pid][key]}</strong> ${unit} — ${escapeHtml(info.name)} <span style="color:var(--ink-faint); font-size:13px;">(${escapeHtml(info.team)})</span></div>`;
       }).join('')
-      : '<p class="empty">Ainda nada registado.</p>';
+      : `<p class="empty">${en.statsTab.nothingRecordedYet}</p>`;
   };
 
-  html += `<div class="card stats-half"><div class="section-title">🅰️ Assistências</div>${topBy('assistencias', 'assist.')}</div>`;
-  html += `<div class="card stats-half"><div class="section-title">⭐ MVP</div>${topBy('mvp', '×')}</div>`;
+  html += `<div class="card stats-half"><div class="section-title">${en.statsTab.assistsTitle}</div>${topBy('assistencias', 'assist.')}</div>`;
+  html += `<div class="card stats-half"><div class="section-title">${en.statsTab.mvpTitle}</div>${topBy('mvp', '×')}</div>`;
   dom.statsGrid.innerHTML = html;
 }
 
 // ---------------------------------------------------------------------------
-// Estatísticas gerais (usadas no dashboard e em gerarEliminatórias)
+// General Stats (used on dashboard and playoff generation)
 // ---------------------------------------------------------------------------
 export function computeStatsSummary() {
   const teamsArray = state.teams.slice(0, state.scheduleTeamCount);
@@ -158,21 +159,21 @@ export function computeStatsSummary() {
     pendentes: total - played,
     totalGoals,
     media,
-    bestAtkLabel: bestAtk ? `${bestAtk.name} — ${bestAtk.GM} golos` : '—',
-    bestDefLabel: bestDef ? `${bestDef.name} — ${bestDef.GS} sofridos` : '—',
-    mostWinsLabel: mostWins ? `${mostWins.name} — ${mostWins.V} vitórias` : '—',
-    mostDrawsLabel: mostDraws ? `${mostDraws.name} — ${mostDraws.E} empates` : '—',
-    biggestWinLabel: biggestWin ? `${biggestWin.text}  (dif. ${biggestWin.diff})` : '—',
+    bestAtkLabel: bestAtk ? `${bestAtk.name} — ${en.statsTab.goalsLabel(bestAtk.GM)}` : '—',
+    bestDefLabel: bestDef ? `${bestDef.name} — ${en.statsTab.concededLabel(bestDef.GS)}` : '—',
+    mostWinsLabel: mostWins ? `${mostWins.name} — ${en.statsTab.winsLabel(mostWins.V)}` : '—',
+    mostDrawsLabel: mostDraws ? `${mostDraws.name} — ${en.statsTab.drawsLabel(mostDraws.E)}` : '—',
+    biggestWinLabel: biggestWin ? `${biggestWin.text}  ${en.statsTab.diffLabel(biggestWin.diff)}` : '—',
     totalRounds: state.roundsMeta.length,
     currentRound,
   };
 }
 
 // ---------------------------------------------------------------------------
-// Render — dashboard
+// Render — Dashboard
 // ---------------------------------------------------------------------------
 export function renderDashboard(summary) {
-  dom.tournamentTitle.textContent = (state.config.nome || 'Torneio').toUpperCase();
+  dom.tournamentTitle.textContent = (state.config.nome || en.common.tournament).toUpperCase();
 
   const sortedAll = summary.flatStandings.slice().sort((a, b) =>
     (b.Pts - a.Pts) || (b.DG - a.DG) || (b.GM - a.GM)
@@ -182,16 +183,16 @@ export function renderDashboard(summary) {
   dom.dashboardPodium.innerHTML = top3.length
     ? top3.map((s, i) =>
       `<div class="podium-card podium-${i + 1}">` +
-      `<div class="podium-rank">${i + 1}º LUGAR</div>` +
+      `<div class="podium-rank">${en.dashboard.place(i + 1)}</div>` +
       `<div class="podium-name">${escapeHtml(s.name)}</div>` +
-      `<div class="podium-pts">${s.Pts} pts · ${s.J} jogos</div>` +
+      `<div class="podium-pts">${en.dashboard.ptsMatches(s.Pts, s.J)}</div>` +
       `</div>`
     ).join('')
-    : '<p class="empty">Sem equipas configuradas.</p>';
+    : `<p class="empty">${en.dashboard.noTeamsConfigured}</p>`;
 
   const rest = sortedAll.slice(3, 8);
   dom.dashboardStandings.innerHTML = rest.length
-    ? `<table class="mini-table"><thead><tr><th>Pos</th><th style="text-align:left;">Equipa</th><th>J</th><th>Pts</th></tr></thead><tbody>` +
+    ? `<table class="mini-table"><thead><tr><th>${en.standings.cols.pos}</th><th style="text-align:left;">${en.standings.cols.team}</th><th>${en.standings.cols.p}</th><th>${en.standings.cols.pts}</th></tr></thead><tbody>` +
     rest.map((s, i) =>
       `<tr><td class="num">${i + 4}</td><td style="text-align:left;">${getTeamDisplay(s.idx)}</td><td class="num">${s.J}</td><td class="num">${s.Pts}</td></tr>`
     ).join('') +
@@ -205,18 +206,23 @@ export function renderDashboard(summary) {
     ? scorers.map((s, i) =>
       `<div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--line);">` +
       `<span>${i + 1}. ${escapeHtml(s.name)} <span style="color:var(--ink-faint); font-size:12px;">(${escapeHtml(s.team)})</span></span>` +
-      `<span style="font-weight:700;">${s.count} golos</span></div>`
+      `<span style="font-weight:700;">${en.statsTab.goalsLabel(s.count)}</span></div>`
     ).join('')
-    : '<p class="empty" style="padding-top:20px;">Nenhum golo registado ainda.</p>';
+    : `<p class="empty" style="padding-top:20px;">${en.statsTab.noGoalsYet}</p>`;
 
   document.getElementById('dashboardScorers').innerHTML =
-    `<div class="section-title" style="margin-top:20px;">👟 Top Marcadores</div>${scorerHtml}`;
+    `<div class="section-title" style="margin-top:20px;">${en.dashboard.topScorers}</div>${scorerHtml}`;
 }
 
 export function updateTicker(summary) {
   if (!summary.totalRounds) {
-    dom.marqueeTicker.textContent = 'SEM CALENDÁRIO';
+    dom.marqueeTicker.textContent = en.header.noSchedule;
     return;
   }
-  dom.marqueeTicker.textContent = `JORNADA ${summary.currentRound} / ${summary.totalRounds}   ·   ${summary.played}/${summary.total} JOGOS DISPUTADOS`;
+  dom.marqueeTicker.textContent = en.header.roundTicker(
+    summary.currentRound,
+    summary.totalRounds,
+    summary.played,
+    summary.total,
+  );
 }

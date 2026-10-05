@@ -1,8 +1,9 @@
 import { fmtTimestamp } from '../utils.js';
 import { dom } from './dom.js';
+import { en } from '../i18n/en.js';
 
 // ---------------------------------------------------------------------------
-// Toasts e indicadores de estado de gravação
+// Toasts and Save Status Indicators
 // ---------------------------------------------------------------------------
 let flashSavedTimer = null;
 
@@ -19,22 +20,22 @@ export function showToast(msg, type) {
 }
 
 export function flashSaved() {
-  dom.savePill.textContent = 'Guardado ✓';
+  dom.savePill.textContent = en.common.savedCheck;
   dom.savePill.classList.remove('pill-error');
   dom.savePill.classList.add('pill-ok');
   clearTimeout(flashSavedTimer);
   flashSavedTimer = setTimeout(() => {
-    dom.savePill.textContent = 'Guardado';
+    dom.savePill.textContent = en.common.saved;
     dom.savePill.classList.remove('pill-ok');
   }, 1600);
 }
 
 export function flashError() {
-  dom.savePill.textContent = 'Erro';
+  dom.savePill.textContent = en.common.error;
   dom.savePill.classList.add('pill-error');
 }
 
 export function flashBackup(isoTimestamp) {
-  dom.backupPill.textContent = `💾 Backup ${fmtTimestamp(isoTimestamp)}`;
+  dom.backupPill.textContent = `💾 ${en.common.backup} ${fmtTimestamp(isoTimestamp)}`;
   dom.backupPill.classList.add('pill-fresh');
 }

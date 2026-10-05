@@ -99,7 +99,7 @@ describe('arquivo de torneios', () => {
       jogosAMarcar: 1,
       recorde: 2,
     });
-    expect(entry.jogadores.find((j) => j.pid === 'ze')?.nome).toBe('Jogador Desconhecido');
+    expect(entry.jogadores.find((j) => j.pid === 'ze')?.nome).toBe('Unknown Player');
     expect(archiveTally(entry).rui).toEqual({
       golos: 1,
       assistencias: 1,

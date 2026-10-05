@@ -49,7 +49,7 @@ export function getTeamName(idx: number | string): string {
   if (typeof idx === 'string') return idx;
   const teams = state.teams as Team[] | null | undefined;
   const t = teams?.[idx];
-  return t && t.name ? t.name : `Equipa ${idx + 1}`;
+  return t && t.name ? t.name : `Team ${idx + 1}`;
 }
 
 export function getTeamDisplay(idx: number | string): string {
@@ -57,8 +57,8 @@ export function getTeamDisplay(idx: number | string): string {
     return `<span style="color:var(--ink-faint); font-style:italic; font-size:12px;">${escapeHtml(idx)}</span>`;
   }
   const teams = state.teams as Team[] | null | undefined;
-  const t = teams?.[idx] || { name: `Equipa ${idx + 1}`, color: '#2F7A4F' };
-  const name = escapeHtml(t.name || `Equipa ${idx + 1}`);
+  const t = teams?.[idx] || { name: `Team ${idx + 1}`, color: '#2F7A4F' };
+  const name = escapeHtml(t.name || `Team ${idx + 1}`);
   const colorBadge = `<span style="display:inline-block; width:10px; height:10px; border-radius:50%; background-color:${safeColor(t.color)}; margin-right:6px; box-shadow:0 0 2px rgba(0,0,0,0.3);"></span>`;
   return `<span style="display:inline-flex; align-items:center; white-space:nowrap;">${colorBadge}${name}</span>`;
 }
@@ -78,7 +78,7 @@ export function getActiveTeamNames(): string[] {
 export function buildPlayerIndex(): PlayerIndex {
   const index: PlayerIndex = {};
   (state.players || []).forEach((p: { id: string; nome: string; teamIdx?: number | null }) => {
-    const tName = p.teamIdx !== null && p.teamIdx !== undefined ? getTeamName(p.teamIdx) : 'Sem Equipa';
+    const tName = p.teamIdx !== null && p.teamIdx !== undefined ? getTeamName(p.teamIdx) : 'No Team';
     index[p.id] = { name: p.nome, team: tName };
   });
   (state.squads || []).forEach((squad: Array<{ id: string; name: string }>, teamIndex: number) => {
@@ -98,7 +98,7 @@ export function playerName(pid: string): string {
     const j = (e.jogadores || []).find((x: { pid: string; nome: string }) => x.pid === pid);
     if (j) return j.nome;
   }
-  return 'Jogador Desconhecido';
+  return 'Unknown Player';
 }
 
 export function prefersReducedMotion(): boolean {

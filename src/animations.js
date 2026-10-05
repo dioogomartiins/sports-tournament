@@ -7,6 +7,7 @@
 import { state } from './state.js';
 import { resultEvents } from './algorithms.js';
 import { getTeamName, escapeHtml, safeColor, playerName, prefersReducedMotion } from './utils.js';
+import { en } from './i18n/en.js';
 
 const DURATION = 2600; // ms que cada animação ocupa o cartão do jogo
 
@@ -58,7 +59,7 @@ function teamColor(gi, side) {
 }
 
 function scorerName(ev) {
-  if (ev.pid === 'auto') return 'Autogolo';
+  if (ev.pid === 'auto') return en.animations.ownGoal;
   if (ev.pid) return playerName(ev.pid);
   const game = state.schedule[ev.gi];
   return game ? getTeamName(game[ev.side]) : '';
@@ -68,19 +69,19 @@ function overlayHtml(ev) {
   const game = state.schedule[ev.gi];
   if (ev.type === 'golo') {
     const assist = ev.aid && ev.aid !== 'auto'
-      ? `<div class="anim-sub2">Assistência: ${escapeHtml(playerName(ev.aid))}</div>` : '';
-    return `<div class="anim-title">GOLO!</div><div class="anim-sub">⚽ ${escapeHtml(scorerName(ev))}</div>${assist}`;
+      ? `<div class="anim-sub2">${en.animations.assist}${escapeHtml(playerName(ev.aid))}</div>` : '';
+    return `<div class="anim-title">${en.animations.goal}</div><div class="anim-sub">⚽ ${escapeHtml(scorerName(ev))}</div>${assist}`;
   }
   if (ev.type === 'anulado') {
-    return `<div class="anim-title">GOLO ANULADO</div><div class="anim-sub"><s>${escapeHtml(scorerName(ev))}</s></div>`;
+    return `<div class="anim-title">${en.animations.goalCancelled}</div><div class="anim-sub"><s>${escapeHtml(scorerName(ev))}</s></div>`;
   }
   if (ev.type === 'inicio') {
-    return `${WHISTLE}<div class="anim-title">COMEÇOU</div>` +
+    return `${WHISTLE}<div class="anim-title">${en.animations.kickOff}</div>` +
       (game ? `<div class="anim-sub">${escapeHtml(getTeamName(game.home))} vs ${escapeHtml(getTeamName(game.away))}</div>` : '');
   }
   const res = state.results[ev.gi];
   const score = res && typeof res === 'object' ? res.score : res;
-  return `${WHISTLE}<div class="anim-title">TERMINOU</div>` +
+  return `${WHISTLE}<div class="anim-title">${en.animations.fullTime}</div>` +
     (game && score ? `<div class="anim-sub">${escapeHtml(getTeamName(game.home))} ${escapeHtml(score)} ${escapeHtml(getTeamName(game.away))}</div>` : '');
 }
 

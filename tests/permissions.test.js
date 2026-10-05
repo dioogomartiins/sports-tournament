@@ -83,8 +83,8 @@ describe('roleLabel, isMaster e isSportAdmin', () => {
     expect(roleLabel('admin')).toBe('Admin');
     expect(roleLabel('admin', { football: true })).toBe('Admin (Football)');
     expect(roleLabel('admin', { football: true, padel: true })).toBe('Admin (Football, Padel)');
-    expect(roleLabel('user')).toBe('Utilizador');
-    expect(roleLabel(null)).toBe('Pendente');
+    expect(roleLabel('user')).toBe('User');
+    expect(roleLabel(null)).toBe('Pending');
   });
 
   it('isMaster valida corretamente', () => {

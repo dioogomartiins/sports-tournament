@@ -76,7 +76,7 @@ export function buildArchiveEntry(
   const teamOf = (idx: number) => {
     const t = teamsArray[idx];
     return {
-      nome: (typeof t === 'object' && t !== null && t.name) ? t.name : `Equipa ${idx + 1}`,
+      nome: (typeof t === 'object' && t !== null && t.name) ? t.name : `Team ${idx + 1}`,
       cor: (typeof t === 'object' && t !== null && t.color) ? t.color : '',
     };
   };
@@ -86,7 +86,7 @@ export function buildArchiveEntry(
   const jogadores: ArchivePlayer[] = Object.keys(tally)
     .map((pid) => ({
       pid,
-      nome: playerNames[pid] || 'Jogador Desconhecido',
+      nome: playerNames[pid] || 'Unknown Player',
       ...tally[pid],
     }))
     .sort(
@@ -98,7 +98,7 @@ export function buildArchiveEntry(
 
   return {
     id,
-    nome: snap.meta?.name || snap.config.nome || 'Torneio',
+    nome: snap.meta?.name || snap.config.nome || 'Tournament',
     sport: sportId,
     data: dataIso,
     campeao: champIdx === null ? null : teamOf(champIdx),
