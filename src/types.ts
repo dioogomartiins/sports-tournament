@@ -23,7 +23,8 @@ export const GAME_STATUS = Object.freeze({
 } as const);
 
 export interface GameEvent {
-  type: 'inicio' | 'golo' | 'anulado' | 'fim';
+  /** golo: a goal; game / set: a padel game, or a game that also won the set. */
+  type: 'inicio' | 'golo' | 'anulado' | 'fim' | 'game' | 'set';
   gi: string;
   side?: 'home' | 'away';
   pid?: string;
@@ -81,7 +82,19 @@ export interface Config {
   mataMata: boolean;
   numPlayoffTeams: number;
   sport: string;
+  /** Racket sports: how a match is played (see RacketSport). */
+  setFormat?: SetFormat;
   [key: string]: unknown;
+}
+
+/** Set format of a racket-sport tournament. */
+export interface SetFormat {
+  /** Best of this many sets (1, 3 or 5). */
+  sets: number;
+  /** Games needed to win a set (6 in padel). */
+  gamesPerSet: number;
+  /** The deciding set is a super tie-break to 10 points. */
+  superTieBreak: boolean;
 }
 
 export interface Match {
