@@ -21,9 +21,9 @@ It is a single page app in TypeScript and JavaScript (ES Modules) with no framew
 ```
  browser (each phone)                           Firebase
 ┌───────────────────────────────┐            ┌──────────────────────────────────┐
-│ main.js  events ──► state.ts  │── update ─►│ tournaments/<id>  (tournaments)  │
+│ main.ts  events ──► state.ts  │── update ─►│ tournaments/<id>  (tournaments)  │
 │              ▲         │      │            │ players           (global)       │
-│ ui.js ◄──────┘   localStorage │◄─ onValue ─│ arquivo           (history)      │
+│ ui.ts ◄──────┘   localStorage │◄─ onValue ─│ arquivo           (history)      │
 └───────────────────────────────┘            │ users             (roles)        │
                                              │ tournament_log/<id> (log)        │
                                              └──────────────────────────────────┘
@@ -36,22 +36,22 @@ It is a single page app in TypeScript and JavaScript (ES Modules) with no framew
 |---|---|
 | `index.html` | Structure of every tab and modal. |
 | `css/` | Styles split by area (`base.css` holds the light and dark theme variables). `style.css` only `@import`s the others, in cascade order; Vite merges everything into one file in the build. New styles go into the file for their area. |
-| `src/main.js` | Wires UI events to actions (generate schedule, record goals, create, switch and finish tournaments, …) and starts the app. Lit components emit events (`open-match`, `score-commit`, …) that bubble to their container, where `main.js` handles them; the single match tab wires its own events (`bindSingleMatchEvents`). Remembers the last tournament viewed on the device. |
-| `src/state.ts` | Global state (including the current tournament id), default values, snapshots (`buildSnapshot` / `applySnapshot`), persistence in localStorage and pushes to Firebase. Undoes local changes Firebase would not accept. Does not import `ui.js`: notices and `renderAll` come in through `setStateHooks`, called by `main.js` at startup. |
-| `src/core/` | Core tournament logic in TypeScript: Berger, schedule, extra round, playoffs (`schedule.ts`), ratings and draft (`draft.ts`), archive and champion (`archive.ts`). |
+| `src/main.ts` | Wires UI events to actions (generate schedule, record goals, create, switch and finish tournaments, …) and starts the app. Lit components emit events (`open-match`, `score-commit`, …) that bubble to their container, where `main.ts` handles them through `onEvent<T>()` (typed detail); the single match tab wires its own events (`bindSingleMatchEvents`). Remembers the last tournament viewed on the device. |
+| `src/state.ts` | Global state (including the current tournament id; `loadedConfig()`, `loadedTeams()` and `loadedSquads()` return the sections handlers rely on), default values, snapshots (`buildSnapshot` / `applySnapshot`), persistence in localStorage and pushes to Firebase. Undoes local changes Firebase would not accept. Does not import `ui.ts`: notices and `renderAll` come in through `setStateHooks`, called by `main.ts` at startup. |
+| `src/core/` | Core tournament logic in TypeScript: Berger, schedule, extra round and first-round seeding (`schedule.ts`), the knockout bracket and winner advancement (`playoffs.ts`), ratings and draft (`draft.ts`), archive and champion (`archive.ts`). |
 | `src/sports/` | Multi-sport architecture: the abstract `Sport.ts` class, the sport registry (`registry.ts`, `getSport(id)`, falling back to football), and one class per sport. `football/Football.ts` has standings, tiebreaks, playoff winner, player stats and goals. `RacketSport.ts` holds what set-based sports share (set format, set and match winner, game-by-game scoring, game-based standings), and `padel/Padel.ts` extends it with padel's default format. Each sport also declares its standings columns, player leaderboards, rating attributes and whether squads use jersey numbers. The UI asks the tournament's sport (`getSport(state.meta.sport)`) instead of calling football directly. |
 | `src/algorithms.ts` | Re-exports core and football functions for compatibility with existing modules. |
 | `src/sync.ts` | Diffs between snapshots for `update()`, normalisation of data saved by Firebase or by older versions (config, meta, results, archive, players) and the activity log text. |
-| `src/firebase.js` | Firebase connection: listens to `tournaments/<id>`, `players` and `arquivo`, pushes changes, lists, creates and finishes tournaments, migrates legacy data, Google sign-in, user role, user list and activity log. |
+| `src/firebase.ts` | Firebase connection: listens to `tournaments/<id>`, `players` and `arquivo`, pushes changes, lists, creates and finishes tournaments, migrates legacy data, Google sign-in, user role, user list and activity log. |
 | `src/permissions.ts` | Roles (`master`, `admin`, `user`), per-sport admin checks and which sections each role may write. Mirrors `database.rules.json`. |
 | `src/types.ts` | TypeScript domain types (`Tournament`, `TournamentMeta`, `Config`, `Match`, `Score`, `Player`, `Team`, etc.). |
 | `src/i18n/en.ts` | Every user-facing string, in English. |
-| `src/ui.js` and `src/ui/` | Controllers of every screen and modal. Each section has its own module in `src/ui/` (`tournaments.ts`, `standings.ts`, `schedule.ts`, `match.ts`, `players.ts`, `teams.ts`, `history.ts`, `stats.ts`, `settings.ts`, `singular.ts`, `admin.ts`, `modals.ts`); `dom.ts` holds the elements and `toasts.ts` the toasts. A migrated controller reads the state, sets the properties of its Lit components and handles their events; it builds no HTML. `ui.js` has `renderAll`/`refreshComputed` and re-exports the rest, so other modules import everything from `./ui.js`. Modules in `src/ui/` never import `ui.js`. |
+| `src/ui.ts` and `src/ui/` | Controllers of every screen and modal. Each section has its own module in `src/ui/` (`tournaments.ts`, `standings.ts`, `schedule.ts`, `match.ts`, `players.ts`, `teams.ts`, `history.ts`, `stats.ts`, `settings.ts`, `singular.ts`, `admin.ts`, `modals.ts`); `dom.ts` holds the elements, the form field helpers (`fieldValue`, `setFieldValue`, `isChecked`) and `onEvent`, and `toasts.ts` the toasts. A migrated controller reads the state, sets the properties of its Lit components and handles their events; it builds no HTML. `ui.ts` has `renderAll`/`refreshComputed` and re-exports the rest, so other modules import everything from `./ui.ts`. Modules in `src/ui/` never import `ui.ts`. |
 | `src/components/` | Lit components of the sections, rendered in the light DOM so the app's CSS applies (`LightElement` is their base class; `templates.ts` has the team label and colour dot). Properties in, events out: `<standings-table>`, `<stats-table>`, `<stat-cards>`, `<dashboard-podium>`, `<top-scorers>`, `<all-time-stats>`, `<archive-list>` (emits `archive-delete`), `<schedule-list>` and `<results-list>` (emit `open-match`, `status-click`, `score-step` and `score-commit`; `rounds.ts` groups the schedule by round), `<teams-editor>` (`team-change`), `<squad-list>` (`squad-remove`, `player-stats`), `<player-cards>` (`player-profile`, `player-edit`, `player-delete`), `<player-picker>` (`selection-change`), `<player-editor>`, `<draft-teams>` (`draft-goal-add`, `draft-goal-sub`, `draft-mvp`), `<single-match-history>` (`single-delete`), `<user-list>` (`role-change`), `<activity-log>` and `<tournament-list>` (`tournament-select`, `tournament-finish`). Every dialog goes through `openDialog()` in `ui/modals.ts`: a title, a Lit template as body and two buttons; `setConfirmEnabled()` lets a body hold the confirm button until its input is valid. Lit escapes every value, so they need no `escapeHtml`. |
 | `src/components/ScoreBase.ts` | Lit base class of the live score panel: header, admin controls (emits `point`, `cancelled`, `started`, `finished`) and the event banners (kick-off, goal, goal cancelled, full time) with the score bump. Turned off with *reduced motion*. |
 | `src/sports/football/FootballScore.ts` | `<football-score>`: the match window for football (goal banners, goals timeline, MVP and share). |
 | `src/sports/padel/PadelScore.ts` | `<padel-score>`: the match window for padel (sets won, a set grid with the current set highlighted, GAME / SET! banners). `ui/match.ts` picks the panel by sport. |
-| `src/share.js` | Draws the standings and result PNG images on a `<canvas>` and shares them. |
+| `src/share.ts` | Draws the standings and result PNG images on a `<canvas>` and shares them. |
 | `src/utils.ts` | Small helpers: `escapeHtml`, `safeColor`, team and player names (`playerName`, `buildPlayerIndex`), dates, `prefersReducedMotion`. |
 | `database.rules.json` | Realtime Database security rules, published by the deployment. |
 | `firebase.json` | Tells the Firebase CLI where the rules are (used by the deployment). |
@@ -90,7 +90,7 @@ Notes:
 - In `scorers`, `'auto'` is an own goal. `assists` is aligned with `scorers` (same position = same goal; `''` = no assist).
 - Player names in `arquivo` are copied when archiving, so the history survives deleted players.
 - In the app, the snapshot of the current tournament also carries `players` and `arquivo`; `pushStateToFirebase` writes them to the root nodes.
-- Legacy nodes from before multiple tournaments (`torneio_state`, `torneio_log`, `utilizadores`) are read-only. `firebase.js` falls back to `torneio_state` while `tournaments/default` does not exist, and migrates it the first time a Master Admin signs in (see [Setup](configuration.md#setting-up-firebase-once)).
+- Legacy nodes from before multiple tournaments (`torneio_state`, `torneio_log`, `utilizadores`) are read-only. `firebase.ts` falls back to `torneio_state` while `tournaments/default` does not exist, and migrates it the first time a Master Admin signs in (see [Setup](configuration.md#setting-up-firebase-once)).
 
 Each device also keeps a copy in localStorage, to show the tournament as soon as it opens, before Firebase replies, and remembers the last tournament viewed.
 
@@ -98,7 +98,7 @@ Each device also keeps a copy in localStorage, to show the tournament as soon as
 
 ![Match-by-match sync](assets/illustrations/12-sincronizacao-jogo-a-jogo.jpg)
 
-1. On startup, `firebase.js` listens to `tournaments/<id>` of the selected tournament with `onValue` (plus `players` and `arquivo`). Each time a value arrives, `applySnapshot` replaces the local state and that snapshot becomes the "last synced" one. Switching tournament restarts the listener on the new node.
+1. On startup, `firebase.ts` listens to `tournaments/<id>` of the selected tournament with `onValue` (plus `players` and `arquivo`). Each time a value arrives, `applySnapshot` replaces the local state and that snapshot becomes the "last synced" one. Switching tournament restarts the listener on the new node.
 2. Each action saves its section to localStorage and calls `pushStateToFirebase` with the full snapshot.
 3. `diffSnapshot` compares it with the last synced snapshot and produces an `update()` with only what changed:
    - `results` goes **match by match** (`results/<index>`), so that two people recording different matches at the same time do not overwrite each other;
@@ -173,7 +173,7 @@ npm run test:rules   # Firebase rules in the emulator (needs Java)
 |---|---|
 | `tests/football.test.ts` | Football logic: standings, head-to-head, playoff winner, player stats, goals, animation events, rank moves |
 | `tests/padel.test.ts` | Padel logic: set format, parsing sets, set and match winner, adding and removing games, super tie-break, game-based standings and head-to-head, playoff winner, animation events |
-| `tests/core/` | Core logic: `schedule.test.ts` (Berger, rounds, seeding), `draft.test.ts` (ratings per sport, drafts, balanced pairs), `archive.test.ts` (archive) |
+| `tests/core/` | Core logic: `schedule.test.ts` (Berger, rounds, seeding), `draft.test.ts` (ratings per sport, drafts, balanced pairs), `archive.test.ts` (archive), `playoffs.test.ts` (bracket, seeds, winner advancement) |
 | `tests/sync.test.ts` | `diffSnapshot`, `normalizeResults`, `onlyMetadata`, `describeUpdates`, `normalizeArquivo`, `normalizeConfig`, `normalizeMeta` |
 | `tests/state.test.ts` | `SNAPSHOT_VERSION`, `applySnapshot` with version 7, 8, 9 and 10 snapshots (meta derived for older ones), `buildSnapshot`, `defaultConfig`, `defaultMeta`, current tournament id |
 | `tests/players.test.ts` | `defaultPlayerAttrs`, `normalizePlayer`, `normalizePlayers` and per-sport ratings in `applySnapshot` |
@@ -181,7 +181,7 @@ npm run test:rules   # Firebase rules in the emulator (needs Java)
 | `tests/permissions.test.js` | `canWritePath`, `blockedPaths`, `roleLabel`, `isMaster`, `isSportAdmin` |
 | `tests/utils.test.js` | `escapeHtml`, `safeColor` |
 
-The core and sports modules do not depend on the UI or Firebase, so the tests import them directly. There are no circular imports: `ui.js` does not import `main.js` and `state.ts` does not import `ui.js`; keep it that way when adding code. The UI is checked by hand (see [Running locally](configuration.md#running-locally)).
+The core and sports modules do not depend on the UI or Firebase, so the tests import them directly. There are no circular imports: `ui.ts` does not import `main.ts` and `state.ts` does not import `ui.ts`; keep it that way when adding code. The UI is checked by hand (see [Running locally](configuration.md#running-locally)).
 
 `npm run test:rules` starts the Realtime Database emulator with `database.rules.json` and runs `tests/rules/rules.check.mjs`: who can write each path, the validations and the `logRef`. It uses the config in `tests/rules/firebase.json`, separate from the root one.
 

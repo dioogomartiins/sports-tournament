@@ -1,53 +1,63 @@
-import { state, persistConfigTeams, loadState, persistSchedule, persistResults, storeAllLayers, notifyPushError, currentTheme, setCurrentTheme, exportJSON, importJSON, applyGeneratedSchedule, applySnapshot, buildSnapshot, defaultTeams, defaultSquads, setStateHooks, setCurrentTournamentId, getCurrentTournamentId } from './state.js';
-import { closeGameModal, openGameModal, animateResultChanges, dom, cacheDom, renderAll, refreshComputed, renderScheduleHint, renderSquadList, renderSquadsDropdown, flashError, flashBackup, renderCalendar, renderResults, showToast, flashSaved, openConfirm, closeConfirm, runConfirm, openDangerConfirm, switchTab, openScorerModal, openPlayerProfile, computeStatsSummary, renderPlayersList, openPlayerModal, renderSquadPlayerFromDBDropdown, renderAuth, renderUsers, renderLog, openPickPlayerModal, squadPickList, renderTournamentsList, openNovoTorneioModal, openDrawPairsModal, bindHistoryEvents, bindPlayersEvents, bindSingleMatchEvents } from './ui.js';
+import { state, loadedConfig, loadedTeams, loadedSquads, persistConfigTeams, loadState, persistSchedule, persistResults, storeAllLayers, notifyPushError, currentTheme, setCurrentTheme, exportJSON, importJSON, applyGeneratedSchedule, applySnapshot, buildSnapshot, defaultTeams, defaultSquads, setStateHooks, setCurrentTournamentId, getCurrentTournamentId } from './state.js';
+import { closeGameModal, openGameModal, animateResultChanges, dom, cacheDom, renderAll, refreshComputed, renderScheduleHint, renderSquadList, renderSquadsDropdown, flashError, flashBackup, renderCalendar, renderResults, showToast, flashSaved, openConfirm, closeConfirm, runConfirm, openDangerConfirm, switchTab, openScorerModal, openPlayerProfile, computeStatsSummary, renderPlayersList, openPlayerModal, renderSquadPlayerFromDBDropdown, renderAuth, renderUsers, renderLog, openPickPlayerModal, squadPickList, renderTournamentsList, openNovoTorneioModal, openDrawPairsModal, bindHistoryEvents, bindPlayersEvents, bindSingleMatchEvents, fieldValue, setFieldValue, isChecked, onEvent } from './ui.js';
 import { html } from 'lit';
 import { clamp, numOr, buildPlayerIndex } from './utils.js';
 import { shareStandings, shareResult } from './share.js';
-import { bergerRounds, balancedPairs, buildFirstRoundSeeding, buildExtraVolta, buildArchiveEntry, GAME_STATUS } from './algorithms.js';
+import { bergerRounds, balancedPairs, buildExtraVolta, buildArchiveEntry, GAME_STATUS } from './algorithms.js';
+import { buildPlayoffBracket, firstRoundIndex, playoffSeeds, advanceWinner } from './core/playoffs.js';
+import type { Sport } from './sports/Sport.js';
+import type { GameStatus, MatchResult, Player, Score } from './types.js';
+import type { AuthInfo, TournamentListing } from './firebase.js';
+import type { ScoreEvent, ScoreSide as Side } from './components/ScoreBase.js';
+import type { ScoreStep, ScoreCommit } from './components/ResultsList.js';
+import type { TeamChange } from './components/TeamsEditor.js';
+import type { RoleChange } from './components/UserList.js';
 import { getSport, listSports } from './sports/registry.js';
 import { initFirebaseListener, onFirebaseStateChange, onFirebasePushError, setSyncedSnapshot, initAuth, signInWithGoogle, signOutUser, getCurrentUser, getCurrentRole, getCurrentUserAdmin, listenUsers, listenLog, setUserRole, listenTournaments, createTournament, finishTournament, setActiveTournamentId } from './firebase.js';
 import { roleLabel } from './permissions.js';
 import { en } from './i18n/en.js';
 
 // ---------------------------------------------------------------------------
-// Handlers de configuração
+// Settings handlers
 // ---------------------------------------------------------------------------
-export function onConfigFieldChange() {
-  state.config.nome = dom.cfgNome.value.trim() || 'Tournament';
-  state.config.pontosVitoria = numOr(dom.cfgVitoria.value, 3);
-  state.config.pontosEmpate = numOr(dom.cfgEmpate.value, 1);
-  state.config.pontosDerrota = numOr(dom.cfgDerrota.value, 0);
-  state.config.bonusGoleada = numOr(dom.cfgBonus.value, 1);
-  state.config.golosGoleada = numOr(dom.cfgGoleada.value, 3);
-  state.config.setFormat = {
-    sets: [1, 3, 5].includes(+dom.cfgSets.value) ? +dom.cfgSets.value : 3,
-    gamesPerSet: clamp(parseInt(dom.cfgGamesPerSet.value, 10) || 6, 1, 9),
-    superTieBreak: dom.cfgSuperTieBreak.checked,
+export function onConfigFieldChange(): void {
+  const config = loadedConfig();
+  config.nome = fieldValue('cfgNome').trim() || en.common.tournament;
+  config.pontosVitoria = numOr(fieldValue('cfgVitoria'), 3);
+  config.pontosEmpate = numOr(fieldValue('cfgEmpate'), 1);
+  config.pontosDerrota = numOr(fieldValue('cfgDerrota'), 0);
+  config.bonusGoleada = numOr(fieldValue('cfgBonus'), 1);
+  config.golosGoleada = numOr(fieldValue('cfgGoleada'), 3);
+  config.setFormat = {
+    sets: [1, 3, 5].includes(+fieldValue('cfgSets')) ? +fieldValue('cfgSets') : 3,
+    gamesPerSet: clamp(parseInt(fieldValue('cfgGamesPerSet'), 10) || 6, 1, 9),
+    superTieBreak: isChecked('cfgSuperTieBreak'),
   };
-  state.config.mataMata = dom.cfgMataMata.checked;
-  state.config.numPlayoffTeams = parseInt(dom.cfgNumPlayoffTeams.value, 10) || 4;
-  state.config.numGrupos = parseInt(dom.cfgNumGrupos.value, 10) || 1;
+  config.mataMata = isChecked('cfgMataMata');
+  config.numPlayoffTeams = parseInt(fieldValue('cfgNumPlayoffTeams'), 10) || 4;
+  config.numGrupos = parseInt(fieldValue('cfgNumGrupos'), 10) || 1;
   persistConfigTeams();
   refreshComputed();
 }
 
-export function onFormatFieldChange() {
-  const n = clamp(parseInt(dom.cfgNumEquipas.value, 10) || state.config.numEquipas, 2, 32);
-  const v = clamp(parseInt(dom.cfgNumVoltas.value, 10) || state.config.numVoltas, 1, 20);
-  dom.cfgNumEquipas.value = n;
-  dom.cfgNumVoltas.value = v;
-  state.config.numEquipas = n;
-  state.config.numVoltas = v;
+export function onFormatFieldChange(): void {
+  const config = loadedConfig();
+  const n = clamp(parseInt(fieldValue('cfgNumEquipas'), 10) || config.numEquipas, 2, 32);
+  const v = clamp(parseInt(fieldValue('cfgNumVoltas'), 10) || config.numVoltas, 1, 20);
+  setFieldValue('cfgNumEquipas', n);
+  setFieldValue('cfgNumVoltas', v);
+  config.numEquipas = n;
+  config.numVoltas = v;
   persistConfigTeams();
   renderScheduleHint();
 }
 
 // ---------------------------------------------------------------------------
-// Handlers de equipas e plantéis
+// Team and squad handlers
 // ---------------------------------------------------------------------------
 /** A team's name or colour changed in <teams-editor> (detail: { idx, prop, value }). */
-function onTeamChange({ idx, prop, value }) {
-  state.teams[idx][prop] = value;
+function onTeamChange({ idx, prop, value }: TeamChange): void {
+  loadedTeams()[idx][prop] = value;
   persistConfigTeams();
   renderSquadsDropdown();
   renderCalendar();
@@ -55,47 +65,47 @@ function onTeamChange({ idx, prop, value }) {
   refreshComputed();
 }
 
-export function onAddPlayerFromDB() {
-  const tIdx = dom.squadTeamSelect.value;
-  const num = parseInt(dom.squadPlayerNum.value, 10);
-  const pid = dom.squadPlayerFromDB.value;
+export function onAddPlayerFromDB(): void {
+  const tIdx = Number(fieldValue('squadTeamSelect'));
+  const num = parseInt(fieldValue('squadPlayerNum'), 10);
+  const pid = fieldValue('squadPlayerFromDB');
   const numbered = currentSport().usesJerseyNumbers;
 
-  if (!tIdx) { showToast(en.toasts.selectTeam, 'error'); return; }
+  if (!fieldValue('squadTeamSelect')) { showToast(en.toasts.selectTeam, 'error'); return; }
   if (numbered && (isNaN(num) || num < 1)) { showToast(en.toasts.enterJerseyNumber, 'error'); return; }
-  if (!numbered && state.squads[tIdx].length >= 2) { showToast(en.toasts.pairFull, 'error'); return; }
+  if (!numbered && loadedSquads()[tIdx].length >= 2) { showToast(en.toasts.pairFull, 'error'); return; }
   if (!pid) { showToast(en.toasts.choosePlayerFromList, 'error'); return; }
 
   const player = state.players.find((p) => p.id === pid);
   if (!player) { showToast(en.toasts.playerNotFound, 'error'); return; }
 
   // Check if already in squad
-  if (state.squads[tIdx].some((p) => p.id === pid)) {
+  if (loadedSquads()[tIdx].some((p) => p.id === pid)) {
     showToast(en.toasts.playerAlreadyInSquad, 'error');
     return;
   }
 
   // Without jersey numbers the number only keeps the squad order
-  state.squads[tIdx].push({ id: player.id, num: numbered ? num : state.squads[tIdx].length + 1, name: player.nome });
+  loadedSquads()[tIdx].push({ id: player.id, num: numbered ? num : loadedSquads()[tIdx].length + 1, name: player.nome });
   persistConfigTeams();
-  dom.squadPlayerNum.value = '';
-  dom.squadPlayerFromDB.value = '';
+  setFieldValue('squadPlayerNum', '');
+  setFieldValue('squadPlayerFromDB', '');
   renderSquadList();
   renderSquadPlayerFromDBDropdown();
   showToast(en.toasts.playerAddedToSquad, 'ok');
 }
 
 /** Draws balanced pairs from the chosen players into the tournament's teams, in order. */
-function onDrawPairs() {
+function onDrawPairs(): void {
   const sportId = currentSport().id;
   openDrawPairsModal((ids) => {
-    const chosen = ids.map((id) => state.players.find((p) => p.id === id)).filter(Boolean);
+    const chosen = ids.map((id) => state.players.find((p) => p.id === id)).filter((p): p is Player => !!p);
     const { pairs } = balancedPairs(chosen, sportId);
     if (pairs.length !== state.scheduleTeamCount) return;
-    const firstName = (p) => (p.nome || '').split(' ')[0];
+    const firstName = (p: Player) => (p.nome || '').split(' ')[0];
     pairs.forEach((pair, i) => {
-      state.squads[i] = pair.map((p, n) => ({ id: p.id, num: n + 1, name: p.nome }));
-      state.teams[i].name = pair.map(firstName).join(' / ');
+      loadedSquads()[i] = pair.map((p, n) => ({ id: p.id, num: n + 1, name: p.nome }));
+      loadedTeams()[i].name = pair.map(firstName).join(' / ');
     });
     persistConfigTeams();
     renderAll();
@@ -103,38 +113,33 @@ function onDrawPairs() {
   });
 }
 
-function onSquadRemove(pid) {
-  const tIdx = dom.squadTeamSelect.value;
-  state.squads[tIdx] = state.squads[tIdx].filter((p) => p.id !== pid);
+function onSquadRemove(pid: string): void {
+  const tIdx = Number(fieldValue('squadTeamSelect'));
+  loadedSquads()[tIdx] = loadedSquads()[tIdx].filter((p) => p.id !== pid);
   persistConfigTeams();
   renderSquadList();
   renderSquadPlayerFromDBDropdown();
 }
 
 // ---------------------------------------------------------------------------
-// Handlers de resultados
+// Result handlers
 // ---------------------------------------------------------------------------
-/** Passa o vencedor de um jogo de eliminatória terminado para o jogo seguinte do bracket. */
-function propagatePlayoffWinner(gi) {
+/** Moves the winner of a finished knockout match into the next match of the bracket. */
+function propagatePlayoffWinner(gi: number): void {
   const game = state.schedule[gi];
-  const winnerIdx = currentSport().getPlayoffWinner(game, state.results[gi], state.config);
-  if (winnerIdx === null || !game.nextMatchId) return;
-
-  const [targetMatchId, targetSide] = game.nextMatchId.split('_');
-  const targetGame = state.schedule.find((g) => g.playoffMatchId === targetMatchId);
-  if (targetGame && targetGame[targetSide] !== winnerIdx) {
-    targetGame[targetSide] = winnerIdx;
-    persistSchedule();
-  }
+  if (!game) return;
+  const winnerIdx = currentSport().getPlayoffWinner(game, state.results[gi], loadedConfig());
+  if (winnerIdx !== null && advanceWinner(state.schedule, game, winnerIdx)) persistSchedule();
 }
 
 /** Saves a match result and plays the change on every screen. */
-function commitResult(gi, next) {
+function commitResult(gi: number, next: MatchResult | undefined): void {
   if (next === state.results[gi]) return;
-  state.results[gi] = next;
+  if (next === undefined) delete state.results[gi];
+  else state.results[gi] = next;
   propagatePlayoffWinner(gi);
 
-  // Anima depois de gravar: se a gravação for recusada o estado já voltou atrás
+  // Animate after saving: if the save is refused the state has already been rolled back
   persistResults().then(() => animateResultChanges());
   renderResults();
   renderCalendar();
@@ -142,54 +147,54 @@ function commitResult(gi, next) {
 }
 
 /** The sport of the tournament on screen. */
-function currentSport() {
+function currentSport(): Sport {
   return getSport(state.meta?.sport || state.config?.sport);
 }
 
-function changeGameStatus(gi, status) {
+function changeGameStatus(gi: number, status: GameStatus): void {
   commitResult(gi, currentSport().setGameStatus(state.results[gi], status));
 }
 
 /** Moves a match to the next status: scheduled → in progress → finished → scheduled. */
-function onStatusClick(gi) {
+function onStatusClick(gi: number): void {
   const res = state.results[gi];
   const current = (res && typeof res === 'object' && res.status) || 'agendado';
-  const cycle = { agendado: 'decorrer', decorrer: 'terminado', terminado: 'agendado' };
+  const cycle: Record<string, GameStatus> = { agendado: 'decorrer', decorrer: 'terminado', terminado: 'agendado' };
   changeGameStatus(gi, cycle[current] ?? 'agendado');
 }
 
 /** Adds a point: in football asks for the scorer (and assist) first; in padel adds a game. */
-function onGoalAdd(gi, side) {
+function onGoalAdd(gi: number, side: Side): void {
   const sport = currentSport();
   if (sport.id !== 'football') {
-    commitResult(gi, sport.addPoint(state.results[gi], side, state.config));
+    commitResult(gi, sport.addPoint(state.results[gi], side, loadedConfig()));
     return;
   }
-  // O resultado é sempre calculado a partir do estado no momento de gravar:
-  // entre o clique e a escolha do marcador pode chegar um golo de outro telemóvel.
+  // The result is always worked out from the state at save time: a goal from
+  // another phone can arrive between the click and picking the scorer.
   openScorerModal(gi, side, (pid) => {
     const game = state.schedule[gi];
     if (!game) return;
     const teamIdx = side === 'home' ? game.home : game.away;
-    const registerGoal = (aid) => commitResult(gi, sport.addPoint(state.results[gi], side, state.config, pid, aid));
+    const registerGoal = (aid: string) => commitResult(gi, sport.addPoint(state.results[gi], side, loadedConfig(), pid, aid));
 
-    // Autogolo não tem assistência
+    // An own goal has no assist
     if (pid === 'auto') registerGoal('');
     else openPickPlayerModal(en.singleMatch.pickAssistTitle, squadPickList(teamIdx, pid), en.singleMatch.noAssistLabel, registerGoal);
   });
 }
 
-function onGoalCancel(gi, side) {
-  commitResult(gi, currentSport().removePoint(state.results[gi], side, state.config));
+function onGoalCancel(gi: number, side: Side): void {
+  commitResult(gi, currentSport().removePoint(state.results[gi], side, loadedConfig()));
 }
 
 /** A − / + button of the results list (detail: { gi, side, action }). */
-function onScoreStep({ gi, side, action }) {
-  if (action === 'add') onGoalAdd(gi, side);
-  else if (action === 'sub') onGoalCancel(gi, side);
+function onScoreStep({ gi, side, action }: ScoreStep): void {
+  if (action === 'add') onGoalAdd(Number(gi), side);
+  else if (action === 'sub') onGoalCancel(Number(gi), side);
 }
 
-export function onMvpClick(gi) {
+export function onMvpClick(gi: number): void {
   const game = state.schedule[gi];
   if (!game) return;
   const players = [...squadPickList(game.home), ...squadPickList(game.away)];
@@ -208,22 +213,20 @@ export function onMvpClick(gi) {
  * A score typed in the results list (detail: { gi, score, penalties }).
  * The list has already checked the boxes; a null score clears the result.
  */
-function onScoreCommit({ gi, score, penalties }) {
+function onScoreCommit({ gi: key, score, penalties }: ScoreCommit): void {
+  const gi = Number(key);
   if (score === null) {
     if (!(gi in state.results)) return;
     delete state.results[gi];
   } else {
-    if (!state.results[gi] || typeof state.results[gi] === 'string') {
-      state.results[gi] = { score, scorers: { home: [], away: [] }, status: 'terminado' };
-    } else {
-      state.results[gi].score = score;
-      if (state.results[gi].status === 'agendado') state.results[gi].status = 'terminado';
-    }
+    const prev = state.results[gi];
+    const res: Score = prev && typeof prev === 'object' ? prev : { score, scorers: { home: [], away: [] }, status: 'terminado' };
+    res.score = score;
+    if (res.status === 'agendado') res.status = 'terminado';
+    if (penalties) res.penalties = penalties;
+    else delete res.penalties;
+    state.results[gi] = res;
 
-    if (penalties) state.results[gi].penalties = penalties;
-    else delete state.results[gi].penalties;
-
-    // Propagar vencedor para o próximo jogo de playoff
     propagatePlayoffWinner(gi);
   }
 
@@ -234,17 +237,18 @@ function onScoreCommit({ gi, score, penalties }) {
 }
 
 // ---------------------------------------------------------------------------
-// Handlers de calendário / torneio
+// Schedule and tournament handlers
 // ---------------------------------------------------------------------------
-export function onGerarCalendario() {
-  const n = clamp(parseInt(dom.cfgNumEquipas.value, 10) || state.config.numEquipas, 2, 32);
-  const v = clamp(parseInt(dom.cfgNumVoltas.value, 10) || state.config.numVoltas, 1, 20);
+export function onGerarCalendario(): void {
+  const config = loadedConfig();
+  const n = clamp(parseInt(fieldValue('cfgNumEquipas'), 10) || loadedConfig().numEquipas, 2, 32);
+  const v = clamp(parseInt(fieldValue('cfgNumVoltas'), 10) || loadedConfig().numVoltas, 1, 20);
   const hasResults = Object.keys(state.results).length > 0;
   const estimate = bergerRounds(n).reduce((s, r) => s + r.pairs.length, 0) * v;
 
   function doIt() {
-    state.config.numEquipas = n;
-    state.config.numVoltas = v;
+    config.numEquipas = n;
+    config.numVoltas = v;
     applyGeneratedSchedule(n, v, true);
     state.results = {};
     persistConfigTeams();
@@ -254,7 +258,7 @@ export function onGerarCalendario() {
     showToast(en.toasts.scheduleGenerated(state.schedule.length), 'ok');
   }
 
-  const msgParts = [];
+  const msgParts: string[] = [];
   if (hasResults) msgParts.push(en.confirmations.replaceScheduleWarn);
   if (estimate > 1500) msgParts.push(en.confirmations.largeScheduleWarn(estimate));
   msgParts.push(en.confirmations.teamsSquadsPreserved);
@@ -266,14 +270,11 @@ export function onGerarCalendario() {
   }
 }
 
-export function onNovoTorneio() {
-  const chkResults = document.getElementById('chkDeleteResults');
-  const chkSchedule = document.getElementById('chkDeleteSchedule');
-  const chkTeams = document.getElementById('chkDeleteTeams');
-
-  const delResults = chkResults && chkResults.checked;
-  const delSchedule = chkSchedule && chkSchedule.checked;
-  const delTeams = chkTeams && chkTeams.checked;
+export function onNovoTorneio(): void {
+  const ticked = (id: string) => (document.getElementById(id) as HTMLInputElement | null)?.checked ?? false;
+  const delResults = ticked('chkDeleteResults');
+  const delSchedule = ticked('chkDeleteSchedule');
+  const delTeams = ticked('chkDeleteTeams');
 
   if (!delResults && !delSchedule && !delTeams) {
     showToast(en.toasts.selectCategoryToDelete, 'error');
@@ -281,7 +282,7 @@ export function onNovoTorneio() {
   }
 
   // Build summary labels
-  const labels = [];
+  const labels: string[] = [];
   if (delResults) labels.push(en.dataTab.checkResults);
   if (delSchedule) labels.push(en.dataTab.checkSchedule);
   if (delTeams) labels.push(en.dataTab.checkTeams);
@@ -309,11 +310,11 @@ export function onNovoTorneio() {
 }
 
 // ---------------------------------------------------------------------------
-// Gestão de Torneios Ativos
+// Active tournaments
 // ---------------------------------------------------------------------------
 const LAST_VIEWED_TOURNAMENT_KEY = 'torneio_last_viewed_tournament';
 
-export function getLastViewedTournamentId() {
+export function getLastViewedTournamentId(): string {
   try {
     return localStorage.getItem(LAST_VIEWED_TOURNAMENT_KEY) || 'default';
   } catch {
@@ -321,7 +322,7 @@ export function getLastViewedTournamentId() {
   }
 }
 
-export function setLastViewedTournamentId(id) {
+export function setLastViewedTournamentId(id: string | null): void {
   try {
     if (id) {
       localStorage.setItem(LAST_VIEWED_TOURNAMENT_KEY, id);
@@ -329,25 +330,25 @@ export function setLastViewedTournamentId(id) {
       localStorage.removeItem(LAST_VIEWED_TOURNAMENT_KEY);
     }
   } catch {
-    // ignora em ambientes restritos
+    // ignore in restricted environments
   }
 }
 
-let allTournaments = [];
+let allTournaments: TournamentListing[] = [];
 
-export function getAllTournaments() {
+export function getAllTournaments(): TournamentListing[] {
   return allTournaments;
 }
 
-export function setAllTournaments(tourneys) {
+export function setAllTournaments(tourneys: TournamentListing[]): void {
   allTournaments = tourneys;
 }
 
-export function renderTournaments() {
+export function renderTournaments(): void {
   renderTournamentsList(allTournaments, getCurrentTournamentId());
 }
 
-export function onSelectTournament(id) {
+export function onSelectTournament(id: string): void {
   if (!id || id === getCurrentTournamentId()) return;
   setLastViewedTournamentId(id);
   setCurrentTournamentId(id);
@@ -361,7 +362,7 @@ export function onSelectTournament(id) {
   renderAll();
 }
 
-export function onNovoTorneioModalClick() {
+export function onNovoTorneioModalClick(): void {
   const role = getCurrentRole();
   const userAdmin = getCurrentUserAdmin();
   const allSports = listSports().map((s) => ({ id: s.id, label: `${s.icon} ${s.name}` }));
@@ -385,7 +386,7 @@ export function onNovoTorneioModalClick() {
   }, allowedSports);
 }
 
-export function onTerminarTorneio(tid = getCurrentTournamentId()) {
+export function onTerminarTorneio(tid: string = getCurrentTournamentId()): void {
   const tourneyName = state.meta?.name || state.config?.nome || en.tournaments.defaultNewName;
   const porJogar = state.schedule.filter((g, gi) => {
     const r = state.results[gi];
@@ -398,20 +399,20 @@ export function onTerminarTorneio(tid = getCurrentTournamentId()) {
     html`${en.tournaments.finishPrompt(tourneyName)}${aviso}`,
     async () => {
       const index = buildPlayerIndex();
-      const names = {};
+      const names: Record<string, string> = {};
       Object.keys(index).forEach((pid) => { names[pid] = index[pid].name; });
 
-      const entry = buildArchiveEntry(state, names, crypto.randomUUID(), new Date().toISOString());
+      const entry = buildArchiveEntry({ ...state, meta: state.meta ?? undefined, config: loadedConfig(), teams: loadedTeams() }, names, crypto.randomUUID(), new Date().toISOString());
 
       const res = await finishTournament(tid, entry);
       if (!res.ok) {
-        showToast(en.toasts.errorFinishingTournament(res.reason || en.toasts.permissionDenied), 'error');
+        showToast(en.toasts.errorFinishingTournament(('reason' in res && res.reason) || en.toasts.permissionDenied), 'error');
         return;
       }
 
       showToast(en.toasts.tournamentFinishedSuccess, 'ok');
 
-      // Se o torneio terminado era o que estava a ser visualizado, muda para o próximo ativo
+      // If the finished tournament was the one on screen, switch to the next active one
       const remainingActive = allTournaments.filter((t) => t.id !== tid && t.status === 'active');
       if (remainingActive.length > 0) {
         onSelectTournament(remainingActive[0].id);
@@ -424,19 +425,19 @@ export function onTerminarTorneio(tid = getCurrentTournamentId()) {
   );
 }
 
-export function onArquivar() {
+export function onArquivar(): void {
   onTerminarTorneio(getCurrentTournamentId());
 }
 
-export function onAtualizar() {
+export function onAtualizar(): void {
   renderAll();
   showToast(en.toasts.dashboardRefreshed, 'ok');
 }
 
-export function onAdicionarVolta() {
+export function onAdicionarVolta(): void {
   if (!state.schedule.length) return;
 
-  if ((state.config.numGrupos || 1) > 1) {
+  if ((loadedConfig().numGrupos || 1) > 1) {
     showToast(en.toasts.extraRoundGroupsUnsupported, 'error');
     return;
   }
@@ -456,8 +457,8 @@ export function onAdicionarVolta() {
       state.schedule = state.schedule.concat(games);
       state.roundsMeta = state.roundsMeta.concat(rounds);
       state.scheduleVoltas = novaVolta;
-      state.config.numVoltas = novaVolta;
-      if (dom.cfgNumVoltas) dom.cfgNumVoltas.value = novaVolta;
+      loadedConfig().numVoltas = novaVolta;
+      setFieldValue('cfgNumVoltas', novaVolta);
       persistConfigTeams();
       persistSchedule();
       renderAll();
@@ -466,85 +467,10 @@ export function onAdicionarVolta() {
   );
 }
 
-// A cadeia completa de rondas, da maior para a menor.
-// A ordem é sempre invariável: Oitavos → Quartos → Meias → Final.
-// Para adicionar suporte a 32 equipas basta adicionar uma entrada no início.
-const ROUND_CHAIN = [
-  { prefix: 'OF', label: en.playoffs.roundOf16 },
-  { prefix: 'QF', label: en.playoffs.quarterFinals },
-  { prefix: 'MF', label: en.playoffs.semiFinals },
-  { prefix: 'F', label: en.playoffs.final },
-];
-
-// Para N equipas, as rondas activas começam em: ROUND_CHAIN.length - log2(N)
-// Ex: 16 equipas → índice 0 (começa nos Oitavos)
-//      4 equipas → índice 2 (começa nas Meias-Finais)
-//      2 equipas → índice 3 (começa na Final)
-
-/**
- * Gera o bracket completo de eliminatórias de forma algorítmica.
- *
- * Lógica de seeding da 1ª ronda: emparelha o seed mais alto com o mais
- * baixo em cada par da metade do bracket (1 vs N, N/2 vs N/2+1, 2 vs N-1, …)
- * — padrão UEFA/FIFA para evitar que as melhores equipas se cruzem cedo.
- *
- * Rondas seguintes: os slots home/away ficam como placeholders "Vencedor Xn"
- * e são preenchidos em runtime quando os resultados são introduzidos.
- *
- * @param {number}   teamCount - Número total de equipas no bracket (potência de 2, max 16)
- * @param {object[]} seeds     - Array de equipas ordenado por seed (índice 0 = 1º)
- * @returns {{ games: object[], rounds: object[] }}
- */
-function buildPlayoffBracket(teamCount, seeds) {
-  const startIndex = ROUND_CHAIN.length - Math.log2(teamCount);
-  if (!Number.isInteger(startIndex) || startIndex < 0) return { games: [], rounds: [] };
-
-  const roundDefs = ROUND_CHAIN.slice(startIndex);
-
-
-  const games = [];
-  const rounds = [];
-
-  // Ordem de seeding da 1ª ronda para evitar confrontos prematuros entre os melhores:
-  // Num bracket de N equipas, emparelha: [0 vs N-1], [N/2-1 vs N/2], [1 vs N-2], [N/2-2 vs N/2+1], …
-  const firstRoundSeeding = buildFirstRoundSeeding(teamCount);
-
-  roundDefs.forEach((roundDef, roundIndex) => {
-    const { prefix, label } = roundDef;
-    const next = roundDefs[roundIndex + 1]?.prefix ?? null;
-    const matchCount = teamCount / Math.pow(2, roundIndex + 1);
-
-    rounds.push({ jornada: label, bye: null });
-
-    for (let i = 0; i < matchCount; i++) {
-      const matchId = `${prefix}${i + 1}`;
-      const nextMatchId = next ? `${next}${Math.floor(i / 2) + 1}_${i % 2 === 0 ? 'home' : 'away'}` : null;
-
-      let home, away;
-
-      if (roundIndex === 0) {
-        // 1ª ronda: usa o seeding real
-        const [seedA, seedB] = firstRoundSeeding[i];
-        home = seeds[seedA].idx;
-        away = seeds[seedB].idx;
-      } else {
-        // Rondas seguintes: placeholders que são preenchidos em runtime
-        const prevPrefix = roundDefs[roundIndex - 1].prefix;
-        home = en.playoffs.winnerPlaceholder(prevPrefix, i * 2 + 1);
-        away = en.playoffs.winnerPlaceholder(prevPrefix, i * 2 + 2);
-      }
-
-      games.push({ jornada: label, home, away, isPlayoff: true, playoffMatchId: matchId, nextMatchId });
-    }
-  });
-
-  return { games, rounds };
-}
-
-export function onGerarEliminatorias() {
+export function onGerarEliminatorias(): void {
   const summary = computeStatsSummary();
-  const numPlayoffTeamsPerGroup = state.config.numPlayoffTeams || 4;
-  const numGrupos = state.config.numGrupos || 1;
+  const numPlayoffTeamsPerGroup = loadedConfig().numPlayoffTeams || 4;
+  const numGrupos = loadedConfig().numGrupos || 1;
   const totalPlayoffTeams = numPlayoffTeamsPerGroup * numGrupos;
 
   if (totalPlayoffTeams > 16) {
@@ -552,27 +478,19 @@ export function onGerarEliminatorias() {
     return;
   }
 
-  const startIndex = ROUND_CHAIN.length - Math.log2(totalPlayoffTeams);
-  if (!Number.isInteger(startIndex) || startIndex < 0) {
+  if (firstRoundIndex(totalPlayoffTeams) === null) {
     showToast(en.playoffs.configNotSupported(totalPlayoffTeams), 'error');
     return;
   }
 
-  const ok = summary.groupsData.every((g) => g.standings.length >= numPlayoffTeamsPerGroup);
-  if (!ok) {
+  // Teams by position, alternating groups: 1st A, 1st B, 2nd A, 2nd B, …
+  const seeds = playoffSeeds(summary.groupsData, numPlayoffTeamsPerGroup);
+  if (!seeds) {
     showToast(en.playoffs.notEnoughTeamsInGroup(numPlayoffTeamsPerGroup), 'error');
     return;
   }
 
-  // Selecciona equipas por posição (intercalando grupos: 1ºA, 1ºB, 2ºA, 2ºB, …)
-  const topTeams = [];
-  for (let pos = 0; pos < numPlayoffTeamsPerGroup; pos++) {
-    for (let g = 0; g < numGrupos; g++) {
-      topTeams.push(summary.groupsData[g].standings[pos]);
-    }
-  }
-
-  const { games: newGames, rounds: newRounds } = buildPlayoffBracket(totalPlayoffTeams, topTeams);
+  const { games: newGames, rounds: newRounds } = buildPlayoffBracket(totalPlayoffTeams, seeds);
 
   openConfirm(
     en.playoffs.generatePlayoffsTitle,
@@ -588,28 +506,28 @@ export function onGerarEliminatorias() {
 }
 
 // ---------------------------------------------------------------------------
-// Sessão (Google) e administração
+// Session (Google) and administration
 // ---------------------------------------------------------------------------
-let stopAdminListeners = null;
+let stopAdminListeners: (() => void) | null = null;
 
-export function onContaClick() {
-  if (!getCurrentUser()) {
+export function onContaClick(): void {
+  const user = getCurrentUser();
+  if (!user) {
     signInWithGoogle().catch((err) => {
       if (err && err.code === 'auth/popup-closed-by-user') return;
-      console.error('Erro ao entrar:', err);
+      console.error('Sign-in failed:', err);
       showToast(en.toasts.couldNotSignInGoogle, 'error');
     });
     return;
   }
-  // No telemóvel o botão só mostra 👤, por isso a confirmação diz quem tem a sessão
-  const user = getCurrentUser();
+  // On a phone the button only shows 👤, so the prompt says who is signed in
   const quem = `${user.displayName || user.email || ''} (${roleLabel(getCurrentRole(), getCurrentUserAdmin())})`;
   openConfirm(en.modals.signOutTitle, en.modals.signOutPrompt(quem), () => {
     signOutUser();
   });
 }
 
-function onAuthChange({ user, role, admin }) {
+function onAuthChange({ user, role, admin }: AuthInfo): void {
   renderAuth(user, role, admin);
 
   const isMst = !!user && role === 'master';
@@ -624,19 +542,19 @@ function onAuthChange({ user, role, admin }) {
 }
 
 /** A role or sport box changed in <user-list> (detail: { uid, name, role, sportAdmins }). */
-export function onUserRoleChange({ uid, name: nome, role, sportAdmins }) {
+export function onUserRoleChange({ uid, name: nome, role, sportAdmins }: RoleChange): void {
   setUserRole(uid, role, sportAdmins, nome)
     .then(() => showToast(en.toasts.roleUpdated, 'ok'))
     .catch((err) => {
-      console.error('Erro ao mudar perfil:', err);
+      console.error('Role change failed:', err);
       showToast(en.toasts.couldNotUpdateRole, 'error');
     });
 }
 
 // ---------------------------------------------------------------------------
-// Telemóvel: painel "Mais" (abre de baixo a partir da pílula de navegação)
+// Phone: the "More" drawer (opens from the bottom, from the navigation pill)
 // ---------------------------------------------------------------------------
-function bindMenuDrawer() {
+function bindMenuDrawer(): void {
   const drawer = document.getElementById('tabs');
   const btnMenu = document.getElementById('btnMobileMenu');
   const btnClose = document.getElementById('btnFecharMenu');
@@ -645,9 +563,9 @@ function bindMenuDrawer() {
 
   const mobile = window.matchMedia('(max-width: 760px)');
   const isOpen = () => drawer.classList.contains('menu-open');
-  const setOpen = (open) => drawer.classList.toggle('menu-open', open);
+  const setOpen = (open: boolean) => drawer.classList.toggle('menu-open', open);
 
-  // switchTab também fecha o painel: o aria-expanded segue a classe
+  // switchTab also closes the drawer: aria-expanded follows the class
   new MutationObserver(() => btnMenu.setAttribute('aria-expanded', String(isOpen())))
     .observe(drawer, { attributes: true, attributeFilter: ['class'] });
 
@@ -659,15 +577,15 @@ function bindMenuDrawer() {
 }
 
 // ---------------------------------------------------------------------------
-// Binding de eventos e inicialização
+// Event binding and start-up
 // ---------------------------------------------------------------------------
-export function bindEvents() {
+export function bindEvents(): void {
   bindMenuDrawer();
   bindHistoryEvents();
   bindPlayersEvents();
   bindSingleMatchEvents();
 
-  Array.from(document.querySelectorAll('.tab')).forEach((btn) => {
+  document.querySelectorAll<HTMLElement>('.tab').forEach((btn) => {
     btn.addEventListener('click', () => {
       if (btn.dataset.tab) {
         switchTab(btn.dataset.tab);
@@ -679,7 +597,7 @@ export function bindEvents() {
   });
 
   document.addEventListener('click', (e) => {
-    if (!e.target.closest('.dropdown')) {
+    if (!(e.target as Element | null)?.closest('.dropdown')) {
       document.querySelectorAll('.dropdown.open').forEach(d => d.classList.remove('open'));
     }
   });
@@ -692,7 +610,7 @@ export function bindEvents() {
   dom.btnAdicionarVolta.addEventListener('click', onAdicionarVolta);
   dom.btnGerarEliminatorias.addEventListener('click', onGerarEliminatorias);
 
-  // Tema dark/light
+  // Dark / light theme
   const updateThemeIcon = () => {
     dom.btnDarkMode.textContent = currentTheme === 'dark' ? '☀️' : '🌙';
   };
@@ -707,36 +625,37 @@ export function bindEvents() {
     updateThemeIcon();
   });
 
-  // Plantéis — agora com dropdown da BD
+  // Squads
   dom.squadTeamSelect.addEventListener('change', () => {
     renderSquadList();
     renderSquadPlayerFromDBDropdown();
   });
   dom.btnAddPlayerFromDB.addEventListener('click', onAddPlayerFromDB);
   dom.btnDrawPairs.addEventListener('click', onDrawPairs);
-  dom.squadList.addEventListener('squad-remove', (e) => onSquadRemove(e.detail));
-  dom.squadList.addEventListener('player-stats', (e) => openPlayerProfile(e.detail, Number(dom.squadTeamSelect.value)));
+  onEvent<string>(dom.squadList, 'squad-remove', onSquadRemove);
+  onEvent<string>(dom.squadList, 'player-stats', (pid) => openPlayerProfile(pid, Number(fieldValue('squadTeamSelect'))));
 
   // Lit components emit their events to the container element
-  dom.teamsList.addEventListener('team-change', (e) => onTeamChange(e.detail));
+  onEvent<TeamChange>(dom.teamsList, 'team-change', onTeamChange);
   // <schedule-list> and <results-list> (detail: the match gi, or an object with it)
   [dom.calendarList, dom.resultsList].forEach((list) => {
-    list.addEventListener('open-match', (e) => openGameModal(e.detail));
-    list.addEventListener('status-click', (e) => onStatusClick(e.detail));
+    onEvent<string>(list, 'open-match', openGameModal);
+    onEvent<string>(list, 'status-click', (gi) => onStatusClick(Number(gi)));
   });
-  dom.resultsList.addEventListener('score-step', (e) => onScoreStep(e.detail));
-  dom.resultsList.addEventListener('score-commit', (e) => onScoreCommit(e.detail));
+  onEvent<ScoreStep>(dom.resultsList, 'score-step', onScoreStep);
+  onEvent<ScoreCommit>(dom.resultsList, 'score-commit', onScoreCommit);
 
-  // Conta e administração
+  // Account and administration
   dom.btnConta.addEventListener('click', onContaClick);
-  dom.usersList.addEventListener('role-change', (e) => onUserRoleChange(e.detail));
+  onEvent<RoleChange>(dom.usersList, 'role-change', onUserRoleChange);
 
-  // Exportar / Importar
+  // Export / import
   dom.btnExportar.addEventListener('click', exportJSON);
-  dom.btnImportar.addEventListener('click', () => { dom.inputImportar.value = ''; dom.inputImportar.click(); });
-  dom.inputImportar.addEventListener('change', () => { importJSON(dom.inputImportar.files[0]); });
+  const importInput = dom.inputImportar as HTMLInputElement;
+  dom.btnImportar.addEventListener('click', () => { importInput.value = ''; importInput.click(); });
+  importInput.addEventListener('change', () => { importJSON(importInput.files?.[0] ?? null); });
 
-  // Configuração
+  // Settings
   dom.cfgNome.addEventListener('blur', onConfigFieldChange);
   [dom.cfgVitoria, dom.cfgEmpate, dom.cfgDerrota, dom.cfgBonus, dom.cfgGoleada, dom.cfgGamesPerSet].forEach((el) => {
     el.addEventListener('blur', onConfigFieldChange);
@@ -750,17 +669,17 @@ export function bindEvents() {
   dom.cfgMataMata.addEventListener('change', onConfigFieldChange);
   dom.cfgNumPlayoffTeams.addEventListener('change', onConfigFieldChange);
 
-  // Janela do jogo
-  const gameOverlay = document.getElementById('gameOverlay');
-  document.getElementById('gameModalClose').addEventListener('click', closeGameModal);
-  // Events from <football-score> (detail: { gi, side })
-  const gameModalContent = document.getElementById('gameModalContent');
-  gameModalContent.addEventListener('point', (e) => onGoalAdd(e.detail.gi, e.detail.side));
-  gameModalContent.addEventListener('cancelled', (e) => onGoalCancel(e.detail.gi, e.detail.side));
-  gameModalContent.addEventListener('started', (e) => changeGameStatus(e.detail.gi, GAME_STATUS.DECORRER));
-  gameModalContent.addEventListener('finished', (e) => changeGameStatus(e.detail.gi, GAME_STATUS.TERMINADO));
-  gameModalContent.addEventListener('mvp', (e) => onMvpClick(e.detail.gi));
-  gameModalContent.addEventListener('share', (e) => shareResult(e.detail.gi));
+  // Match window
+  const gameOverlay = document.getElementById('gameOverlay')!;
+  document.getElementById('gameModalClose')!.addEventListener('click', closeGameModal);
+  // Events from the score panel (<football-score>, <padel-score>; detail: { gi, side })
+  const gameModalContent = document.getElementById('gameModalContent')!;
+  onEvent<ScoreEvent>(gameModalContent, 'point', ({ gi, side }) => side && onGoalAdd(Number(gi), side));
+  onEvent<ScoreEvent>(gameModalContent, 'cancelled', ({ gi, side }) => side && onGoalCancel(Number(gi), side));
+  onEvent<ScoreEvent>(gameModalContent, 'started', ({ gi }) => changeGameStatus(Number(gi), GAME_STATUS.DECORRER));
+  onEvent<ScoreEvent>(gameModalContent, 'finished', ({ gi }) => changeGameStatus(Number(gi), GAME_STATUS.TERMINADO));
+  onEvent<ScoreEvent>(gameModalContent, 'mvp', ({ gi }) => onMvpClick(Number(gi)));
+  onEvent<ScoreEvent>(gameModalContent, 'share', ({ gi }) => shareResult(gi));
   gameOverlay.addEventListener('click', (e) => { if (e.target === gameOverlay) closeGameModal(); });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !gameOverlay.hidden) closeGameModal(); });
 
@@ -770,40 +689,40 @@ export function bindEvents() {
   dom.modalOverlay.addEventListener('click', (e) => { if (e.target === dom.modalOverlay) closeConfirm(); });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !dom.modalOverlay.hidden) closeConfirm(); });
 
-  // Jogadores BD
+  // Players database
   if (dom.btnNewPlayer) dom.btnNewPlayer.addEventListener('click', () => openPlayerModal(null));
   if (dom.playerSearchInput) {
     dom.playerSearchInput.addEventListener('input', renderPlayersList);
   }
 
-  // Torneios
+  // Tournaments
   if (dom.btnNovoTorneioModal) dom.btnNovoTorneioModal.addEventListener('click', onNovoTorneioModalClick);
-  dom.listaTorneiosAtivos.addEventListener('tournament-select', (e) => onSelectTournament(e.detail));
-  dom.listaTorneiosAtivos.addEventListener('tournament-finish', (e) => onTerminarTorneio(e.detail));
+  onEvent<string>(dom.listaTorneiosAtivos, 'tournament-select', onSelectTournament);
+  onEvent<string>(dom.listaTorneiosAtivos, 'tournament-finish', onTerminarTorneio);
 }
 
 // ---------------------------------------------------------------------------
-// Atualizações vindas do Firebase
+// Updates from Firebase
 // ---------------------------------------------------------------------------
 let renderPending = false;
 
-/** Há um campo de texto ou número com foco (alguém a escrever)? */
-function isEditingField() {
-  const el = document.activeElement;
+/** Is a text or number field focused (someone typing)? */
+function isEditingField(): boolean {
+  const el = document.activeElement as HTMLInputElement | null;
   if (!el || el.closest('.modal-overlay')) return false;
   if (el.tagName === 'TEXTAREA') return true;
   return el.tagName === 'INPUT' && !['checkbox', 'radio', 'button', 'file'].includes(el.type);
 }
 
-/** Redesenha já, ou quando a pessoa sair do campo onde está a escrever. */
-function renderWhenIdle() {
+/** Redraws now, or when the person leaves the field they are typing in. */
+function renderWhenIdle(): void {
   if (isEditingField()) { renderPending = true; return; }
   renderPending = false;
   renderAll();
   renderTournaments();
 }
 
-export async function init() {
+export async function init(): Promise<void> {
   const initialTournamentId = getLastViewedTournamentId();
   setCurrentTournamentId(initialTournamentId);
 
@@ -833,7 +752,7 @@ export async function init() {
       setSyncedSnapshot(buildSnapshot());
       storeAllLayers();
       renderWhenIdle();
-      // Na primeira leitura só regista o estado: não anima o que mudou com a app fechada
+      // The first read only records the state: it does not animate what changed while the app was closed
       animateResultChanges({ silent: isFirstLoad });
     }
   });
@@ -843,7 +762,7 @@ export async function init() {
     const currentId = getCurrentTournamentId();
     const activeTournaments = tournaments.filter((t) => t.status === 'active');
 
-    // Se o torneio atual não for ativo mas existirem torneios ativos, muda para o primeiro ativo
+    // If the current tournament is not active but others are, switch to the first active one
     if (activeTournaments.length > 0 && !activeTournaments.some((t) => t.id === currentId)) {
       onSelectTournament(activeTournaments[0].id);
       return;
@@ -852,7 +771,7 @@ export async function init() {
     renderTournaments();
   });
 
-  // Quem está a escrever num campo grava ao sair dele; só depois se redesenha
+  // Someone typing in a field saves when they leave it; only then redraw
   document.addEventListener('focusout', () => {
     if (!renderPending) return;
     setTimeout(() => {
@@ -869,7 +788,7 @@ export async function init() {
   switchTab('dashboard');
 }
 
-// Ponto de entrada
+// Entry point
 if (typeof document !== 'undefined') {
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
