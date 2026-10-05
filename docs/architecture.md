@@ -109,16 +109,17 @@ Each tournament lives in its own node, `tournaments/<id>` (`default` for the tou
 | `roundsMeta` | One entry per matchday, with the team that has a bye. |
 | `scheduleTeamCount`, `scheduleVoltas` | Teams and rounds the schedule was generated with. |
 | `results` | By the match's index in `schedule`: `{ score: "2-1", status, scorers: { home, away }, assists: { home, away }, mvp, penalties }`. In padel and tennis `score` holds the games of each set (`"6-4 3-6 10-7"`) and there are no scorers, assists or penalties; the rules only accept that format in tournaments whose `meta.sport` is `padel` or `tennis`. |
-| `jogosSingulares` | The tournament's single matches, with both teams, score, scorers, assists and MVP. |
-| `version`, `exportedAt` | Format version (`SNAPSHOT_VERSION`, currently 12) and date of the last save. |
+| `jogosSingulares` | Older saves only: single matches, now in the root `singleMatches` node. The Master Admin's first load moves them there. |
+| `version`, `exportedAt` | Format version (`SNAPSHOT_VERSION`, currently 13) and date of the last save. |
 | `logRef` | Key of the `tournament_log/<id>` entry of the last save (see [Activity log](#activity-log)). |
 
 Shared by every tournament, at the root of the database:
 
 | Node | Contents |
 |---|---|
-| `players` | Global players database `{ id, nome, teamIdx, ratings: { <sport>: attributes }, atributos }`. Each sport has its own attribute keys (`Sport.ratingAttributes()`: football `velocidade`, `finalizacao`, …; padel `volley`, `smash`, `lob`, `walls`, `defense`, `fitness`; tennis `serve`, `return`, `forehand`, `backhand`, `volley`, `fitness`). `atributos` is a copy of the football ratings, kept for older data. |
-| `arquivo` | Archived tournaments: name, sport, date, champion, final tables and per-player stats. |
+| `players/<id>` | Global players database, keyed by player id: `{ id, nome, teamIdx, ratings: { <sport>: attributes }, atributos }`. Each sport has its own attribute keys (`Sport.ratingAttributes()`: football `velocidade`, `finalizacao`, …; padel `volley`, `smash`, `lob`, `walls`, `defense`, `fitness`; tennis `serve`, `return`, `forehand`, `backhand`, `volley`, `fitness`). `atributos` is a copy of the football ratings, kept for older data. |
+| `arquivo/<id>` | Archived tournaments, keyed by id: name, sport, date, champion, final tables and per-player stats. |
+| `singleMatches/<id>` | Single matches (a football feature, not tied to a tournament), keyed by id: both teams, score, scorers, assists and MVP. Only football admins and the Master Admin can read them. |
 | `users/<uid>` | Name, email, photo, last access, `role` (`master`, `admin` or `user`; none = pending) and `admin: { <sport>: true }` for per-sport admins. |
 | `tournament_log/<id>` | Activity log of each tournament. |
 
@@ -127,7 +128,7 @@ Notes:
 - `results` is indexed by the match's **position** in `schedule`. That is why the extra round and the playoffs append matches at the end and never reorder existing ones.
 - In `scorers`, `'auto'` is an own goal. `assists` is aligned with `scorers` (same position = same goal; `''` = no assist).
 - Player names in `arquivo` are copied when archiving, so the history survives deleted players.
-- In the app, the snapshot of the current tournament also carries `players` and `arquivo`; `pushStateToFirebase` writes them to the root nodes.
+- In the app, the snapshot of the current tournament also carries `players`, `arquivo` and `jogosSingulares`; `pushStateToFirebase` writes them to the root nodes one record at a time (`keyedUpdates`, and `playerUpdates`, which also splits a player edit per field and per sport's ratings), so the rules can check each change. Older saves stored players and the archive as arrays: the Master Admin's first load rewrites them keyed by id (`migrateGlobalRecords`), and until then other admins' player and archive saves are refused with a toast.
 - A tournament exists only once it is created (`createTournament`). While the id being viewed has no node (no tournament yet, or the last one was removed), the app shows an empty tournament but saves only `players` and `arquivo`, with no `tournament_log` entry since there is no tournament to log against; any change to the tournament itself is refused with a toast, so it is never created with default settings and listed as active.
 - Legacy nodes from before multiple tournaments (`torneio_state`, `torneio_log`, `utilizadores`) are read-only. `firebase.ts` falls back to `torneio_state` while `tournaments/default` does not exist, and migrates it the first time a Master Admin signs in (see [Setup](configuration.md#setting-up-firebase-once)).
 
@@ -137,7 +138,7 @@ Each device also keeps a copy in localStorage, to show the tournament as soon as
 
 ![Match-by-match sync](assets/illustrations/12-sincronizacao-jogo-a-jogo.jpg)
 
-1. On startup, `firebase.ts` listens to `tournaments/<id>` of the selected tournament with `onValue` (plus `players` and `arquivo`). Each time a value arrives, `applySnapshot` replaces the local state and that snapshot becomes the "last synced" one. Switching tournament restarts the listener on the new node.
+1. On startup, `firebase.ts` listens to `tournaments/<id>` of the selected tournament with `onValue` (plus `players` and `arquivo`, and `singleMatches` for football admins). Each time a value arrives, `applySnapshot` replaces the local state and that snapshot becomes the "last synced" one. Switching tournament restarts the listener on the new node.
 2. Each action saves its section to localStorage and calls `pushStateToFirebase` with the full snapshot.
 3. `diffSnapshot` compares it with the last synced snapshot and produces an `update()` with only what changed:
    - `results` goes **match by match** (`results/<index>`), so that two people recording different matches at the same time do not overwrite each other;
@@ -155,18 +156,19 @@ The Firebase rules are the real protection; the client only hides buttons and wa
 
 | Path | Read | Write |
 |---|---|---|
-| `tournaments/<id>` | Everyone | `jogosSingulares`, `exportedAt`, `version`: User, sport admin and Master Admin. `results`, `schedule`, `meta` and the other sections: sport admin and Master Admin. `meta/sport` cannot change. |
-| `players` | Everyone | Master Admin and any Admin. |
-| `arquivo` | Everyone | Each entry: Master Admin or an admin of the entry's sport. The whole node: Master Admin. |
+| `tournaments/<id>` | Everyone | `exportedAt`, `version`: User, sport admin and Master Admin. `results`, `schedule`, `meta` and the other sections: sport admin and Master Admin. `meta/sport` cannot change. |
+| `players` | Everyone | Adding a player: any Admin. Name and team: any Admin. `ratings/<sport>`: that sport's admins (`atributos`: football admins). Deleting a player or rewriting the whole node: Master Admin. |
+| `arquivo` | Everyone | Each entry: Master Admin or an admin of the entry's sport, which cannot be changed to another sport (entries saved without a sport count as football). The whole node: Master Admin. |
+| `singleMatches` | Football admins and Master Admin | Football admins and Master Admin, one match at a time. |
 | `users` | Master Admin (all); each user their own | Each user their own name, email, photo and last access; `role` and `admin`: Master Admin only. |
 | `tournament_log/<id>` | Master Admin and the tournament's sport admins | User, Admin and Master Admin, new entries only, with their own `uid` and the server time. |
 | `torneio_state`, `torneio_log`, `utilizadores` | Legacy | Nobody. |
 
 Besides who can write, the rules validate what is written: scores in the `"2-1"` format, known statuses (`agendado`, `decorrer`, `terminado`), per-side lists of scorers and assists, the fields of `meta`, and length-limited text. Every write to a tournament's sections (other than `exportedAt` and `version`) must also bring a new `logRef` (see [Activity log](#activity-log)).
 
-In the app, anyone who is not an admin of the tournament's sport sees Teams, Squads and Players read-only, with a note explaining why, and does not see the Results tab, sees scores and match status read-only in the Schedule and the match window, and cannot pick the MVP; Pick MVP only appears when an admin opens the match from Results; the 👮 Users tab is only shown to the Master Admin.
+In the app, anyone who is not an admin of the tournament's sport sees Teams, Squads and Players read-only, with a note explaining why, and does not see the Results tab, sees scores and match status read-only in the Schedule and the match window, and cannot pick the MVP; Pick MVP only appears when an admin opens the match from Results; the 👮 Users tab is only shown to the Master Admin; the ⚽ Single Match tab only to football admins and the Master Admin; deleting a player only to the Master Admin.
 
-**Changing permissions:** change `database.rules.json` and `src/permissions.ts` (`USER_SECTIONS`, `canWritePath`) together, update `tests/permissions.test.js` and `tests/rules/rules.check.mjs`, and run `npm run test:rules`. The rules are published by the next deployment (see [Deployment](configuration.md#deployment)).
+**Changing permissions:** change `database.rules.json` and `src/permissions.ts` (`USER_SECTIONS`, `canWritePath`, `canWriteGlobalPath`) together, update `tests/permissions.test.js` and `tests/rules/rules.check.mjs`, and run `npm run test:rules`. The rules are published by the next deployment (see [Deployment](configuration.md#deployment)).
 
 If Firebase rejects a write the client let through, the server value comes back by itself and the app warns: "The change was rejected by the database (permission denied). It has been reverted."
 
@@ -212,11 +214,11 @@ npm run test:rules   # Firebase rules in the emulator (needs Java)
 | `tests/padel.test.ts` | Padel logic: set format, parsing sets, set and match winner, adding and removing games, super tie-break, game-based standings and head-to-head, playoff winner, animation events |
 | `tests/tennis.test.ts` | Tennis: registry, default format with a full deciding set, best of 5, scoring a three-set match, games in the standings |
 | `tests/core/` | Core logic: `schedule.test.ts` (Berger, rounds, seeding), `draft.test.ts` (ratings per sport, drafts, balanced pairs), `archive.test.ts` (archive), `playoffs.test.ts` (bracket, seeds, winner advancement), `americano.test.ts` (partner rotation, Mexicano pairing, player standings, padel played to points) |
-| `tests/sync.test.ts` | `diffSnapshot`, `normalizeResults`, `onlyMetadata`, `describeUpdates`, `normalizeArquivo`, `normalizeConfig`, `normalizeMeta` |
+| `tests/sync.test.ts` | `diffSnapshot`, `normalizeResults`, `onlyMetadata`, `describeUpdates`, `normalizeArquivo`, `normalizeConfig`, `normalizeMeta`, `keyedUpdates`, `playerUpdates`, `isKeyedById`, `keyById`, `normalizeSingleMatches` |
 | `tests/state.test.ts` | `SNAPSHOT_VERSION`, `applySnapshot` with version 7 to 10 snapshots (meta derived for older ones), `buildSnapshot`, `defaultConfig`, `defaultMeta`, current tournament id |
 | `tests/players.test.ts` | `defaultPlayerAttrs`, `normalizePlayer`, `normalizePlayers` and per-sport ratings in `applySnapshot` |
 | `tests/torneios.test.ts` | Active tournament filter and sport badge (`src/components/TournamentList.ts`), the header (`src/ui/tournaments.ts`) and the last tournament viewed on the device |
-| `tests/permissions.test.js` | `canWritePath`, `blockedPaths`, `roleLabel`, `isMaster`, `isSportAdmin` |
+| `tests/permissions.test.js` | `canWritePath`, `canWriteGlobalPath`, `canSeeSingleMatches`, `blockedPaths`, `roleLabel`, `isMaster`, `isSportAdmin` |
 | `tests/utils.test.js` | `escapeHtml`, `safeColor` |
 
 The core and sports modules do not depend on the UI or Firebase, so the tests import them directly. There are no circular imports: `ui.ts` does not import `main.ts` and `state.ts` does not import `ui.ts`; keep it that way when adding code. The UI is checked by hand (see [Running locally](configuration.md#running-locally)).

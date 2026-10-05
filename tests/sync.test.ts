@@ -6,6 +6,11 @@ import {
   describeUpdates,
   onlyMetadata,
   globalUpdatesOnly,
+  keyedUpdates,
+  playerUpdates,
+  isKeyedById,
+  keyById,
+  normalizeSingleMatches,
   normalizeConfig,
   normalizeMeta,
   legacyRoleUpdates,
@@ -87,6 +92,38 @@ describe('globalUpdatesOnly', () => {
     expect(globalUpdatesOnly({ players: [], config: {} }).blocked).toBe(true);
     expect(globalUpdatesOnly({ 'results/0': null }).blocked).toBe(true);
     expect(globalUpdatesOnly({ meta: { status: 'active' } }).blocked).toBe(true);
+  });
+});
+
+describe('keyed global records', () => {
+  it('writes each changed record at its id and deletes removed ones', () => {
+    const prev = [{ id: 'a', n: 1 }, { id: 'b', n: 2 }];
+    const next = [{ id: 'a', n: 1 }, { id: 'c', n: 3 }];
+    expect(keyedUpdates('singleMatches', prev, next)).toEqual({ 'singleMatches/c': { id: 'c', n: 3 }, 'singleMatches/b': null });
+  });
+
+  it('splits player edits per field and per sport', () => {
+    const p = { id: 'p1', nome: 'A', teamIdx: null, ratings: { football: { velocidade: 5 }, padel: { smash: 3 } } };
+    const edited = { ...p, nome: 'B', ratings: { ...p.ratings, padel: { smash: 4 } } };
+    expect(playerUpdates([p], [edited])).toEqual({ 'players/p1/nome': 'B', 'players/p1/ratings/padel': { smash: 4 } });
+    expect(playerUpdates([], [p])).toEqual({ 'players/p1': p });
+    expect(playerUpdates([p], [])).toEqual({ 'players/p1': null });
+  });
+
+  it('tells arrays from records keyed by id', () => {
+    expect(isKeyedById(null)).toBe(true);
+    expect(isKeyedById({ p1: { id: 'p1' } })).toBe(true);
+    expect(isKeyedById([{ id: 'p1' }])).toBe(false);
+    expect(isKeyedById({ 0: { id: 'p1' } })).toBe(false);
+  });
+
+  it('keys records by id and gives one to records saved without it', () => {
+    expect(keyById([{ id: 'a' }, { nome: 'x' }])).toEqual({ a: { id: 'a' }, legacy_1: { id: 'legacy_1', nome: 'x' } });
+  });
+
+  it('lists single matches oldest first', () => {
+    const list = normalizeSingleMatches({ b: { id: 'b', data: '2026-02-01' }, a: { id: 'a', data: '2026-01-01' } });
+    expect(list.map((m) => m.id)).toEqual(['a', 'b']);
   });
 });
 

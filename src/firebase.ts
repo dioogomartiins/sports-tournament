@@ -1,19 +1,19 @@
 import { initializeApp } from "firebase/app";
 import { getDatabase, connectDatabaseEmulator, ref, onValue, update, push, query, orderByChild, limitToLast, serverTimestamp, get } from "firebase/database";
 import { getAuth, connectAuthEmulator, GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
-import { diffSnapshot, describeUpdates, onlyMetadata, globalUpdatesOnly, normalizeMeta, normalizeConfig, legacyRoleUpdates } from "./sync.js";
+import { diffSnapshot, describeUpdates, onlyMetadata, globalUpdatesOnly, normalizeMeta, normalizeConfig, legacyRoleUpdates, keyedUpdates, playerUpdates, isKeyedById, keyById, normalizeSingleMatches, normalizePlayers, normalizeArquivo } from "./sync.js";
 import { en } from "./i18n/en.js";
-import { blockedPaths, roleLabel, isSportAdmin, isMaster } from "./permissions.js";
+import { blockedPaths, roleLabel, isSportAdmin, isMaster, canSeeSingleMatches } from "./permissions.js";
 import type { User } from "firebase/auth";
 import type { Unsubscribe } from "firebase/database";
-import type { ArchiveEntry, Role, Tournament, TournamentMeta, UserProfile } from "./types.js";
+import type { ArchiveEntry, Player, Role, SingleMatch, Tournament, TournamentMeta, UserProfile } from "./types.js";
 import type { LogEntry } from "./components/ActivityLog.js";
 
 /** A tournament snapshot as read from or sent to Firebase (sections may be missing). */
 export type Snapshot = Partial<Tournament>;
 /** A tournament as listed in tournaments/ (its meta plus the id). */
 export type TournamentListing = TournamentMeta & { id: string };
-export type PushResult = { ok: true } | { ok: false; reason: 'sem-sync' | 'sem-sessao' | 'sem-permissao' | 'sem-torneio' };
+export type PushResult = { ok: true } | { ok: false; reason: 'sem-sync' | 'sem-sessao' | 'sem-permissao' | 'sem-torneio' | 'sem-migracao' };
 export interface AuthInfo { user: User | null; role: Role | null; admin: Record<string, boolean> }
 type Updates = Record<string, unknown>;
 
@@ -81,6 +81,23 @@ let stopStateListener: Unsubscribe | null = null;
 let serverStateSeq = 0;
 let stopArquivoListener: Unsubscribe | null = null;
 let stopPlayersListener: Unsubscribe | null = null;
+let stopSinglesListener: Unsubscribe | null = null;
+/**
+ * Whether players and the archive are already stored keyed by id. Older
+ * saves wrote arrays; until the master's first load rewrites them, records
+ * cannot be saved one by one.
+ */
+let playersKeyed = true;
+let arquivoKeyed = true;
+/** Single matches still stored inside the current tournament (older saves). */
+let legacySingles: unknown = null;
+
+/** Single matches from both places, oldest first, each once. */
+function mergeSingles(legacy: unknown, remote: unknown): SingleMatch[] {
+  const byId = new Map<string, SingleMatch>();
+  [...normalizeSingleMatches(legacy), ...normalizeSingleMatches(remote)].forEach((m) => byId.set(m.id, m));
+  return normalizeSingleMatches([...byId.values()]);
+}
 
 export function setActiveTournamentId(id: string): void {
   if (!id || id === activeTournamentId) return;
@@ -118,6 +135,7 @@ export function initFirebaseListener(tournamentId: string = activeTournamentId):
     const arquivoRef = ref(database, 'arquivo');
     stopArquivoListener = onValue(arquivoRef, (snapshot) => {
       const arqVal = snapshot.val();
+      arquivoKeyed = isKeyedById(arqVal);
       if (arqVal && onStateChangeCallback && !isFirstLoad) {
         const current = getSyncedSnapshot() || {};
         current.arquivo = arqVal;
@@ -130,6 +148,7 @@ export function initFirebaseListener(tournamentId: string = activeTournamentId):
     const playersRef = ref(database, 'players');
     stopPlayersListener = onValue(playersRef, (snapshot) => {
       const playersVal = snapshot.val();
+      playersKeyed = isKeyedById(playersVal);
       if (playersVal && onStateChangeCallback && !isFirstLoad) {
         const current = getSyncedSnapshot() || {};
         current.players = playersVal;
@@ -156,6 +175,7 @@ async function applyServerState(value: Snapshot | null): Promise<void> {
     }
   }
   const exists = !!data;
+  const legacy = data?.jogosSingulares ?? null;
   // No tournament under this id (none created yet, or the last one was
   // removed): still read the global sections, so the empty tournament on
   // screen becomes the synced baseline and changes to it can be told apart
@@ -165,6 +185,7 @@ async function applyServerState(value: Snapshot | null): Promise<void> {
   try {
     const arqSnap = await get(ref(database, 'arquivo'));
     const arqVal = arqSnap.val();
+    arquivoKeyed = isKeyedById(arqVal);
     if (arqVal) snap.arquivo = arqVal;
   } catch {
     // Ignora
@@ -174,14 +195,27 @@ async function applyServerState(value: Snapshot | null): Promise<void> {
   try {
     const playersSnap = await get(ref(database, 'players'));
     const playersVal = playersSnap.val();
+    playersKeyed = isKeyedById(playersVal);
     if (playersVal) snap.players = playersVal;
   } catch {
     // Ignora
+  }
+  // Single matches live in /singleMatches, readable only by football admins.
+  // Older saves kept them inside the tournament: those stay until the
+  // master's first load moves them.
+  if (canSeeSingleMatches(currentRole, currentUserAdmin)) {
+    try {
+      const singlesSnap = await get(ref(database, 'singleMatches'));
+      snap.jogosSingulares = mergeSingles(legacy, singlesSnap.val());
+    } catch {
+      // Ignora
+    }
   }
   // A newer value arrived while this one was reading the archive and players
   // (a rejected save fires the optimistic value, then the server one): skip it
   if (seq !== serverStateSeq) return;
   tournamentExists = exists;
+  legacySingles = legacy;
   if (onStateChangeCallback) {
     onStateChangeCallback(snap, isFirstLoad);
     isFirstLoad = false;
@@ -219,7 +253,7 @@ export function getSyncedSnapshot(): Snapshot | null {
 // different games or sections don't overwrite each other. Each push also
 // appends an entry to tournament_log/<id> with who made the change.
 //
-// Returns { ok: true } or { ok: false, reason: 'sem-sync' | 'sem-sessao' | 'sem-permissao' | 'sem-torneio' }.
+// Returns { ok: true } or { ok: false, reason: 'sem-sync' | 'sem-sessao' | 'sem-permissao' | 'sem-torneio' | 'sem-migracao' }.
 // When it fails nothing is sent and the caller should restore the last synced state.
 export function pushStateToFirebase(newState: Snapshot, tournamentId: string = activeTournamentId): PushResult {
   if (!lastSynced) return { ok: false, reason: 'sem-sync' };
@@ -237,20 +271,45 @@ export function pushStateToFirebase(newState: Snapshot, tournamentId: string = a
   }
 
   if (!currentUser) return { ok: false, reason: 'sem-sessao' };
+
+  // Global sections live at the root, one record per path, so the rules can
+  // check each change against the sport it belongs to
+  const prev = lastSynced;
+  const globalWrites: Updates = {};
+  const tournamentUpdates: Updates = {};
+  Object.keys(updates).forEach((p) => {
+    if (p === 'players') {
+      const next = (newState.players || []) as Player[];
+      if (!playersKeyed && isMaster(currentRole)) globalWrites['players'] = keyById(next);
+      else Object.assign(globalWrites, playerUpdates((prev.players || []) as Player[], next));
+    } else if (p === 'arquivo') {
+      const next = normalizeArquivo(newState.arquivo);
+      if (!arquivoKeyed && isMaster(currentRole)) globalWrites['arquivo'] = keyById(next);
+      else Object.assign(globalWrites, keyedUpdates('arquivo', normalizeArquivo(prev.arquivo), next));
+    } else if (p === 'jogosSingulares') {
+      Object.assign(globalWrites, keyedUpdates('singleMatches', (prev.jogosSingulares || []) as SingleMatch[], (newState.jogosSingulares || []) as SingleMatch[]));
+    } else {
+      tournamentUpdates[p] = updates[p];
+    }
+  });
+  const needsUpgrade = (!playersKeyed && Object.keys(globalWrites).some((k) => k.startsWith('players/')))
+    || (!arquivoKeyed && Object.keys(globalWrites).some((k) => k.startsWith('arquivo/')));
+  if (needsUpgrade) return { ok: false, reason: 'sem-migracao' };
+
   const sport = newState?.meta?.sport || newState?.config?.sport || 'football';
-  if (blockedPaths(currentRole, updates, { sport, userAdmin: currentUserAdmin }).length) return { ok: false, reason: 'sem-permissao' };
+  const archiveSports: Record<string, string> = {};
+  normalizeArquivo(prev.arquivo).forEach((e) => { if (e.id) archiveSports[e.id] = e.sport || 'football'; });
+  const allUpdates = { ...tournamentUpdates, ...globalWrites };
+  if (blockedPaths(currentRole, allUpdates, { sport, userAdmin: currentUserAdmin, archiveSports }).length) return { ok: false, reason: 'sem-permissao' };
 
   lastSynced = JSON.parse(JSON.stringify(newState));
+  if (!Object.keys(allUpdates).length) return { ok: true };
+  if (globalWrites['players']) playersKeyed = true;
+  if (globalWrites['arquivo']) arquivoKeyed = true;
 
-  const rootUpdates: Updates = {};
-  Object.keys(updates).forEach((p) => {
-    if (p === 'arquivo') {
-      rootUpdates['arquivo'] = updates[p];
-    } else if (p === 'players') {
-      rootUpdates['players'] = updates[p];
-    } else {
-      rootUpdates[`tournaments/${tournamentId}/${p}`] = updates[p];
-    }
+  const rootUpdates: Updates = { ...globalWrites };
+  Object.keys(tournamentUpdates).forEach((p) => {
+    rootUpdates[`tournaments/${tournamentId}/${p}`] = tournamentUpdates[p];
   });
 
   // The rules require every save to point (logRef) at a new change-log
@@ -344,22 +403,13 @@ async function checkAndMigrateLegacyState(): Promise<void> {
 
   Object.keys(legacyData).forEach((k) => {
     if (k === 'arquivo') {
-      rootUpdates['arquivo'] = legacyData.arquivo;
+      rootUpdates['arquivo'] = keyById(normalizeArquivo(legacyData.arquivo));
+    } else if (k === 'jogosSingulares') {
+      normalizeSingleMatches(legacyData.jogosSingulares).forEach((m) => { rootUpdates[`singleMatches/${m.id}`] = m; });
     } else if (k === 'players') {
       const rawPlayers: unknown = legacyData.players || [];
       const list: unknown[] = Array.isArray(rawPlayers) ? rawPlayers : Object.values(rawPlayers as object);
-      rootUpdates['players'] = (list as Record<string, unknown>[]).map((p) => {
-        if (!p || typeof p !== 'object') return p;
-        const ratings = (p.ratings || {}) as Record<string, unknown>;
-        if (!ratings.football && p.atributos) {
-          ratings.football = p.atributos;
-        }
-        return {
-          ...p,
-          ratings,
-          atributos: ratings.football || p.atributos,
-        };
-      });
+      rootUpdates['players'] = keyById(normalizePlayers(list));
     } else if (k !== 'logRef' && k !== 'version' && k !== 'meta') {
       rootUpdates[`tournaments/default/${k}`] = legacyData[k];
     }
@@ -383,6 +433,49 @@ async function migrateLegacyRoles(): Promise<void> {
   }
 }
 
+/** Follows /singleMatches while the signed-in user may see it (football admins). */
+function syncSinglesListener(): void {
+  if (!canSeeSingleMatches(currentRole, currentUserAdmin)) {
+    if (stopSinglesListener) { stopSinglesListener(); stopSinglesListener = null; }
+    return;
+  }
+  if (stopSinglesListener) return;
+  stopSinglesListener = onValue(ref(database, 'singleMatches'), (snapshot) => {
+    if (!onStateChangeCallback || isFirstLoad) return;
+    const current = getSyncedSnapshot() || {};
+    current.jogosSingulares = mergeSingles(legacySingles, snapshot.val());
+    onStateChangeCallback(current, false);
+  }, (err) => console.error("Firebase error reading single matches:", err));
+}
+
+// One-time rewrite by the master: players and the archive keyed by id (older
+// saves wrote arrays), and single matches moved out of the tournaments, which
+// anyone can read, into /singleMatches
+let globalRecordsChecked = false;
+async function migrateGlobalRecords(): Promise<void> {
+  if (globalRecordsChecked) return;
+  globalRecordsChecked = true;
+  const [playersSnap, arqSnap, tournamentsSnap] = await Promise.all([
+    get(ref(database, 'players')), get(ref(database, 'arquivo')), get(ref(database, 'tournaments')),
+  ]);
+  const updates: Updates = {};
+  if (!isKeyedById(playersSnap.val())) updates['players'] = keyById(normalizePlayers(playersSnap.val()));
+  if (!isKeyedById(arqSnap.val())) updates['arquivo'] = keyById(normalizeArquivo(arqSnap.val()));
+  const tournaments = (tournamentsSnap.val() || {}) as Record<string, Snapshot | null>;
+  Object.keys(tournaments).forEach((id) => {
+    const stored = tournaments[id]?.jogosSingulares;
+    if (stored === undefined || stored === null) return;
+    normalizeSingleMatches(stored).forEach((m) => { updates[`singleMatches/${m.id}`] = m; });
+    updates[`tournaments/${id}/jogosSingulares`] = null;
+    const log = logEntry(en.sync.singleMatchesMoved, id);
+    Object.assign(updates, log);
+    updates[`tournaments/${id}/logRef`] = Object.keys(log)[0].split('/')[2];
+  });
+  if (!Object.keys(updates).length) return;
+  await update(ref(database), updates);
+  console.log(`Global records migrated: ${Object.keys(updates).length} paths`);
+}
+
 // Calls callback({ user, role, admin }) on sign-in, sign-out and role changes
 export function initAuth(callback: (info: AuthInfo) => void): void {
   onAuthStateChanged(auth, (user) => {
@@ -392,6 +485,7 @@ export function initAuth(callback: (info: AuthInfo) => void): void {
     currentUserAdmin = {};
 
     if (!user) {
+      syncSinglesListener();
       callback({ user: null, role: null, admin: {} });
       return;
     }
@@ -411,6 +505,7 @@ export function initAuth(callback: (info: AuthInfo) => void): void {
       const val = snap.val() || {};
       currentRole = (val.role as Role) || null;
       currentUserAdmin = val.admin || {};
+      syncSinglesListener();
       callback({ user, role: currentRole, admin: currentUserAdmin });
 
       if (currentRole === 'master' || currentRole === 'admin') {
@@ -422,6 +517,7 @@ export function initAuth(callback: (info: AuthInfo) => void): void {
       }
       if (currentRole === 'master') {
         migrateLegacyRoles().catch((err) => console.error("Users migration failed:", err));
+        migrateGlobalRecords().catch((err) => console.error("Players, archive and single matches migration failed:", err));
       }
     }, (err) => {
       console.error("Firebase error reading user role:", err);
@@ -635,8 +731,6 @@ export async function createTournament({ name, sport = 'football', numEquipas = 
     [`tournaments/${tournamentId}/scheduleTeamCount`]: config.numEquipas,
     [`tournaments/${tournamentId}/scheduleVoltas`]: config.numVoltas,
     [`tournaments/${tournamentId}/results`]: {},
-    [`tournaments/${tournamentId}/players`]: [],
-    [`tournaments/${tournamentId}/jogosSingulares`]: [],
     [`tournaments/${tournamentId}/version`]: 9,
     [`tournaments/${tournamentId}/exportedAt`]: new Date().toISOString(),
   };

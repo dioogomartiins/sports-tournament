@@ -14,10 +14,56 @@ export const ROLES: Record<Role, string> = {
 
 /**
  * Sections of a tournament that a regular user (or an admin of another sport)
- * can write to. Results, match status and the schedule are for the sport's
- * admins only.
+ * can write to. Results, match status, the schedule and single matches are
+ * for the sport's admins only.
  */
-const USER_SECTIONS = ['jogosSingulares', 'exportedAt', 'version'] as const;
+const USER_SECTIONS = ['exportedAt', 'version'] as const;
+
+/** Single matches are a football feature: only football admins see and edit them. */
+export const SINGLE_MATCH_SPORT = 'football';
+
+function isAnyAdmin(role: string | null | undefined, userAdmin?: Record<string, boolean> | null): boolean {
+  return role === 'master' || role === 'admin' || !!(userAdmin && Object.keys(userAdmin).length);
+}
+
+export function canSeeSingleMatches(role: string | null | undefined, userAdmin?: Record<string, boolean> | null): boolean {
+  return isSportAdmin(role, SINGLE_MATCH_SPORT, userAdmin);
+}
+
+/**
+ * Can this role write a root path of a global node (`players/<id>/...`,
+ * `arquivo/<id>`, `singleMatches/<id>`)? `value` is what is written (null
+ * deletes) and `prevSport` the sport of the archive entry it replaces.
+ */
+export function canWriteGlobalPath(
+  role: string | null | undefined,
+  path: string,
+  value: unknown,
+  options: { userAdmin?: Record<string, boolean> | null; prevSport?: string } = {},
+): boolean {
+  if (role === 'master') return true;
+  const { userAdmin } = options;
+  const [node, , field, sport] = String(path).split('/');
+  if (node === 'singleMatches') return canSeeSingleMatches(role, userAdmin);
+  if (node === 'players') {
+    if (!isAnyAdmin(role, userAdmin)) return false;
+    // Adding a player is open to every admin; deleting one removes it from
+    // every sport, so only the master does it
+    if (field === undefined) return value !== null && value !== undefined;
+    if (field === 'ratings') return isSportAdmin(role, sport, userAdmin);
+    if (field === 'atributos') return isSportAdmin(role, 'football', userAdmin);
+    return field === 'nome' || field === 'teamIdx';
+  }
+  if (node === 'arquivo') {
+    const newSport = value && typeof value === 'object' ? (value as { sport?: string }).sport || 'football' : undefined;
+    if (options.prevSport !== undefined) {
+      if (!isSportAdmin(role, options.prevSport, userAdmin)) return false;
+      return newSport === undefined || newSport === options.prevSport;
+    }
+    return newSport !== undefined && isSportAdmin(role, newSport, userAdmin);
+  }
+  return false;
+}
 
 export function isKnownRole(role: string | null | undefined): role is Role {
   return typeof role === 'string' && Object.prototype.hasOwnProperty.call(ROLES, role);
@@ -97,7 +143,16 @@ export function canWritePath(
 export function blockedPaths(
   role: string | null | undefined,
   updates: Record<string, unknown>,
-  options?: WritePathOptions
+  options?: WritePathOptions & { archiveSports?: Record<string, string> }
 ): string[] {
-  return Object.keys(updates).filter((p) => !canWritePath(role, p, options));
+  return Object.keys(updates).filter((p) => {
+    const [node, id] = p.split('/');
+    if (id !== undefined && (node === 'players' || node === 'arquivo' || node === 'singleMatches')) {
+      return !canWriteGlobalPath(role, p, updates[p], {
+        userAdmin: options?.userAdmin,
+        prevSport: node === 'arquivo' ? options?.archiveSports?.[id] : undefined,
+      });
+    }
+    return !canWritePath(role, p, options);
+  });
 }

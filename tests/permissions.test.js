@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { canWritePath, blockedPaths, roleLabel, isMaster, isSportAdmin } from '../src/permissions.js';
+import { canWritePath, canWriteGlobalPath, canSeeSingleMatches, blockedPaths, roleLabel, isMaster, isSportAdmin } from '../src/permissions.js';
 
 describe('canWritePath', () => {
   it('master pode gravar tudo exceto campos imutáveis', () => {
@@ -33,11 +33,11 @@ describe('canWritePath', () => {
     expect(canWritePath('admin', 'meta/sport')).toBe(false);
   });
 
-  it('utilizador grava jogos singulares, mas não resultados nem vencedores de playoff', () => {
+  it('utilizador não grava jogos singulares, resultados nem vencedores de playoff', () => {
     expect(canWritePath('user', 'results/3')).toBe(false);
     expect(canWritePath('user', 'schedule/4/home')).toBe(false);
     expect(canWritePath('user', 'schedule/4/away')).toBe(false);
-    expect(canWritePath('user', 'jogosSingulares')).toBe(true);
+    expect(canWritePath('user', 'jogosSingulares')).toBe(false);
     expect(canWritePath('user', 'exportedAt')).toBe(true);
   });
 
@@ -98,5 +98,46 @@ describe('roleLabel, isMaster e isSportAdmin', () => {
     expect(isSportAdmin('admin', 'football', { football: true })).toBe(true);
     expect(isSportAdmin('admin', 'padel', { football: true })).toBe(false);
     expect(isSportAdmin('user', 'football', { football: true })).toBe(false);
+  });
+});
+
+describe('canWriteGlobalPath', () => {
+  const foot = { userAdmin: { football: true } };
+  const padel = { userAdmin: { padel: true } };
+
+  it('single matches are for football admins and the master only', () => {
+    expect(canSeeSingleMatches('admin', { football: true })).toBe(true);
+    expect(canSeeSingleMatches('admin', { padel: true })).toBe(false);
+    expect(canSeeSingleMatches('user', null)).toBe(false);
+    expect(canWriteGlobalPath('admin', 'singleMatches/m1', {}, foot)).toBe(true);
+    expect(canWriteGlobalPath('admin', 'singleMatches/m1', {}, padel)).toBe(false);
+    expect(canWriteGlobalPath('user', 'singleMatches/m1', {})).toBe(false);
+  });
+
+  it('an admin edits only the ratings of their own sport', () => {
+    expect(canWriteGlobalPath('admin', 'players/p1/ratings/padel', {}, padel)).toBe(true);
+    expect(canWriteGlobalPath('admin', 'players/p1/ratings/football', {}, padel)).toBe(false);
+    expect(canWriteGlobalPath('admin', 'players/p1/atributos', {}, padel)).toBe(false);
+    expect(canWriteGlobalPath('admin', 'players/p1/atributos', {}, foot)).toBe(true);
+    expect(canWriteGlobalPath('admin', 'players/p1/nome', 'X', padel)).toBe(true);
+    expect(canWriteGlobalPath('user', 'players/p1/nome', 'X')).toBe(false);
+  });
+
+  it('any admin adds a player, only the master deletes one', () => {
+    expect(canWriteGlobalPath('admin', 'players/p9', { id: 'p9' }, padel)).toBe(true);
+    expect(canWriteGlobalPath('admin', 'players/p9', null, padel)).toBe(false);
+    expect(canWriteGlobalPath('master', 'players/p9', null)).toBe(true);
+  });
+
+  it('an admin changes only history entries of their own sport', () => {
+    expect(canWriteGlobalPath('admin', 'arquivo/a1', { sport: 'padel' }, padel)).toBe(true);
+    expect(canWriteGlobalPath('admin', 'arquivo/a1', { sport: 'padel' }, { ...padel, prevSport: 'football' })).toBe(false);
+    expect(canWriteGlobalPath('admin', 'arquivo/a1', null, { ...padel, prevSport: 'football' })).toBe(false);
+    expect(canWriteGlobalPath('admin', 'arquivo/a1', null, { ...foot, prevSport: 'football' })).toBe(true);
+  });
+
+  it('blockedPaths uses the sport of the entry being replaced', () => {
+    const updates = { 'arquivo/a1': null, 'players/p1/ratings/padel': {} };
+    expect(blockedPaths('admin', updates, { userAdmin: { padel: true }, archiveSports: { a1: 'football' } })).toEqual(['arquivo/a1']);
   });
 });

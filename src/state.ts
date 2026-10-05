@@ -36,7 +36,7 @@ import { en } from './i18n/en.js';
 // 10: config.setFormat (padel) and per-sport rating attribute keys
 // 11: padel Americano / Mexicano (config.padelFormat, config.matchPoints, schedule[].partners)
 // 12: archived players' played / won, config.winPoints (padel and tennis)
-export const SNAPSHOT_VERSION = 12;
+export const SNAPSHOT_VERSION = 13;
 export const MAX_TEAMS = 32;
 const DEFAULT_COLOR = '#2F7A4F';
 
@@ -303,6 +303,7 @@ const REJECT_MESSAGES: Record<string, string> = {
   'sem-sync': en.toasts.dbStillConnecting,
   'sem-sessao': en.toasts.dbSignInRequired,
   'sem-torneio': en.toasts.noTournamentToSave,
+  'sem-migracao': en.toasts.dataNeedsUpgrade,
 };
 
 let lastErrorToast = { msg: '', at: 0 };

@@ -51,6 +51,13 @@ await env.withSecurityRulesDisabled(async (ctx) => {
     },
     arquivo: {
       a1: { id: 'a1', nome: 'Antigo', sport: 'football' },
+      a_old: { id: 'a_old', nome: 'Sem modalidade' },
+    },
+    players: {
+      px: { id: 'px', nome: 'Existente', ratings: { football: { velocidade: 5 }, padel: { smash: 3 } }, atributos: { velocidade: 5 } },
+    },
+    singleMatches: {
+      s1: { id: 's1', data: '2026-01-01', resultado: '1-0' },
     },
   });
 });
@@ -133,7 +140,8 @@ await check('master registo em nome de outro', false, (() => {
   const key = push(ref(mst, 'tournament_log/t1')).key;
   return update(ref(mst), { 'tournaments/t1/results/1': { score: '0-0' }, [`tournament_log/t1/${key}`]: { uid: 'usr', nome: 'n', acao: 'x', quando: serverTimestamp() }, 'tournaments/t1/logRef': key });
 })());
-await check('user jogos singulares com registo', true, update(ref(u), withLog(u, 'usr', { 'tournaments/t1/jogosSingulares': [{ resultado: '1-0' }] })));
+await check('user NÃO grava jogos singulares no torneio', false, update(ref(u), withLog(u, 'usr', { 'tournaments/t1/jogosSingulares': [{ resultado: '1-0' }] })));
+await check('master move jogos singulares para fora do torneio', true, update(ref(mst), withLog(mst, 'mst', { 'tournaments/t1/jogosSingulares': null })));
 await check('pendente grava resultado', false, update(ref(p), withLog(p, 'pend', { 'tournaments/t1/results/1': { score: '0-0' } })));
 await check('anónimo lê torneio', true, get(ref(anon, 'tournaments/t1')));
 
@@ -186,6 +194,12 @@ await check('master grava arquivo', true, update(ref(mst), { 'arquivo/a2': { id:
 await check('admin futebol grava arquivo de futebol', true, update(ref(adm_foot), { 'arquivo/a_foot': { id: 'a_foot', nome: 'Futebol 2025', sport: 'football' } }));
 await check('admin futebol NÃO grava arquivo de padel', false, update(ref(adm_foot), { 'arquivo/a_padel_bad': { id: 'a_padel_bad', nome: 'Padel 2025', sport: 'padel' } }));
 await check('user não grava arquivo', false, update(ref(u), { 'arquivo/a3': { id: 'a3', nome: 'Hack' } }));
+await check('admin padel NÃO troca entrada de futebol para padel', false, update(ref(adm_padel), { 'arquivo/a1': { id: 'a1', nome: 'Roubado', sport: 'padel' } }));
+await check('admin padel NÃO apaga entrada de futebol', false, update(ref(adm_padel), { 'arquivo/a1': null }));
+await check('admin padel NÃO apaga entrada sem modalidade (futebol)', false, update(ref(adm_padel), { 'arquivo/a_old': null }));
+await check('admin futebol altera entrada sem modalidade', true, update(ref(adm_foot), { 'arquivo/a_old': { id: 'a_old', nome: 'Antigo 2', sport: 'football' } }));
+await check('admin padel NÃO reescreve o arquivo inteiro', false, update(ref(adm_padel), { arquivo: { a9: { id: 'a9', nome: 'x', sport: 'padel' } } }));
+await check('admin futebol apaga entrada de futebol', true, update(ref(adm_foot), { 'arquivo/a2': null }));
 await check('admin futebol termina torneio de futebol com registo', true, update(ref(adm_foot), withLog(adm_foot, 'adm_foot', {
   'tournaments/t1/meta': { name: 'T1 Finalizado', sport: 'football', status: 'finished', createdAt: 1000 },
   'arquivo/entry_t1': { id: 'entry_t1', nome: 'T1 Finalizado', sport: 'football' },
@@ -203,6 +217,27 @@ await check('anónimo lê players', true, get(ref(anon, 'players')));
 await check('master grava players', true, update(ref(mst), { 'players/p1': { id: 'p1', nome: 'Jogador 1', ratings: { football: { velocidade: 5 } } } }));
 await check('admin futebol grava players', true, update(ref(adm_foot), { 'players/p2': { id: 'p2', nome: 'Jogador 2', ratings: { football: { velocidade: 4 } } } }));
 await check('user não grava players', false, update(ref(u), { 'players/p3': { id: 'p3', nome: 'Hacker' } }));
+await check('admin padel cria jogador', true, update(ref(adm_padel), { 'players/p4': { id: 'p4', nome: 'Novo', ratings: { padel: { smash: 2 } } } }));
+await check('admin padel muda nome de jogador', true, update(ref(adm_padel), { 'players/px/nome': 'Renomeado' }));
+await check('admin padel muda rating de padel', true, update(ref(adm_padel), { 'players/px/ratings/padel': { smash: 4 } }));
+await check('admin padel NÃO muda rating de futebol', false, update(ref(adm_padel), { 'players/px/ratings/football': { velocidade: 1 } }));
+await check('admin padel NÃO muda atributos (futebol)', false, update(ref(adm_padel), { 'players/px/atributos': { velocidade: 1 } }));
+await check('admin futebol muda rating de futebol', true, update(ref(adm_foot), { 'players/px/ratings/football': { velocidade: 6 }, 'players/px/atributos': { velocidade: 6 } }));
+await check('admin padel NÃO apaga jogador', false, update(ref(adm_padel), { 'players/px': null }));
+await check('admin padel NÃO reescreve jogador existente', false, update(ref(adm_padel), { 'players/px': { id: 'px', nome: 'x' } }));
+await check('admin padel NÃO reescreve a lista inteira', false, update(ref(adm_padel), { players: { px: { id: 'px', nome: 'x' } } }));
+await check('admin NÃO cria jogador com id diferente da chave', false, update(ref(adm_foot), { 'players/p5': { id: 'outro', nome: 'x' } }));
+await check('master apaga jogador', true, update(ref(mst), { 'players/p4': null }));
+
+// --- single matches (global, football admins only) ---
+await check('anónimo NÃO lê jogos singulares', false, get(ref(anon, 'singleMatches')));
+await check('user NÃO lê jogos singulares', false, get(ref(u, 'singleMatches')));
+await check('admin padel NÃO lê jogos singulares', false, get(ref(adm_padel, 'singleMatches')));
+await check('admin futebol lê jogos singulares', true, get(ref(adm_foot, 'singleMatches')));
+await check('admin futebol grava jogo singular', true, update(ref(adm_foot), { 'singleMatches/s2': { id: 's2', data: '2026-02-01', resultado: '2-2' } }));
+await check('user NÃO grava jogo singular', false, update(ref(u), { 'singleMatches/s3': { id: 's3', resultado: '9-0' } }));
+await check('admin padel NÃO apaga jogo singular', false, update(ref(adm_padel), { 'singleMatches/s1': null }));
+await check('master apaga jogo singular', true, update(ref(mst), { 'singleMatches/s1': null }));
 
 console.log(`\n${ok} ok, ${bad} falharam`);
 await env.cleanup();

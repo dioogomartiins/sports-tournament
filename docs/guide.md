@@ -24,9 +24,9 @@ Anyone with the link can view the tournaments, without an account. To change any
 | Role | Can |
 |---|---|
 | **Pending** (just signed in) | Only view. Waits for the Master Admin to give them a role. |
-| **User** | Record single matches. Results, scorers, MVP and match status are recorded by the admins of the tournament's sport. |
-| **Admin** (per sport) | For tournaments of the sports they administer (⚽ Football, 🎾 Padel, 🎾 Tennis): everything else — create and finish tournaments, settings, schedule, playoffs, teams, squads, import, delete data and remove archived tournaments from History. Admins can also edit the players database. In tournaments of other sports they have no admin rights. |
-| **Master Admin** | Everything, in every sport, plus managing users. |
+| **User** | View, like anyone with the link. Results, scorers, MVP and match status are recorded by the admins of the tournament's sport. |
+| **Admin** (per sport) | For tournaments of the sports they administer (⚽ Football, 🎾 Padel, 🎾 Tennis): everything else — create and finish tournaments, settings, schedule, playoffs, teams, squads, import, delete data and remove archived tournaments from History. Admins can also add players and change their names, but only rate them in their own sports. Football admins also record single matches. In tournaments and history entries of other sports they have no admin rights. |
+| **Master Admin** | Everything, in every sport, plus managing users and deleting players. |
 
 The Master Admin assigns roles in **🛠️ Manage → 👮 Users**: pick *Pending*, *User*, *Admin* or *Master Admin* for each person and, for an Admin, tick the sports they administer. The same page has the **Activity Log**: the last 200 changes to the tournament being viewed, with who made them and when.
 
@@ -44,7 +44,7 @@ Buttons your role cannot use are hidden. Even if someone bypasses the app, Fireb
 | 🗄️ History | Archived tournaments and all-time stats. |
 | ⚙️ Settings | Name, format and scoring (admins only). |
 | 🛠️ Manage | 👥 Teams, 👕 Squads, 👤 Players, 💾 Data (admins) and 👮 Users (Master Admin). |
-| ⚽ Single Match | One-off matches with balanced teams. |
+| ⚽ Single Match | One-off matches with balanced teams (football admins and Master Admin only). |
 
 The header shows the tournament name and its sport. The theme button switches between light and dark.
 
@@ -54,7 +54,7 @@ On a phone, the header is a single line pinned to the top: on the left the tourn
 
 ![Multiple tournaments and device memory](assets/illustrations/18-varios-torneios.jpg)
 
-Several tournaments can run at the same time, each with its own sport, teams, schedule, results and single matches. The players database and the History are shared by all of them.
+Several tournaments can run at the same time, each with its own sport, teams, schedule and results. The players database, the single matches and the History are shared by all of them.
 
 - **🏆 Active Tournaments** (on the 🏠 Dashboard) lists every tournament that has not been finished. Tap a card, or **👁️ View Tournament**, to follow it; the whole app then shows that tournament. Each device remembers the last tournament it viewed. Tap the card's title to fold it; each device remembers that too. Renaming the tournament in ⚙️ Settings renames it in this list.
 - **➕ New Tournament** (Master Admin, or an Admin of at least one sport) asks for the **Tournament Name**, the **Sport** and the **Number of Teams (2–32)**, then **Create Tournament**. The sport cannot be changed later. An Admin can only pick the sports they administer. What each sport changes is in [Sports](sports.md).
@@ -133,7 +133,7 @@ For when there are not enough people for a tournament:
 4. During the match, record goals with ＋ (scorer and assist) and pick the MVP.
 5. Enter the score and tap **💾 Save Match**. The match goes into the *📅 History* sub-tab of Single Match.
 
-Single matches are saved with the tournament being viewed. Their goals, assists and MVPs count towards the stats and each player's profile.
+Single Match is only for football admins and the Master Admin: nobody else sees the tab or the matches. Single matches are not tied to a tournament: they are kept in one shared list. Their goals, assists and MVPs count towards the stats and each player's profile for those who can see them.
 
 ## Stats, player profile and sharing
 
