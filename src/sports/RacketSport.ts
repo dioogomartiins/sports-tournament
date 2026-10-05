@@ -428,6 +428,8 @@ export abstract class RacketSport extends Sport {
     ];
   }
 
+  readonly usesJerseyNumbers: boolean = false;
+
   /** Racket sports record no per-player events (goals, assists). */
   playerStatColumns(): PlayerStatColumn[] {
     return [];

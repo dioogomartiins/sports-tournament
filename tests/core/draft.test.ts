@@ -3,6 +3,7 @@ import {
   getPlayerRating,
   getTeamTotalRating,
   snakeDraft,
+  balancedPairs,
   balancedDraft,
   type PlayerWithAttributes,
 } from '../../src/core/draft.js';
@@ -24,7 +25,7 @@ describe('ratings e snake draft', () => {
       name: 'Atleta',
       ratings: {
         football: { velocidade: 5, finalizacao: 5, passe: 5, drible: 5, defesa: 5, fisico: 5 },
-        padel: { velocidade: 2, finalizacao: 2, passe: 2, drible: 2, defesa: 2, fisico: 2 },
+        padel: { volley: 2, smash: 2, lob: 2, walls: 2, defense: 2, fitness: 2 },
       },
     };
     expect(getPlayerRating(multiPlayer, 'football')).toBe(5);
@@ -32,6 +33,32 @@ describe('ratings e snake draft', () => {
     // Modalidade não registada faz fallback para football
     expect(getPlayerRating(multiPlayer, 'basquetebol')).toBe(5);
     expect(getTeamTotalRating([multiPlayer], 'padel')).toBe(2);
+  });
+
+  it('padel só usa os atributos de padel', () => {
+    const footballOnly: PlayerWithAttributes = {
+      name: 'Avançado',
+      ratings: { football: { velocidade: 5, finalizacao: 5, passe: 5, drible: 5, defesa: 5, fisico: 5 } },
+    };
+    expect(getPlayerRating(footballOnly, 'padel')).toBe(0);
+    // Old padel ratings saved with football keys count as unrated
+    const legacy: PlayerWithAttributes = { name: 'X', ratings: { padel: { velocidade: 4 } } };
+    expect(getPlayerRating(legacy, 'padel')).toBe(0);
+    const half: PlayerWithAttributes = { name: 'Y', ratings: { padel: { volley: 3, smash: 3, lob: 3 } } };
+    expect(getPlayerRating(half, 'padel')).toBe(1.5);
+  });
+
+  it('sorteia pares equilibrados: o melhor com o pior', () => {
+    const players = [5, 4, 3, 2, 1, 0].map((v) => ({
+      name: `p${v}`,
+      ratings: { padel: { volley: v, smash: v, lob: v, walls: v, defense: v, fitness: v } },
+    }));
+    const { pairs, leftOver } = balancedPairs(players, 'padel');
+    expect(pairs.map((pr) => pr.map((x) => x.name))).toEqual([['p5', 'p0'], ['p4', 'p1'], ['p3', 'p2']]);
+    expect(leftOver).toBeNull();
+    const odd = balancedPairs(players.slice(0, 5), 'padel');
+    expect(odd.pairs).toHaveLength(2);
+    expect(odd.leftOver?.name).toBe('p3');
   });
 
   it('distribui os picks no padrão A, B, B, A, A, B, B, A', () => {

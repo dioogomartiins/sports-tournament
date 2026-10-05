@@ -21,6 +21,7 @@ export {
   getTeamTotalRating,
   snakeDraft,
   balancedDraft,
+  balancedPairs,
   type DraftTeams,
   type PlayerWithAttributes,
 } from './core/draft.js';

@@ -42,6 +42,12 @@ export abstract class Sport {
   /** Columns of the standings table, in order. */
   abstract standingsColumns(): StandingsColumn[];
 
+  /** Player rating attributes (key → label), each rated 0-5 in the player editor. */
+  abstract ratingAttributes(): Record<string, string>;
+
+  /** Whether squad players get a jersey number. */
+  readonly usesJerseyNumbers: boolean = true;
+
   /** Player leaderboards shown in the stats tab, in order. */
   abstract playerStatColumns(): PlayerStatColumn[];
 

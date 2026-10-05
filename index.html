@@ -236,7 +236,7 @@
             style="background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 16px;">
             <div data-requires="admin">
             <div class="form-grid" style="align-items: end; margin-bottom: 16px;">
-              <div class="field" style="grid-column: span 1; max-width: 80px;">
+              <div class="field" style="grid-column: span 1; max-width: 80px;" data-sport-only="football">
                 <label for="squadPlayerNum">No.</label>
                 <input type="number" id="squadPlayerNum" class="input" min="1" max="99" placeholder="e.g. 10">
               </div>
@@ -249,6 +249,11 @@
                   <button class="btn btn-gold" id="btnAddPlayerFromDB">Add</button>
                 </div>
               </div>
+            </div>
+            <div data-sport-only="padel" hidden style="margin-bottom:12px;">
+              <p class="field-note" style="margin-bottom:8px;">Pick the two players of each pair above, or draw every pair
+                at once, balanced by padel rating.</p>
+              <button class="btn btn-gold" id="btnDrawPairs">🎲 Draw pairs</button>
             </div>
             <p class="field-note" style="margin-bottom:12px;">If a player does not exist yet, create them first in the
               <strong>👤 Players</strong> tab.

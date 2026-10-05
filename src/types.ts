@@ -49,11 +49,14 @@ export interface PlayerAttributes {
   [key: string]: number;
 }
 
+/** One sport's ratings of a player: attribute key → 0-5 (keys from `Sport.ratingAttributes()`). */
+export type RatingAttributes = Record<string, number>;
+
 export interface Player {
   id: string;
   nome: string;
   teamIdx: number | null;
-  ratings?: Record<string, PlayerAttributes>;
+  ratings?: Record<string, RatingAttributes>;
   atributos?: PlayerAttributes;
 }
 

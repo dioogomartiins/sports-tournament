@@ -1,8 +1,8 @@
 import { state, persistConfigTeams, loadState, persistSchedule, persistResults, persistJogosSingulares, storeAllLayers, notifyPushError, currentTheme, setCurrentTheme, exportJSON, importJSON, applyGeneratedSchedule, applySnapshot, buildSnapshot, defaultTeams, defaultSquads, setStateHooks, setCurrentTournamentId, getCurrentTournamentId } from './state.js';
-import { closeGameModal, animateResultChanges, dom, cacheDom, renderAll, refreshComputed, renderScheduleHint, renderSquadList, renderSquadsDropdown, flashError, flashBackup, renderCalendar, renderResults, showToast, flashSaved, openConfirm, closeConfirm, openDangerConfirm, switchTab, confirmCallback, openScorerModal, openPlayerProfile, computeStatsSummary, renderPlayersList, openPlayerModal, renderSquadPlayerFromDBDropdown, renderDraftTeams, renderSingularHistorico, currentDraft, renderAuth, renderUsers, renderLog, openPickPlayerModal, squadPickList, renderTournamentsList, openNovoTorneioModal } from './ui.js';
+import { closeGameModal, animateResultChanges, dom, cacheDom, renderAll, refreshComputed, renderScheduleHint, renderSquadList, renderSquadsDropdown, flashError, flashBackup, renderCalendar, renderResults, showToast, flashSaved, openConfirm, closeConfirm, openDangerConfirm, switchTab, confirmCallback, openScorerModal, openPlayerProfile, computeStatsSummary, renderPlayersList, openPlayerModal, renderSquadPlayerFromDBDropdown, renderDraftTeams, renderSingularHistorico, currentDraft, renderAuth, renderUsers, renderLog, openPickPlayerModal, squadPickList, renderTournamentsList, openNovoTorneioModal, openDrawPairsModal } from './ui.js';
 import { clamp, numOr, escapeHtml, buildPlayerIndex } from './utils.js';
 import { shareStandings, shareResult } from './share.js';
-import { bergerRounds, balancedDraft, buildFirstRoundSeeding, buildExtraVolta, buildArchiveEntry, GAME_STATUS, alignAssists } from './algorithms.js';
+import { bergerRounds, balancedDraft, balancedPairs, buildFirstRoundSeeding, buildExtraVolta, buildArchiveEntry, GAME_STATUS, alignAssists } from './algorithms.js';
 import { getSport } from './sports/registry.js';
 import { initFirebaseListener, onFirebaseStateChange, onFirebasePushError, setSyncedSnapshot, initAuth, signInWithGoogle, signOutUser, getCurrentUser, getCurrentRole, getCurrentUserAdmin, listenUsers, listenLog, setUserRole, listenTournaments, createTournament, finishTournament, setActiveTournamentId } from './firebase.js';
 import { roleLabel } from './permissions.js';
@@ -59,9 +59,11 @@ export function onAddPlayerFromDB() {
   const tIdx = dom.squadTeamSelect.value;
   const num = parseInt(dom.squadPlayerNum.value, 10);
   const pid = dom.squadPlayerFromDB.value;
+  const numbered = currentSport().usesJerseyNumbers;
 
   if (!tIdx) { showToast(en.toasts.selectTeam, 'error'); return; }
-  if (isNaN(num) || num < 1) { showToast(en.toasts.enterJerseyNumber, 'error'); return; }
+  if (numbered && (isNaN(num) || num < 1)) { showToast(en.toasts.enterJerseyNumber, 'error'); return; }
+  if (!numbered && state.squads[tIdx].length >= 2) { showToast(en.toasts.pairFull, 'error'); return; }
   if (!pid) { showToast(en.toasts.choosePlayerFromList, 'error'); return; }
 
   const player = state.players.find((p) => p.id === pid);
@@ -73,13 +75,32 @@ export function onAddPlayerFromDB() {
     return;
   }
 
-  state.squads[tIdx].push({ id: player.id, num, name: player.nome });
+  // Without jersey numbers the number only keeps the squad order
+  state.squads[tIdx].push({ id: player.id, num: numbered ? num : state.squads[tIdx].length + 1, name: player.nome });
   persistConfigTeams();
   dom.squadPlayerNum.value = '';
   dom.squadPlayerFromDB.value = '';
   renderSquadList();
   renderSquadPlayerFromDBDropdown();
   showToast(en.toasts.playerAddedToSquad, 'ok');
+}
+
+/** Draws balanced pairs from the chosen players into the tournament's teams, in order. */
+function onDrawPairs() {
+  const sportId = currentSport().id;
+  openDrawPairsModal((ids) => {
+    const chosen = ids.map((id) => state.players.find((p) => p.id === id)).filter(Boolean);
+    const { pairs } = balancedPairs(chosen, sportId);
+    if (pairs.length !== state.scheduleTeamCount) return;
+    const firstName = (p) => (p.nome || '').split(' ')[0];
+    pairs.forEach((pair, i) => {
+      state.squads[i] = pair.map((p, n) => ({ id: p.id, num: n + 1, name: p.nome }));
+      state.teams[i].name = pair.map(firstName).join(' / ');
+    });
+    persistConfigTeams();
+    renderAll();
+    showToast(en.toasts.pairsDrawn, 'ok');
+  });
 }
 
 function onSquadListClick(e) {
@@ -834,6 +855,7 @@ export function bindEvents() {
     renderSquadPlayerFromDBDropdown();
   });
   dom.btnAddPlayerFromDB.addEventListener('click', onAddPlayerFromDB);
+  dom.btnDrawPairs.addEventListener('click', onDrawPairs);
   dom.squadList.addEventListener('click', onSquadListClick);
 
   // Equipas, calendário e resultados são redesenhados com innerHTML: um listener

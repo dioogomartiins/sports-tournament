@@ -175,6 +175,11 @@ export const en = {
     playersCount: (n: number) => `Players (${n})`,
     avgRating: (avg: string) => `Avg ★ ${avg}`,
     avgRatingTitle: 'Average Rating (calculated from Database)',
+    drawPairsTitle: '🎲 Draw pairs',
+    drawPairsButton: '🎲 Draw pairs',
+    drawPairsNote: (needed: number) =>
+      `Pick ${needed} players. The best is paired with the weakest, and so on, by padel rating. This replaces the current pairs and team names.`,
+    drawPairsCount: (n: number, needed: number) => `${n} / ${needed} players selected`,
   },
 
   players: {
@@ -218,6 +223,14 @@ export const en = {
       drible: 'Dribbling',
       defesa: 'Defending',
       fisico: 'Physical',
+    },
+    padelAttributes: {
+      volley: 'Volley',
+      smash: 'Smash',
+      lob: 'Lob',
+      walls: 'Wall play',
+      defense: 'Defense',
+      fitness: 'Fitness',
     },
   },
 
@@ -491,6 +504,8 @@ export const en = {
     playerNotFound: 'Player not found.',
     playerAlreadyInSquad: 'This player is already in the squad.',
     playerAddedToSquad: 'Player added to squad!',
+    pairFull: 'This pair already has 2 players.',
+    pairsDrawn: 'Pairs drawn!',
     nameRequired: 'Name is required.',
     playerUpdated: 'Player updated!',
     playerCreated: 'Player created!',
