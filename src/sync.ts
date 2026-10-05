@@ -337,3 +337,25 @@ export function describeUpdates(
   });
   return parts.join('; ').slice(0, 500);
 }
+
+/**
+ * Roles to copy from the legacy `utilizadores` node into `users`, as
+ * `update()` paths. Only users who have no role in `users` yet are copied,
+ * and only `role` / `admin` are written (the profile fields belong to each
+ * user). The legacy tournament was football, so a legacy `admin` becomes a
+ * football admin.
+ */
+export function legacyRoleUpdates(
+  utilizadores: Record<string, { role?: string } | null> | null | undefined,
+  users: Record<string, { role?: string | null } | null> | null | undefined
+): Record<string, unknown> {
+  const updates: Record<string, unknown> = {};
+  Object.entries(utilizadores || {}).forEach(([uid, legacy]) => {
+    const oldRole = legacy && legacy.role;
+    if (oldRole !== 'admin' && oldRole !== 'user') return;
+    if (users && users[uid] && users[uid]!.role) return;
+    updates[`users/${uid}/role`] = oldRole;
+    if (oldRole === 'admin') updates[`users/${uid}/admin/football`] = true;
+  });
+  return updates;
+}

@@ -25,15 +25,17 @@ Database. Deployed to GitHub Pages at `/torneio-ilog/` on release tags (`release
     `ui.js`; `src/ui/` modules never import `ui.js`); `src/main.js` wires event
     handlers; `src/firebase.js` syncs and handles Google sign-in; `src/share.js`
     draws the PNG share images.
-- All state lives in one Firebase node, `torneio_state`. Saves send only what
+- Each tournament lives in `tournaments/<id>` (players and the archive are
+  global, in `players` and `arquivo`). Saves send only what
   changed since the last sync with `update()` (`src/sync.ts`): results per game,
   other sections whole (last write wins within a section). Any change to the
   state shape must bump `SNAPSHOT_VERSION` in `src/state.ts` and still load data
   already saved on other devices.
 - Who may write what is enforced by `database.rules.json` (Google sign-in;
-  roles in `utilizadores/<uid>/role`: `admin` or `user`, none = read-only).
-  `src/permissions.js` mirrors those rules client-side; change both together.
-  Every save also appends an entry to `torneio_log` (who changed what).
+  roles in `users/<uid>/role`: `master`, `admin` with `admin/<sport>: true`, or
+  `user`; none = read-only). `src/permissions.ts` mirrors those rules
+  client-side; change both together. Every save also appends an entry to
+  `tournament_log/<id>` (who changed what).
 - When building HTML strings, pass every value that comes from state through
   `escapeHtml` (and team colours through `safeColor`). The Firebase data is
   writable by anyone with the public config, so it is untrusted input.
