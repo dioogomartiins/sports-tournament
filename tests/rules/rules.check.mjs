@@ -93,6 +93,16 @@ await check('user estado com HTML', false, update(ref(u), withLog(u, 'usr', { 't
 await check('user score inválido', false, update(ref(u), withLog(u, 'usr', { 'tournaments/t1/results/1': { score: '<b>' } })));
 await check('user campo desconhecido', false, update(ref(u), withLog(u, 'usr', { 'tournaments/t1/results/1': { score: '0-0', hack: 1 } })));
 await check('user resultado antigo em texto', true, update(ref(u), withLog(u, 'usr', { 'tournaments/t1/results/2': '3-1' })));
+
+// --- score formats: sets only in padel; scorers and assists only in football ---
+await check('padel score by sets', true, update(ref(u), withLog(u, 'usr', { 'tournaments/t2/results/1': { score: '6-4 3-6 10-7', status: 'terminado' } }, 't2')));
+await check('padel set being played', true, update(ref(u), withLog(u, 'usr', { 'tournaments/t2/results/2': { score: '6-4 0-0', status: 'decorrer' } }, 't2')));
+await check('padel single set', true, update(ref(u), withLog(u, 'usr', { 'tournaments/t2/results/3': { score: '6-4', status: 'terminado' } }, 't2')));
+await check('padel too many sets', false, update(ref(u), withLog(u, 'usr', { 'tournaments/t2/results/4': { score: '6-4 6-4 6-4 6-4 6-4 6-4' } }, 't2')));
+await check('padel with scorers', false, update(ref(u), withLog(u, 'usr', { 'tournaments/t2/results/5': { score: '6-4 6-4', scorers: { home: ['a'] } } }, 't2')));
+await check('padel with assists', false, update(ref(u), withLog(u, 'usr', { 'tournaments/t2/results/6': { score: '6-4 6-4', assists: { home: ['a'] } } }, 't2')));
+await check('football score by sets', false, update(ref(u), withLog(u, 'usr', { 'tournaments/t1/results/3': { score: '6-4 3-6' } })));
+await check('football with scorers', true, update(ref(u), withLog(u, 'usr', { 'tournaments/t1/results/4': { score: '1-0', scorers: { home: ['a'] }, assists: { home: ['b'] } } })));
 await check('user passa vencedor (schedule/1/home)', true, update(ref(u), withLog(u, 'usr', { 'tournaments/t1/schedule/1/home': 0 })));
 await check('user apaga calendário', false, update(ref(u), withLog(u, 'usr', { 'tournaments/t1/schedule': null })));
 await check('user reescreve jogo', false, update(ref(u), withLog(u, 'usr', { 'tournaments/t1/schedule/1': { home: 1, away: 2 } })));

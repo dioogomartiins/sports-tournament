@@ -51,7 +51,7 @@
             ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'master' || root.child('users').child(auth.uid).child('role').val() === 'user' || (newData.parent().parent().child('meta').child('sport').exists() && root.child('users').child(auth.uid).child('admin').child(newData.parent().parent().child('meta').child('sport').val()).val() === true) || (root.child('tournaments').child($tournamentId).child('meta').child('sport').exists() && root.child('users').child(auth.uid).child('admin').child(root.child('tournaments').child($tournamentId).child('meta').child('sport').val()).val() === true)) && newData.parent().parent().child('logRef').val() !== root.child('tournaments').child($tournamentId).child('logRef').val()",
             ".validate": "$jogo.matches(/^[0-9]{1,4}$/) && ((newData.isString() && newData.val().matches(/^[0-9]{1,3}-[0-9]{1,3}$/)) || newData.hasChild('score'))",
             "score": {
-              ".validate": "newData.isString() && newData.val().matches(/^[0-9]{1,3}-[0-9]{1,3}$/)"
+              ".validate": "newData.isString() && (newData.val().matches(/^[0-9]{1,3}-[0-9]{1,3}$/) || (newData.parent().parent().parent().child('meta').child('sport').val() === 'padel' && newData.val().matches(/^[0-9]{1,2}-[0-9]{1,2}( [0-9]{1,2}-[0-9]{1,2}){1,4}$/)))"
             },
             "penalties": {
               ".validate": "newData.isString() && newData.val().matches(/^[0-9]{1,3}-[0-9]{1,3}$/)"
@@ -63,6 +63,7 @@
               ".validate": "newData.isString() && newData.val().length <= 100"
             },
             "scorers": {
+              ".validate": "newData.parent().parent().parent().child('meta').child('sport').val() !== 'padel'",
               "$lado": {
                 ".validate": "$lado === 'home' || $lado === 'away'",
                 "$i": {
@@ -71,6 +72,7 @@
               }
             },
             "assists": {
+              ".validate": "newData.parent().parent().parent().child('meta').child('sport').val() !== 'padel'",
               "$lado": {
                 ".validate": "$lado === 'home' || $lado === 'away'",
                 "$i": {
