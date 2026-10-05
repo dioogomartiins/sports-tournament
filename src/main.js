@@ -144,7 +144,7 @@ function onGoalAdd(gi, side) {
 
     // Autogolo não tem assistência
     if (pid === 'auto') registerGoal('');
-    else openPickPlayerModal(en.singleMatch.pickAssistTitle, squadPickList(teamIdx, pid), en.singleMatch.noAssist, registerGoal);
+    else openPickPlayerModal(en.singleMatch.pickAssistTitle, squadPickList(teamIdx, pid), en.singleMatch.noAssistLabel, registerGoal);
   });
 }
 
@@ -162,7 +162,7 @@ export function onMvpClick(gi) {
   const game = state.schedule[gi];
   if (!game) return;
   const players = [...squadPickList(game.home), ...squadPickList(game.away)];
-  openPickPlayerModal(en.singleMatch.pickMvpTitle, players, en.singleMatch.noMvp, (pid) => {
+  openPickPlayerModal(en.singleMatch.pickMvpTitle, players, en.singleMatch.noMvpLabel, (pid) => {
     const res = state.results[gi];
     if (!res || typeof res !== 'object') return;
     if (pid) res.mvp = pid;
@@ -801,6 +801,8 @@ export function bindEvents() {
   const updateThemeIcon = () => {
     dom.btnDarkMode.textContent = currentTheme === 'dark' ? '☀️' : '🌙';
   };
+  // Apply the saved theme on load, not only when the button is pressed
+  document.documentElement.setAttribute('data-theme', currentTheme);
   updateThemeIcon();
 
   dom.btnDarkMode.addEventListener('click', () => {

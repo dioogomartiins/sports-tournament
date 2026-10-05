@@ -6,10 +6,9 @@ Database. Deployed to GitHub Pages at `/torneio-ilog/` on release tags (`release
 
 ## Language policy
 
-- **Code, comments, commit messages and documentation** are in **English**.
-- **UI-facing text** (labels, toasts, button captions shown to the user) stays
-  in **European Portuguese** (the app's audience). Keep new user-visible strings
-  consistent with the existing ones.
+- **Code, comments, commit messages, documentation and UI text** are in
+  **English**. Every user-visible string lives in `src/i18n/en.ts`; add new
+  ones there instead of writing them inline.
 
 ## Conventions
 
@@ -40,9 +39,10 @@ Database. Deployed to GitHub Pages at `/torneio-ilog/` on release tags (`release
   writable by anyone with the public config, so it is untrusted input.
 - The app is used live on phones during matches: check mobile widths and both
   light and dark themes when touching UI.
-- Docs live in `README.md` and `docs/` (in Portuguese): `guia.md` (using the
-  app), `regras.md` (scoring, tiebreaks, draft), `configuracao.md` (Firebase,
-  env, deploy), `arquitetura.md` (modules, data model, sync, permissions).
+- Docs live in `README.md` and `docs/` (in English): `guide.md` (using the
+  app), `rules.md` (scoring, tiebreaks, draft), `configuration.md` (Firebase,
+  env, deploy), `architecture.md` (modules, data model, sync, permissions),
+  `multi-sport.md` (multi-sport plan).
   Update the matching page in the same PR when behaviour, rules or the state
   shape change.
 - Commit messages follow conventional commits (`feat:`, `fix:`, `refactor:`, ...).
