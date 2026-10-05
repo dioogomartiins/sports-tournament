@@ -140,7 +140,7 @@ Each device also keeps a copy in localStorage, to show the tournament as soon as
 2. Each action saves its section to localStorage and calls `pushStateToFirebase` with the full snapshot.
 3. `diffSnapshot` compares it with the last synced snapshot and produces an `update()` with only what changed:
    - `results` goes **match by match** (`results/<index>`), so that two people recording different matches at the same time do not overwrite each other;
-   - `schedule` goes field by field per match (`schedule/<index>/<field>`), so that a user advancing a playoff winner only writes `home` or `away`;
+   - `schedule` goes field by field per match (`schedule/<index>/<field>`), so that advancing a playoff winner only writes `home` or `away`;
    - the other sections go whole; if two people change the same section at the same time, the last one wins.
 4. The same `update()` appends the entry to `tournament_log/<id>`, so the change and the log entry are saved together (or neither is).
 
@@ -154,18 +154,16 @@ The Firebase rules are the real protection; the client only hides buttons and wa
 
 | Path | Read | Write |
 |---|---|---|
-| `tournaments/<id>` | Everyone | `results/<match>`, `schedule/<match>/home` and `away`, `jogosSingulares`, `exportedAt`, `version`: User, sport admin and Master Admin. `meta`, the other sections, and whole `results` or `schedule`: sport admin and Master Admin. `meta/sport` cannot change. |
+| `tournaments/<id>` | Everyone | `jogosSingulares`, `exportedAt`, `version`: User, sport admin and Master Admin. `results`, `schedule`, `meta` and the other sections: sport admin and Master Admin. `meta/sport` cannot change. |
 | `players` | Everyone | Master Admin and any Admin. |
 | `arquivo` | Everyone | Each entry: Master Admin or an admin of the entry's sport. The whole node: Master Admin. |
 | `users` | Master Admin (all); each user their own | Each user their own name, email, photo and last access; `role` and `admin`: Master Admin only. |
 | `tournament_log/<id>` | Master Admin and the tournament's sport admins | User, Admin and Master Admin, new entries only, with their own `uid` and the server time. |
 | `torneio_state`, `torneio_log`, `utilizadores` | Legacy | Nobody. |
 
-Users may only write `home` and `away` of each schedule match because finishing a playoff match writes the winner into the next match of the bracket. The rest of the schedule is for admins only.
-
 Besides who can write, the rules validate what is written: scores in the `"2-1"` format, known statuses (`agendado`, `decorrer`, `terminado`), per-side lists of scorers and assists, the fields of `meta`, and length-limited text. Every write to a tournament's sections (other than `exportedAt` and `version`) must also bring a new `logRef` (see [Activity log](#activity-log)).
 
-In the app, anyone who is not an admin of the tournament's sport sees Teams, Squads and Players read-only, with a note explaining why; the 👮 Users tab is only shown to the Master Admin.
+In the app, anyone who is not an admin of the tournament's sport sees Teams, Squads and Players read-only, with a note explaining why, and sees scores and match status read-only in Results, Schedule and the match window (no − / +, typed scores or status changes); the 👮 Users tab is only shown to the Master Admin.
 
 **Changing permissions:** change `database.rules.json` and `src/permissions.ts` (`USER_SECTIONS`, `canWritePath`) together, update `tests/permissions.test.js` and `tests/rules/rules.check.mjs`, and run `npm run test:rules`. The rules are published by the next deployment (see [Deployment](configuration.md#deployment)).
 

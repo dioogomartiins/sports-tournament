@@ -9,6 +9,7 @@
 .podium-card {
   border-radius: var(--radius);
   padding: 16px 14px;
+  text-align: center;
   color: #0F2A1C;
   box-shadow: var(--shadow-sm);
 }

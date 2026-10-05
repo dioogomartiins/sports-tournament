@@ -57,6 +57,15 @@
   flex-direction: column;
 }
 
+.fx-score {
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
 .fixture-bye {
   display: flex;
   justify-content: center;
@@ -228,6 +237,11 @@
   right: 0;
   height: var(--tap);
   transform: translateY(-50%);
+}
+
+/* A profile that cannot change results sees the status as a label */
+span.status-badge {
+  cursor: default;
 }
 
 button.status-badge:active {

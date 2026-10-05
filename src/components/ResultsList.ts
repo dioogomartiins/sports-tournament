@@ -3,7 +3,9 @@
 // ---------------------------------------------------------------------------
 // Football rows have score boxes and − / + per side (penalties in a tied
 // playoff); racket rows show sets won with − / + one game, and the games of
-// each set below. Events (detail always has the match `gi`):
+// each set below. Without `editable` (signed out, or not an admin of the
+// sport) the scores are read-only: no − / + and the status pill is a label.
+// Events (detail always has the match `gi`):
 //   score-step   { gi, side, action: 'add' | 'sub' }   a − / + button
 //   score-commit { gi, score: '3-1' | null, penalties? } boxes left with a valid score
 //   status-click gi                                    the status pill
@@ -46,6 +48,7 @@ export class ResultsList extends LightElement {
     teams: { attribute: false },
     sport: { attribute: false },
     config: { attribute: false },
+    editable: { attribute: false },
   };
 
   declare schedule: Match[];
@@ -54,6 +57,8 @@ export class ResultsList extends LightElement {
   declare teams: Team[];
   declare sport: Sport | null;
   declare config: Config | null;
+  /** Can the profile change results? */
+  declare editable: boolean;
 
   constructor() {
     super();
@@ -63,6 +68,7 @@ export class ResultsList extends LightElement {
     this.teams = [];
     this.sport = null;
     this.config = null;
+    this.editable = false;
   }
 
   render(): TemplateResult {
@@ -90,7 +96,9 @@ export class ResultsList extends LightElement {
     const pen = SCORE.exec(String((val && typeof val === 'object' && val.penalties) || ''));
     const tied = !!score && score[1] === score[2];
     const showPenalties = tied && status === GAME_STATUS.TERMINADO && !!game.isPlayoff;
-    const box = (side: ScoreSide, value: string, cls: string) => html`
+    const box = (side: ScoreSide, value: string, cls: string) => !this.editable
+      ? html`<span class="${cls} res-static" data-side=${side}>${value}</span>`
+      : html`
       <input type="number" class="input ${cls}" data-side=${side} min="0" max="99" inputmode="numeric"
         .value=${live(value)} @keydown=${ResultsList.blurOnEnter} @focusout=${(e: FocusEvent) => this.commit(e, String(gi))}>`;
 
@@ -120,7 +128,7 @@ export class ResultsList extends LightElement {
     const val = this.results[gi];
     const toPoints = !!sport.pointsPerMatch(this.config);
     const sets = toPoints ? [] : sport.setsOf(val);
-    const shown = toPoints ? sport.pointsOf(val) : (sets.length ? sport.setsWon(sets, sport.format(this.config)) : null);
+    const shown = sport.shownScore(val, this.config);
     const titles = toPoints
       ? { sub: en.racketScore.cancelPointTitle, add: en.racketScore.addPointTitle }
       : { sub: en.racketScore.cancelGameTitle, add: en.racketScore.addGameTitle };
@@ -138,7 +146,8 @@ export class ResultsList extends LightElement {
       </div>`;
   }
 
-  private stepButton(gi: number, side: ScoreSide, action: 'add' | 'sub', title?: string): TemplateResult {
+  private stepButton(gi: number, side: ScoreSide, action: 'add' | 'sub', title?: string): TemplateResult | typeof nothing {
+    if (!this.editable) return nothing;
     return html`<button class="score-btn" data-side=${side} title=${title ?? nothing}
       @click=${() => this.emit<ScoreStep>('score-step', { gi: String(gi), side, action })}>${action === 'add' ? '+' : '-'}</button>`;
   }
@@ -146,7 +155,7 @@ export class ResultsList extends LightElement {
   private actionsTemplate(gi: number, status: ReturnType<typeof statusOf>): TemplateResult {
     return html`
       <div class="fixture-actions">
-        ${statusBadge(status, () => this.emit('status-click', String(gi)))}
+        ${statusBadge(status, this.editable ? () => this.emit('status-click', String(gi)) : undefined)}
         <button class="mini-btn game-open-btn" title=${en.results.matchButtonTitle}
           @click=${() => this.emit('open-match', String(gi))}>${en.results.matchButton}</button>
       </div>`;

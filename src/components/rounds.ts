@@ -47,8 +47,12 @@ const STATUS_LABELS: Record<GameStatus, string> = {
   [GAME_STATUS.TERMINADO]: en.results.statusFinished,
 };
 
-/** The status pill; clicking it moves the match to the next status. */
-export function statusBadge(status: GameStatus, onClick: (e: Event) => void): TemplateResult {
+/**
+ * The status pill; clicking it moves the match to the next status. Without
+ * `onClick` (a profile that cannot change results) it is only a label.
+ */
+export function statusBadge(status: GameStatus, onClick?: (e: Event) => void): TemplateResult {
+  if (!onClick) return html`<span class="status-badge status-${status}">${STATUS_LABELS[status]}</span>`;
   return html`<button class="status-badge status-${status}" title=${en.results.changeStatusTitle}
     @click=${onClick}>${STATUS_LABELS[status]}</button>`;
 }

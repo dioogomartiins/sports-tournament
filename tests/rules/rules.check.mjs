@@ -92,39 +92,46 @@ await check('master não escreve em torneio_state', false, update(ref(mst), { 't
 await check('user não escreve em torneio_state', false, update(ref(u), { 'torneio_state/results/0': res }));
 
 // --- tournaments / tournament_log ---
-await check('user grava resultado com registo', true, update(ref(u), withLog(u, 'usr', { 'tournaments/t1/results/0': res })));
-await check('user grava resultado sem registo', false, update(ref(u), { 'tournaments/t1/results/0': res }));
-await check('user apaga resultado sem registo', false, update(ref(u), { 'tournaments/t1/results/0': null }));
-await check('user apaga resultado com registo', true, update(ref(u), withLog(u, 'usr', { 'tournaments/t1/results/0': null })));
-await check('user estado com HTML', false, update(ref(u), withLog(u, 'usr', { 'tournaments/t1/results/1': { score: '0-0', status: '"><img src=x onerror=alert(1)>' } })));
-await check('user score inválido', false, update(ref(u), withLog(u, 'usr', { 'tournaments/t1/results/1': { score: '<b>' } })));
-await check('user campo desconhecido', false, update(ref(u), withLog(u, 'usr', { 'tournaments/t1/results/1': { score: '0-0', hack: 1 } })));
-await check('user resultado antigo em texto', true, update(ref(u), withLog(u, 'usr', { 'tournaments/t1/results/2': '3-1' })));
+// Results and playoff winners are written only by the sport's admins (and master)
+await check('user NÃO grava resultado', false, update(ref(u), withLog(u, 'usr', { 'tournaments/t1/results/0': res })));
+await check('user NÃO apaga resultado', false, update(ref(u), withLog(u, 'usr', { 'tournaments/t1/results/0': null })));
+await check('user NÃO muda estado do jogo', false, update(ref(u), withLog(u, 'usr', { 'tournaments/t1/results/1': { score: '0-0', status: 'decorrer' } })));
+await check('user NÃO passa vencedor (schedule/1/home)', false, update(ref(u), withLog(u, 'usr', { 'tournaments/t1/schedule/1/home': 0 })));
+await check('admin futebol grava resultado de futebol', true, update(ref(adm_foot), withLog(adm_foot, 'adm_foot', { 'tournaments/t1/results/1': { score: '0-0', status: 'decorrer' } })));
+await check('admin padel NÃO grava resultado de futebol', false, update(ref(adm_padel), withLog(adm_padel, 'adm_padel', { 'tournaments/t1/results/1': { score: '1-0', status: 'decorrer' } })));
+await check('master grava resultado com registo', true, update(ref(mst), withLog(mst, 'mst', { 'tournaments/t1/results/0': res })));
+await check('master grava resultado sem registo', false, update(ref(mst), { 'tournaments/t1/results/0': res }));
+await check('master apaga resultado sem registo', false, update(ref(mst), { 'tournaments/t1/results/0': null }));
+await check('master apaga resultado com registo', true, update(ref(mst), withLog(mst, 'mst', { 'tournaments/t1/results/0': null })));
+await check('master estado com HTML', false, update(ref(mst), withLog(mst, 'mst', { 'tournaments/t1/results/1': { score: '0-0', status: '"><img src=x onerror=alert(1)>' } })));
+await check('master score inválido', false, update(ref(mst), withLog(mst, 'mst', { 'tournaments/t1/results/1': { score: '<b>' } })));
+await check('master campo desconhecido', false, update(ref(mst), withLog(mst, 'mst', { 'tournaments/t1/results/1': { score: '0-0', hack: 1 } })));
+await check('master resultado antigo em texto', true, update(ref(mst), withLog(mst, 'mst', { 'tournaments/t1/results/2': '3-1' })));
 
 // --- score formats: sets only in padel and tennis; scorers and assists only in football ---
-await check('padel score by sets', true, update(ref(u), withLog(u, 'usr', { 'tournaments/t2/results/1': { score: '6-4 3-6 10-7', status: 'terminado' } }, 't2')));
-await check('padel set being played', true, update(ref(u), withLog(u, 'usr', { 'tournaments/t2/results/2': { score: '6-4 0-0', status: 'decorrer' } }, 't2')));
-await check('padel single set', true, update(ref(u), withLog(u, 'usr', { 'tournaments/t2/results/3': { score: '6-4', status: 'terminado' } }, 't2')));
-await check('padel too many sets', false, update(ref(u), withLog(u, 'usr', { 'tournaments/t2/results/4': { score: '6-4 6-4 6-4 6-4 6-4 6-4' } }, 't2')));
-await check('padel with scorers', false, update(ref(u), withLog(u, 'usr', { 'tournaments/t2/results/5': { score: '6-4 6-4', scorers: { home: ['a'] } } }, 't2')));
-await check('padel with assists', false, update(ref(u), withLog(u, 'usr', { 'tournaments/t2/results/6': { score: '6-4 6-4', assists: { home: ['a'] } } }, 't2')));
-await check('tennis score by sets', true, update(ref(u), withLog(u, 'usr', { 'tournaments/tt/results/0': { score: '6-4 6-7 7-5', status: 'terminado' } }, 'tt')));
-await check('tennis with scorers', false, update(ref(u), withLog(u, 'usr', { 'tournaments/tt/results/1': { score: '6-4', scorers: { home: ['a'] } } }, 'tt')));
-await check('tennis with assists', false, update(ref(u), withLog(u, 'usr', { 'tournaments/tt/results/2': { score: '6-4', assists: { home: ['a'] } } }, 'tt')));
-await check('football score by sets', false, update(ref(u), withLog(u, 'usr', { 'tournaments/t1/results/3': { score: '6-4 3-6' } })));
-await check('football with scorers', true, update(ref(u), withLog(u, 'usr', { 'tournaments/t1/results/4': { score: '1-0', scorers: { home: ['a'] }, assists: { home: ['b'] } } })));
-await check('user passa vencedor (schedule/1/home)', true, update(ref(u), withLog(u, 'usr', { 'tournaments/t1/schedule/1/home': 0 })));
+await check('padel score by sets', true, update(ref(mst), withLog(mst, 'mst', { 'tournaments/t2/results/1': { score: '6-4 3-6 10-7', status: 'terminado' } }, 't2')));
+await check('padel set being played', true, update(ref(mst), withLog(mst, 'mst', { 'tournaments/t2/results/2': { score: '6-4 0-0', status: 'decorrer' } }, 't2')));
+await check('padel single set', true, update(ref(mst), withLog(mst, 'mst', { 'tournaments/t2/results/3': { score: '6-4', status: 'terminado' } }, 't2')));
+await check('padel too many sets', false, update(ref(mst), withLog(mst, 'mst', { 'tournaments/t2/results/4': { score: '6-4 6-4 6-4 6-4 6-4 6-4' } }, 't2')));
+await check('padel with scorers', false, update(ref(mst), withLog(mst, 'mst', { 'tournaments/t2/results/5': { score: '6-4 6-4', scorers: { home: ['a'] } } }, 't2')));
+await check('padel with assists', false, update(ref(mst), withLog(mst, 'mst', { 'tournaments/t2/results/6': { score: '6-4 6-4', assists: { home: ['a'] } } }, 't2')));
+await check('tennis score by sets', true, update(ref(mst), withLog(mst, 'mst', { 'tournaments/tt/results/0': { score: '6-4 6-7 7-5', status: 'terminado' } }, 'tt')));
+await check('tennis with scorers', false, update(ref(mst), withLog(mst, 'mst', { 'tournaments/tt/results/1': { score: '6-4', scorers: { home: ['a'] } } }, 'tt')));
+await check('tennis with assists', false, update(ref(mst), withLog(mst, 'mst', { 'tournaments/tt/results/2': { score: '6-4', assists: { home: ['a'] } } }, 'tt')));
+await check('football score by sets', false, update(ref(mst), withLog(mst, 'mst', { 'tournaments/t1/results/3': { score: '6-4 3-6' } })));
+await check('football with scorers', true, update(ref(mst), withLog(mst, 'mst', { 'tournaments/t1/results/4': { score: '1-0', scorers: { home: ['a'] }, assists: { home: ['b'] } } })));
+await check('master passa vencedor (schedule/1/home)', true, update(ref(mst), withLog(mst, 'mst', { 'tournaments/t1/schedule/1/home': 0 })));
 await check('user apaga calendário', false, update(ref(u), withLog(u, 'usr', { 'tournaments/t1/schedule': null })));
 await check('user reescreve jogo', false, update(ref(u), withLog(u, 'usr', { 'tournaments/t1/schedule/1': { home: 1, away: 2 } })));
 await check('user muda jornada', false, update(ref(u), withLog(u, 'usr', { 'tournaments/t1/schedule/1/jornada': 'x' })));
 await check('user muda config', false, update(ref(u), withLog(u, 'usr', { 'tournaments/t1/config/nome': 'x' })));
 await check('user muda meta', false, update(ref(u), withLog(u, 'usr', { 'tournaments/t1/meta/name': 'x' })));
 await check('user grava exportedAt sozinho', true, update(ref(u), { 'tournaments/t1/exportedAt': '2026-10-02T10:00:00Z', 'tournaments/t1/version': 9 }));
-await check('user logRef para entrada antiga', false, update(ref(u), { 'tournaments/t1/results/1': { score: '0-0' }, 'tournaments/t1/logRef': 'antigo' }));
-await check('user apaga logRef', false, update(ref(u), { 'tournaments/t1/results/1': { score: '0-0' }, 'tournaments/t1/logRef': null }));
-await check('user registo em nome de outro', false, (() => {
-  const key = push(ref(u, 'tournament_log/t1')).key;
-  return update(ref(u), { 'tournaments/t1/results/1': { score: '0-0' }, [`tournament_log/t1/${key}`]: { uid: 'mst', nome: 'n', acao: 'x', quando: serverTimestamp() }, 'tournaments/t1/logRef': key });
+await check('master logRef para entrada antiga', false, update(ref(mst), { 'tournaments/t1/results/1': { score: '0-0' }, 'tournaments/t1/logRef': 'antigo' }));
+await check('master apaga logRef', false, update(ref(mst), { 'tournaments/t1/results/1': { score: '0-0' }, 'tournaments/t1/logRef': null }));
+await check('master registo em nome de outro', false, (() => {
+  const key = push(ref(mst, 'tournament_log/t1')).key;
+  return update(ref(mst), { 'tournaments/t1/results/1': { score: '0-0' }, [`tournament_log/t1/${key}`]: { uid: 'usr', nome: 'n', acao: 'x', quando: serverTimestamp() }, 'tournaments/t1/logRef': key });
 })());
 await check('user jogos singulares com registo', true, update(ref(u), withLog(u, 'usr', { 'tournaments/t1/jogosSingulares': [{ resultado: '1-0' }] })));
 await check('pendente grava resultado', false, update(ref(p), withLog(p, 'pend', { 'tournaments/t1/results/1': { score: '0-0' } })));

@@ -167,6 +167,13 @@ export abstract class RacketSport extends Sport {
     return sets.length ? this.gamesOf(sets, this.format(config)) : null;
   }
 
+  /** Sets won per side, or the points of a match played to points. */
+  shownScore(res: MatchResult | undefined, config?: Config | null): SetScore | null {
+    if (this.pointsPerMatch(config)) return this.pointsOf(res);
+    const sets = this.setsOf(res);
+    return sets.length ? this.setsWon(sets, this.format(config)) : null;
+  }
+
   // -------------------------------------------------------------------------
   // Scoring, game by game
   // -------------------------------------------------------------------------

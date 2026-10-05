@@ -24,7 +24,7 @@ Anyone with the link can view the tournaments, without an account. To change any
 | Role | Can |
 |---|---|
 | **Pending** (just signed in) | Only view. Waits for the Master Admin to give them a role. |
-| **User** | Record results, scorers, assists and MVP, change match status (including playoff matches) and record single matches. |
+| **User** | Record single matches. Results, scorers, MVP and match status are recorded by the admins of the tournament's sport. |
 | **Admin** (per sport) | For tournaments of the sports they administer (⚽ Football, 🎾 Padel, 🎾 Tennis): everything else — create and finish tournaments, settings, schedule, playoffs, teams, squads, import, delete data and remove archived tournaments from History. Admins can also edit the players database. In tournaments of other sports they have no admin rights. |
 | **Master Admin** | Everything, in every sport, plus managing users. |
 
@@ -38,7 +38,7 @@ Buttons your role cannot use are hidden. Even if someone bypasses the app, Fireb
 |---|---|
 | 🏠 Dashboard | List of active tournaments (to switch between them), plus a summary of the one being viewed: top 3 of the standings and the tournament numbers. The 🔁 button at the top refreshes the numbers. |
 | 🏆 Standings | Full table (per group, with the points right after the team) and the playoff bracket. |
-| 📅 Schedule | Rounds, matches and byes; generate playoffs and add rounds. Tapping a match opens the match window. |
+| 📅 Schedule | Rounds, matches and byes, with each match's status and score; generate playoffs and add rounds. Tapping a match opens the match window. |
 | ⚽ Results | Where matches are recorded live. |
 | 📊 Stats | Scorers, assists and MVPs of the current tournament and its single matches. |
 | 🗄️ History | Archived tournaments and all-time stats. |
@@ -93,6 +93,8 @@ In the **⚽ Results** tab, each match has:
 - **📋 Match**: opens the match window (see below).
 
 You can also type the score straight into the boxes; in that case no scorers are attached.
+
+Only admins of the tournament's sport (and the Master Admin) see the ＋ / − buttons and can type scores or change the status. Everyone else sees the score and the status read-only.
 
 **Padel.** ＋ / − add or remove **one game** for that pair, with no scorer to pick. The boxes show the sets won and the games of every set are written underneath (e.g. `6-4 3-2`). When a set ends the next one starts on its own, and in the deciding set the super tie-break points are entered the same way. The match window shows a grid with each set's games and the set being played highlighted, and the animations say *GAME* and *SET!* instead of *GOAL*. Scores cannot be typed in padel. **Tennis** works the same way; by default its deciding set is a normal set, not a super tie-break.
 

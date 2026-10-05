@@ -18,14 +18,13 @@ describe('canWritePath', () => {
     expect(canWritePath('admin', 'meta/sport', footAdminOpts)).toBe(false);
   });
 
-  it('admin NÃO altera config de modalidade diferente, mas pode gravar resultados como user', () => {
+  it('admin NÃO altera config nem resultados de modalidade diferente', () => {
     const footAdminOnPadel = { sport: 'padel', userAdmin: { football: true } };
     expect(canWritePath('admin', 'config', footAdminOnPadel)).toBe(false);
     expect(canWritePath('admin', 'schedule', footAdminOnPadel)).toBe(false);
     expect(canWritePath('admin', 'meta/name', footAdminOnPadel)).toBe(false);
-    // Pode gravar resultados e playoff winners
-    expect(canWritePath('admin', 'results/0', footAdminOnPadel)).toBe(true);
-    expect(canWritePath('admin', 'schedule/1/home', footAdminOnPadel)).toBe(true);
+    expect(canWritePath('admin', 'results/0', footAdminOnPadel)).toBe(false);
+    expect(canWritePath('admin', 'schedule/1/home', footAdminOnPadel)).toBe(false);
   });
 
   it('admin sem contexto de modalidade mantém compatibilidade', () => {
@@ -34,10 +33,10 @@ describe('canWritePath', () => {
     expect(canWritePath('admin', 'meta/sport')).toBe(false);
   });
 
-  it('utilizador grava resultados, calendário e jogos singulares', () => {
-    expect(canWritePath('user', 'results/3')).toBe(true);
-    expect(canWritePath('user', 'schedule/4/home')).toBe(true);
-    expect(canWritePath('user', 'schedule/4/away')).toBe(true);
+  it('utilizador grava jogos singulares, mas não resultados nem vencedores de playoff', () => {
+    expect(canWritePath('user', 'results/3')).toBe(false);
+    expect(canWritePath('user', 'schedule/4/home')).toBe(false);
+    expect(canWritePath('user', 'schedule/4/away')).toBe(false);
     expect(canWritePath('user', 'jogosSingulares')).toBe(true);
     expect(canWritePath('user', 'exportedAt')).toBe(true);
   });
@@ -69,10 +68,10 @@ describe('canWritePath', () => {
 describe('blockedPaths', () => {
   it('devolve só os caminhos proibidos', () => {
     const updates = { 'results/1': {}, config: {}, exportedAt: 'x' };
-    expect(blockedPaths('user', updates)).toEqual(['config']);
+    expect(blockedPaths('user', updates)).toEqual(['results/1', 'config']);
     expect(blockedPaths('master', updates)).toEqual([]);
     expect(blockedPaths('admin', updates)).toEqual([]);
-    expect(blockedPaths('admin', updates, { sport: 'padel', userAdmin: { football: true } })).toEqual(['config']);
+    expect(blockedPaths('admin', updates, { sport: 'padel', userAdmin: { football: true } })).toEqual(['results/1', 'config']);
     expect(blockedPaths('master', { 'meta/sport': 'padel' })).toEqual(['meta/sport']);
   });
 });

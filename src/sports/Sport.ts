@@ -152,6 +152,15 @@ export abstract class Sport {
   }
 
   /**
+   * The score shown for a match in the schedule and results lists (goals in
+   * football), or null when it has none yet.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  shownScore(res: MatchResult | undefined, config?: Config | null): { home: number; away: number } | null {
+    return this.scoreTotals(res && typeof res === 'object' ? res.score : res);
+  }
+
+  /**
    * Updates the game status (scheduled, in progress, finished).
    */
   setGameStatus(res: MatchResult | undefined, status: GameStatus): Score {
