@@ -801,6 +801,8 @@ export function bindEvents() {
   const updateThemeIcon = () => {
     dom.btnDarkMode.textContent = currentTheme === 'dark' ? '☀️' : '🌙';
   };
+  // Apply the saved theme on load, not only when the button is pressed
+  document.documentElement.setAttribute('data-theme', currentTheme);
   updateThemeIcon();
 
   dom.btnDarkMode.addEventListener('click', () => {
