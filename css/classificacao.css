@@ -9,7 +9,7 @@
 .podium-card {
   border-radius: var(--radius);
   padding: 16px 14px;
-  color: #fff;
+  color: #0F2A1C;
   box-shadow: var(--shadow-sm);
 }
 
@@ -28,7 +28,7 @@
 .podium-rank {
   font-family: var(--font-display);
   font-size: 13px;
-  opacity: .85;
+  opacity: .78;
   letter-spacing: .06em;
 }
 
@@ -42,7 +42,7 @@
 
 .podium-pts {
   font-size: 13px;
-  opacity: .92;
+  opacity: .85;
 }
 
 /* ---------- Tables ---------- */
@@ -172,19 +172,21 @@ th.num {
   color: #F87171;
 }
 
+/* Medal badges carry dark ink: white on gold, silver or bronze reads at
+   2.4:1 and disappears outdoors, which is where these matches are played. */
 tr.pos-gold .pos-badge {
   background: var(--gold);
-  color: #fff;
+  color: #0F2A1C;
 }
 
 tr.pos-silver .pos-badge {
   background: var(--silver);
-  color: #fff;
+  color: #0F2A1C;
 }
 
 tr.pos-bronze .pos-badge {
   background: var(--bronze);
-  color: #fff;
+  color: #0F2A1C;
 }
 
 tr.pos-gold {

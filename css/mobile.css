@@ -189,7 +189,7 @@
     right: 0;
     bottom: 0;
     z-index: 300;
-    max-height: 80vh;
+    max-height: 80dvh;
     flex-direction: column;
     flex-wrap: nowrap;
     gap: 0;
@@ -362,9 +362,15 @@
   }
 }
 
-@media (prefers-reduced-motion:reduce) {
+/* Reduced motion means less movement, not no feedback: colour and opacity
+   transitions stay so a tapped control still answers, while anything that
+   moves, scales or loops is dropped. */
+@media (prefers-reduced-motion: reduce) {
   * {
-    animation: none !important;
-    transition: none !important;
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-property: opacity, background-color, border-color, color, box-shadow !important;
+    transition-duration: 120ms !important;
+    scroll-behavior: auto !important;
   }
 }

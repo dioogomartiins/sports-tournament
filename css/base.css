@@ -10,7 +10,7 @@
   --card: #FFFFFF;
   --ink: #152018;
   --ink-soft: #51604F;
-  --ink-faint: #8A968A;
+  --ink-faint: #636E63;
   --line: #DCE3D7;
   --silver: #C4C9C4;
   --bronze: #C08552;
@@ -23,6 +23,17 @@
   --radius-sm: 8px;
   --font-display: 'Oswald', 'Arial Narrow', Impact, sans-serif;
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  /* Motion: one curve for things entering or leaving, one for things moving
+     on screen. Durations stay under 300ms so the app keeps feeling instant. */
+  --ease-out: cubic-bezier(.23, 1, .32, 1);
+  --ease-in-out: cubic-bezier(.77, 0, .175, 1);
+  --press: 120ms;
+  --quick: 180ms;
+  --slide: 260ms;
+
+  /* Smallest comfortable tap target on a phone. */
+  --tap: 44px;
 }
 
 [data-theme="dark"] {
@@ -30,7 +41,7 @@
   --card: #1E1E1E;
   --ink: #EAEAEA;
   --ink-soft: #A0A0A0;
-  --ink-faint: #666666;
+  --ink-faint: #8C8C8C;
   --line: #333333;
   --pitch-900: #050a07;
   --pitch-800: #091710;
@@ -74,6 +85,10 @@ p {
 button {
   font-family: var(--font-body);
   cursor: pointer;
+  /* No double-tap zoom delay and no grey flash when tapped on a phone:
+     every button below draws its own pressed state. */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 input,

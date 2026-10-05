@@ -76,6 +76,8 @@ export abstract class ScoreBase extends LitElement {
     button {
       font: inherit;
       cursor: pointer;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
     }
 
     .gm-head {
@@ -174,8 +176,8 @@ export abstract class ScoreBase extends LitElement {
     }
 
     .gm-point-btn {
-      width: 34px;
-      height: 34px;
+      width: 44px;
+      height: 44px;
       border-radius: 50%;
       border: 1.5px solid rgba(255, 255, 255, .4);
       background: rgba(255, 255, 255, .1);
@@ -183,22 +185,29 @@ export abstract class ScoreBase extends LitElement {
       font-size: 18px;
       font-weight: 700;
       line-height: 1;
+      transition: transform var(--press) var(--ease-out), background var(--press) ease;
     }
 
     .gm-point-btn:active,
     .gm-status-btn:active {
-      transform: translateY(1px);
+      transform: scale(.94);
+    }
+
+    .gm-point-btn:active {
+      background: rgba(255, 255, 255, .2);
     }
 
     .gm-status-btn {
       margin-top: 12px;
-      padding: 8px 18px;
+      padding: 11px 20px;
+      min-height: 44px;
       border: none;
       border-radius: 8px;
       background: var(--gold);
       color: var(--pitch-900);
       font-size: 14px;
       font-weight: 600;
+      transition: transform var(--press) var(--ease-out);
     }
 
     .gm-empty-state {

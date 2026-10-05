@@ -54,6 +54,20 @@ Database. Deployed to GitHub Pages at `/sports-tournament/` on release tags (`re
 - Commit messages follow conventional commits (`feat:`, `fix:`, `refactor:`, ...).
 - Documentation illustrations use the `ian-xiaohei-illustrations` skill (same
   style as the CarCity docs); the shot list and prompts live in issue #10.
+- UI work uses two external design skills (installed, not committed here):
+  - **Impeccable** (Apache 2.0, `npx impeccable install`, or
+    `/plugin marketplace add pbakaus/impeccable`). Run `/impeccable audit` on a
+    page before a UI PR and `/impeccable polish` on the result. It checks
+    contrast, touch targets, dark mode and responsive behaviour, which is what
+    breaks first on a phone at the side of a pitch.
+  - **Emil Kowalski's skills** (MIT, `npx skills@latest add emilkowalski/skills`).
+    Use `review-animations` or `animate` whenever a transition, a modal or the
+    goal animation changes. The motion tokens in `css/base.css` (`--ease-out`,
+    `--ease-in-out`, `--press`, `--quick`, `--slide`) come from those rules:
+    `ease-out` for anything entering or leaving, nothing over 300ms, and no
+    animation on an action repeated through a whole match.
+  - Keep new taps at `--tap` (44px) and keep reduced motion to less movement,
+    not none: colour and opacity still answer the tap.
 
 ## Checks
 

@@ -161,8 +161,9 @@
 }
 
 .score-btn {
-  width: 28px;
-  height: 28px;
+  position: relative;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   border: 1px solid var(--line);
   background: var(--paper);
@@ -173,14 +174,27 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.1s;
+  transition: background var(--press) ease, transform var(--press) var(--ease-out);
   padding: 0;
   line-height: 1;
 }
 
+/* The circle stays small so a fixture fits one line, but the thumb gets the
+   full 44px of height: scoring happens one-handed, next to the pitch. The
+   target only grows vertically so it never covers the box beside it. */
+.score-btn::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: var(--tap);
+  transform: translateY(-50%);
+}
+
 .score-btn:active {
   background: var(--line);
-  transform: scale(0.95);
+  transform: scale(0.94);
 }
 
 /* Estado da Partida Badge */
@@ -195,6 +209,31 @@
   border: 1px solid transparent;
 }
 
+/* On the results page the pill is the control that moves a match on, so it is
+   tapped during the game: give it a 44px target. On the schedule the whole
+   row opens the match, so the pill there keeps its own size and nothing more,
+   otherwise it would swallow taps meant for the row. */
+.fixture-input button.status-badge {
+  position: relative;
+  padding: 7px 12px;
+  font-size: 11px;
+  transition: transform var(--press) var(--ease-out);
+}
+
+.fixture-input button.status-badge::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: var(--tap);
+  transform: translateY(-50%);
+}
+
+button.status-badge:active {
+  transform: scale(.97);
+}
+
 .status-agendado {
   background: var(--paper);
   color: var(--ink-soft);
@@ -203,14 +242,14 @@
 
 .status-decorrer {
   background: rgba(203, 161, 53, .15);
-  color: var(--gold-dark);
+  color: #7E601C;
   border-color: rgba(203, 161, 53, .3);
   animation: pulse 2s infinite;
 }
 
 .status-terminado {
   background: rgba(47, 122, 79, .15);
-  color: var(--pitch-500);
+  color: #246B42;
   border-color: rgba(47, 122, 79, .3);
 }
 
