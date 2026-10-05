@@ -139,21 +139,22 @@ export interface RoundMeta {
   bye: string | number | null;
 }
 
+/** A friendly match outside the tournament (Single Match tab), as saved. */
 export interface SingleMatch {
-  id?: string;
-  data?: string;
-  nomeA: string;
-  nomeB: string;
-  scoreA: number | string;
-  scoreB: number | string;
+  id: string;
+  data: string;
+  nomeEquipaA: string;
+  nomeEquipaB: string;
+  /** Player ids of each team. */
+  equipaA: string[];
+  equipaB: string[];
   scorersA?: string[];
   scorersB?: string[];
   assistsA?: string[];
   assistsB?: string[];
+  /** "goalsA-goalsB", or null when no score was typed. */
+  resultado: string | null;
   mvp?: string;
-  equipaA?: Player[];
-  equipaB?: Player[];
-  [key: string]: unknown;
 }
 
 export interface ArchiveTeam {

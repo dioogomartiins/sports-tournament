@@ -1,10 +1,10 @@
-import { state, persistConfigTeams, loadState, persistSchedule, persistResults, persistJogosSingulares, storeAllLayers, notifyPushError, currentTheme, setCurrentTheme, exportJSON, importJSON, applyGeneratedSchedule, applySnapshot, buildSnapshot, defaultTeams, defaultSquads, setStateHooks, setCurrentTournamentId, getCurrentTournamentId } from './state.js';
-import { closeGameModal, openGameModal, animateResultChanges, dom, cacheDom, renderAll, refreshComputed, renderScheduleHint, renderSquadList, renderSquadsDropdown, flashError, flashBackup, renderCalendar, renderResults, showToast, flashSaved, openConfirm, closeConfirm, runConfirm, openDangerConfirm, switchTab, openScorerModal, openPlayerProfile, computeStatsSummary, renderPlayersList, openPlayerModal, renderSquadPlayerFromDBDropdown, renderDraftTeams, renderSingularHistorico, currentDraft, renderAuth, renderUsers, renderLog, openPickPlayerModal, squadPickList, renderTournamentsList, openNovoTorneioModal, openDrawPairsModal, bindHistoryEvents, bindPlayersEvents } from './ui.js';
+import { state, persistConfigTeams, loadState, persistSchedule, persistResults, storeAllLayers, notifyPushError, currentTheme, setCurrentTheme, exportJSON, importJSON, applyGeneratedSchedule, applySnapshot, buildSnapshot, defaultTeams, defaultSquads, setStateHooks, setCurrentTournamentId, getCurrentTournamentId } from './state.js';
+import { closeGameModal, openGameModal, animateResultChanges, dom, cacheDom, renderAll, refreshComputed, renderScheduleHint, renderSquadList, renderSquadsDropdown, flashError, flashBackup, renderCalendar, renderResults, showToast, flashSaved, openConfirm, closeConfirm, runConfirm, openDangerConfirm, switchTab, openScorerModal, openPlayerProfile, computeStatsSummary, renderPlayersList, openPlayerModal, renderSquadPlayerFromDBDropdown, renderAuth, renderUsers, renderLog, openPickPlayerModal, squadPickList, renderTournamentsList, openNovoTorneioModal, openDrawPairsModal, bindHistoryEvents, bindPlayersEvents, bindSingleMatchEvents } from './ui.js';
 import { html } from 'lit';
 import { clamp, numOr, buildPlayerIndex } from './utils.js';
 import { shareStandings, shareResult } from './share.js';
-import { bergerRounds, balancedDraft, balancedPairs, buildFirstRoundSeeding, buildExtraVolta, buildArchiveEntry, GAME_STATUS, alignAssists } from './algorithms.js';
-import { getSport } from './sports/registry.js';
+import { bergerRounds, balancedPairs, buildFirstRoundSeeding, buildExtraVolta, buildArchiveEntry, GAME_STATUS } from './algorithms.js';
+import { getSport, listSports } from './sports/registry.js';
 import { initFirebaseListener, onFirebaseStateChange, onFirebasePushError, setSyncedSnapshot, initAuth, signInWithGoogle, signOutUser, getCurrentUser, getCurrentRole, getCurrentUserAdmin, listenUsers, listenLog, setUserRole, listenTournaments, createTournament, finishTournament, setActiveTournamentId } from './firebase.js';
 import { roleLabel } from './permissions.js';
 import { en } from './i18n/en.js';
@@ -344,12 +344,7 @@ export function setAllTournaments(tourneys) {
 }
 
 export function renderTournaments() {
-  renderTournamentsList(
-    allTournaments,
-    getCurrentTournamentId(),
-    onSelectTournament,
-    onTerminarTorneio,
-  );
+  renderTournamentsList(allTournaments, getCurrentTournamentId());
 }
 
 export function onSelectTournament(id) {
@@ -369,10 +364,7 @@ export function onSelectTournament(id) {
 export function onNovoTorneioModalClick() {
   const role = getCurrentRole();
   const userAdmin = getCurrentUserAdmin();
-  const allSports = [
-    { id: 'football', label: '⚽ Football' },
-    { id: 'padel', label: '🎾 Padel' },
-  ];
+  const allSports = listSports().map((s) => ({ id: s.id, label: `${s.icon} ${s.name}` }));
   const allowedSports = role === 'master'
     ? allSports
     : allSports.filter((s) => userAdmin && userAdmin[s.id] === true);
@@ -596,92 +588,6 @@ export function onGerarEliminatorias() {
 }
 
 // ---------------------------------------------------------------------------
-// Handlers — Jogo Singular
-// ---------------------------------------------------------------------------
-export function onFazerDraft() {
-  const nomeA = (dom.draftNomeA.value.trim()) || en.singleMatch.teamA;
-  const nomeB = (dom.draftNomeB.value.trim()) || en.singleMatch.teamB;
-
-  const checkedBoxes = dom.draftPlayerList.querySelectorAll('.draft-checkbox:checked');
-  const selectedIds = Array.from(checkedBoxes).map((cb) => cb.dataset.pid);
-
-  if (selectedIds.length < 2) {
-    showToast(en.toasts.selectAtLeast2Players, 'error');
-    return;
-  }
-
-  const players = selectedIds.map((id) => state.players.find((p) => p.id === id)).filter(Boolean);
-  const currentSport = state.meta?.sport || state.config?.sport || 'football';
-  const { equipaA, equipaB } = balancedDraft(players, currentSport);
-
-  // Store in module-level variable (imported as currentDraft)
-  currentDraft.equipaA = equipaA;
-  currentDraft.equipaB = equipaB;
-  currentDraft.scorersA = [];
-  currentDraft.scorersB = [];
-  currentDraft.assistsA = [];
-  currentDraft.assistsB = [];
-  currentDraft.mvp = '';
-
-  renderDraftTeams(nomeA, nomeB, equipaA, equipaB);
-}
-
-export async function onGuardarJogo() {
-  const nomeA = dom.draftLabelA ? dom.draftLabelA.textContent : en.singleMatch.teamA;
-  const nomeB = dom.draftLabelB ? dom.draftLabelB.textContent : en.singleMatch.teamB;
-  const scoreA = dom.draftScoreA ? dom.draftScoreA.value.trim() : '';
-  const scoreB = dom.draftScoreB ? dom.draftScoreB.value.trim() : '';
-
-  if (!currentDraft.equipaA.length && !currentDraft.equipaB.length) {
-    showToast(en.toasts.runDraftFirst, 'error');
-    return;
-  }
-
-  const resultado = (scoreA !== '' && scoreB !== '') ? `${parseInt(scoreA, 10)}-${parseInt(scoreB, 10)}` : null;
-
-  const jogo = {
-    id: crypto.randomUUID(),
-    data: new Date().toISOString(),
-    nomeEquipaA: nomeA,
-    nomeEquipaB: nomeB,
-    equipaA: currentDraft.equipaA.map((p) => p.id),
-    equipaB: currentDraft.equipaB.map((p) => p.id),
-    scorersA: [...(currentDraft.scorersA || [])],
-    scorersB: [...(currentDraft.scorersB || [])],
-    assistsA: alignAssists(currentDraft.scorersA, currentDraft.assistsA),
-    assistsB: alignAssists(currentDraft.scorersB, currentDraft.assistsB),
-    resultado,
-  };
-  if (currentDraft.mvp) jogo.mvp = currentDraft.mvp;
-
-  state.jogosSingulares.push(jogo);
-  await persistJogosSingulares();
-  renderSingularHistorico();
-
-  // Reset
-  currentDraft.equipaA = [];
-  currentDraft.equipaB = [];
-  currentDraft.scorersA = [];
-  currentDraft.scorersB = [];
-  currentDraft.assistsA = [];
-  currentDraft.assistsB = [];
-  currentDraft.mvp = '';
-  if (dom.draftResultCard) dom.draftResultCard.style.display = 'none';
-  if (dom.draftScoreA) dom.draftScoreA.value = '';
-  if (dom.draftScoreB) dom.draftScoreB.value = '';
-  dom.draftPlayerList.querySelectorAll('.draft-checkbox:checked').forEach((cb) => { cb.checked = false; });
-  const countEl = document.getElementById('draftSelectedCount');
-  if (countEl) countEl.textContent = en.singleMatch.playersSelected(0);
-  if (dom.btnFazerDraft) dom.btnFazerDraft.disabled = true;
-
-  showToast(en.toasts.matchSavedToHistory, 'ok');
-
-  // Switch to history tab
-  document.querySelectorAll('.singular-subtab').forEach((b) => b.classList.toggle('active', b.dataset.subtab === 'historico'));
-  document.querySelectorAll('.singular-panel').forEach((p) => p.classList.toggle('active', p.id === 'singular-historico'));
-}
-
-// ---------------------------------------------------------------------------
 // Sessão (Google) e administração
 // ---------------------------------------------------------------------------
 let stopAdminListeners = null;
@@ -717,25 +623,8 @@ function onAuthChange({ user, role, admin }) {
   }
 }
 
-export function onUserRoleChange(e) {
-  const row = e.target.closest('.user-row');
-  if (!row) return;
-  const sel = row.querySelector('select[data-uid]');
-  if (!sel) return;
-  const uid = sel.dataset.uid;
-  const nome = sel.dataset.nome;
-  const role = sel.value || null;
-
-  let sportAdmins = null;
-  if (role === 'admin') {
-    sportAdmins = {};
-    row.querySelectorAll('.user-sport-cb').forEach((cb) => {
-      sportAdmins[cb.dataset.sport] = cb.checked;
-    });
-  } else if (role === 'master') {
-    sportAdmins = { football: true, padel: true };
-  }
-
+/** A role or sport box changed in <user-list> (detail: { uid, name, role, sportAdmins }). */
+export function onUserRoleChange({ uid, name: nome, role, sportAdmins }) {
   setUserRole(uid, role, sportAdmins, nome)
     .then(() => showToast(en.toasts.roleUpdated, 'ok'))
     .catch((err) => {
@@ -776,6 +665,7 @@ export function bindEvents() {
   bindMenuDrawer();
   bindHistoryEvents();
   bindPlayersEvents();
+  bindSingleMatchEvents();
 
   Array.from(document.querySelectorAll('.tab')).forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -827,9 +717,7 @@ export function bindEvents() {
   dom.squadList.addEventListener('squad-remove', (e) => onSquadRemove(e.detail));
   dom.squadList.addEventListener('player-stats', (e) => openPlayerProfile(e.detail, Number(dom.squadTeamSelect.value)));
 
-  // Equipas, calendário e resultados são redesenhados com innerHTML: um listener
-  // por contentor em vez de um por elemento a cada render.
-  // (focusout porque o blur não sobe até ao contentor)
+  // Lit components emit their events to the container element
   dom.teamsList.addEventListener('team-change', (e) => onTeamChange(e.detail));
   // <schedule-list> and <results-list> (detail: the match gi, or an object with it)
   [dom.calendarList, dom.resultsList].forEach((list) => {
@@ -841,7 +729,7 @@ export function bindEvents() {
 
   // Conta e administração
   dom.btnConta.addEventListener('click', onContaClick);
-  dom.usersList.addEventListener('change', onUserRoleChange);
+  dom.usersList.addEventListener('role-change', (e) => onUserRoleChange(e.detail));
 
   // Exportar / Importar
   dom.btnExportar.addEventListener('click', exportJSON);
@@ -888,21 +776,10 @@ export function bindEvents() {
     dom.playerSearchInput.addEventListener('input', renderPlayersList);
   }
 
-  // Jogo Singular — subtabs
-  document.querySelectorAll('.singular-subtab').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.singular-subtab').forEach((b) => b.classList.toggle('active', b === btn));
-      document.querySelectorAll('.singular-panel').forEach((p) => p.classList.toggle('active', p.id === `singular-${btn.dataset.subtab}`));
-      if (btn.dataset.subtab === 'historico') renderSingularHistorico();
-    });
-  });
-
-  // Jogo Singular — Draft
-  if (dom.btnFazerDraft) dom.btnFazerDraft.addEventListener('click', onFazerDraft);
-  if (dom.btnGuardarJogo) dom.btnGuardarJogo.addEventListener('click', onGuardarJogo);
-
   // Torneios
   if (dom.btnNovoTorneioModal) dom.btnNovoTorneioModal.addEventListener('click', onNovoTorneioModalClick);
+  dom.listaTorneiosAtivos.addEventListener('tournament-select', (e) => onSelectTournament(e.detail));
+  dom.listaTorneiosAtivos.addEventListener('tournament-finish', (e) => onTerminarTorneio(e.detail));
 }
 
 // ---------------------------------------------------------------------------
