@@ -1,4 +1,5 @@
-import { Sport } from '../Sport.js';
+import { Sport, type PlayerStatColumn, type StandingsColumn } from '../Sport.js';
+import { en } from '../../i18n/en.js';
 import {
   GAME_STATUS,
   type Config,
@@ -50,6 +51,28 @@ export class Football extends Sport {
   readonly id = 'football';
   readonly name = 'Football';
   readonly icon = '⚽';
+
+  standingsColumns(): StandingsColumn[] {
+    const c = en.standings.cols;
+    return [
+      { label: c.pts, value: (s) => s.Pts, className: 'pts-cell' },
+      { label: c.p, value: (s) => s.J },
+      { label: c.w, value: (s) => s.V },
+      { label: c.d, value: (s) => s.E },
+      { label: c.l, value: (s) => s.D },
+      { label: c.gf, value: (s) => s.GM },
+      { label: c.ga, value: (s) => s.GS },
+      { label: c.gd, value: (s) => { const dg = s.DG ?? s.GM - s.GS; return (dg > 0 ? '+' : '') + dg; } },
+    ];
+  }
+
+  playerStatColumns(): PlayerStatColumn[] {
+    return [
+      { key: 'golos', title: en.statsTab.topScorers, unit: en.common.goals, empty: en.statsTab.noGoalsYet },
+      { key: 'assistencias', title: en.statsTab.assistsTitle, unit: 'assist.', empty: en.statsTab.nothingRecordedYet },
+      { key: 'mvp', title: en.statsTab.mvpTitle, unit: '×', empty: en.statsTab.nothingRecordedYet },
+    ];
+  }
 
   computeStandings(
     teamsArray: (Team | string)[],
