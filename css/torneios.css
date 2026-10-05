@@ -1,0 +1,121 @@
+/* ---------------------------------------------------------------------
+   Torneios Ativos (Dashboard & Switcher)
+   --------------------------------------------------------------------- */
+.torneios-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.torneios-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.torneio-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  background: var(--card);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+  position: relative;
+}
+
+.torneio-card:hover {
+  border-color: var(--gold);
+  transform: translateY(-1px);
+}
+
+.torneio-card.active {
+  border: 2px solid var(--gold);
+  background: var(--paper);
+}
+
+.torneio-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.torneio-card-title {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.2;
+}
+
+.torneio-badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.sport-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--paper);
+  color: var(--pitch-800);
+  border: 1px solid var(--line);
+}
+
+.status-badge-active {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(46, 204, 113, 0.15);
+  color: #27ae60;
+}
+
+.current-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--gold);
+  color: #000;
+}
+
+.torneio-card-meta {
+  font-size: 12px;
+  color: var(--ink-faint);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.torneio-card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.torneio-card-actions .btn {
+  font-size: 12px;
+  padding: 4px 10px;
+}

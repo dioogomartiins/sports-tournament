@@ -25,14 +25,23 @@ export function safeColor(c: unknown): string {
   return /^#[0-9a-f]{3}([0-9a-f]{3})?$/i.test(String(c)) ? String(c) : '#2F7A4F';
 }
 
-export function fmtTimestamp(iso: string): string {
+export function fmtTimestamp(iso: string | number): string {
   try {
     const d = new Date(iso);
     const date = d.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit' });
     const time = d.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
     return `${date} ${time}`;
   } catch {
-    return iso;
+    return String(iso);
+  }
+}
+
+export function fmtDate(isoOrMillis: string | number): string {
+  try {
+    const d = new Date(isoOrMillis);
+    return d.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  } catch {
+    return String(isoOrMillis);
   }
 }
 

@@ -21,6 +21,7 @@ export function cacheDom() {
     'singularHistoricoList',
     'btnConta', 'usersList', 'logList',
     'historicoSempre', 'arquivoList', 'btnArquivar', 'btnPartilharTabela',
+    'cardTorneiosAtivos', 'listaTorneiosAtivos', 'btnNovoTorneioModal', 'headerSportBadge',
   ].forEach((id) => { dom[id] = document.getElementById(id); });
 
   dom.panels = Array.from(document.querySelectorAll('.panel'));

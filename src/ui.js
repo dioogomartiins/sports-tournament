@@ -9,6 +9,7 @@ import { renderStatsGrid, computeStatsSummary, renderDashboard, updateTicker } f
 import { renderPlayersList } from './ui/jogadores.js';
 import { renderDraftPlayerList, renderSingularHistorico } from './ui/singular.js';
 import { renderHistorico } from './ui/historico.js';
+import { renderHeaderTournament } from './ui/torneios.js';
 
 // The rest of the interface lives in src/ui/, one module per section; this file
 // brings everything together for modules importing from './ui.js'.
@@ -26,11 +27,13 @@ export * from './ui/singular.js';
 export * from './ui/admin.js';
 export * from './ui/historico.js';
 export * from './ui/jogo.js';
+export * from './ui/torneios.js';
 
 // ---------------------------------------------------------------------------
 // Render de topo — redesenha toda a UI
 // ---------------------------------------------------------------------------
 export function renderAll() {
+  renderHeaderTournament(state.meta);
   populateConfigForm();
   renderTeams();
   renderSquadsDropdown();

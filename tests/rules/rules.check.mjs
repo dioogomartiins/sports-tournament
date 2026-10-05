@@ -107,10 +107,17 @@ await check('admin tenta alterar meta.sport (imutável)', false, update(ref(a), 
 })));
 await check('admin muda perfil', true, update(ref(a), { 'utilizadores/pend/role': 'user' }));
 
-// --- arquivo ---
+// --- arquivo e terminar torneio ---
 await check('anónimo lê arquivo', true, get(ref(anon, 'arquivo')));
 await check('admin grava arquivo', true, update(ref(a), { 'arquivo/a2': { id: 'a2', nome: 'Final 2025', sport: 'football' } }));
 await check('user não grava arquivo', false, update(ref(u), { 'arquivo/a3': { id: 'a3', nome: 'Hack' } }));
+await check('admin termina torneio e grava arquivo com registo', true, update(ref(a), withLog(a, 'adm', {
+  'tournaments/t1/meta': { name: 'Novo Nome', sport: 'football', status: 'finished', createdAt: 1000 },
+  'arquivo/entry_t1': { id: 'entry_t1', nome: 'T1 Finalizado', sport: 'football' },
+})));
+await check('user não termina torneio', false, update(ref(u), withLog(u, 'usr', {
+  'tournaments/t1/meta': { name: 'Novo Nome', sport: 'football', status: 'finished', createdAt: 1000 },
+})));
 
 console.log(`\n${ok} ok, ${bad} falharam`);
 await env.cleanup();
