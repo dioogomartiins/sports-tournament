@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getDatabase, connectDatabaseEmulator, ref, onValue, update, push, query, orderByChild, limitToLast, serverTimestamp, get } from "firebase/database";
-import { getAuth, connectAuthEmulator, GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
+import { getAuth, connectAuthEmulator, GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { diffSnapshot, describeUpdates, onlyMetadata, globalUpdatesOnly, normalizeMeta, normalizeConfig, legacyRoleUpdates } from "./sync.js";
 import { en } from "./i18n/en.js";
 import { blockedPaths, roleLabel, isSportAdmin, isMaster } from "./permissions.js";
@@ -17,14 +17,41 @@ export type PushResult = { ok: true } | { ok: false; reason: 'sem-sync' | 'sem-s
 export interface AuthInfo { user: User | null; role: Role | null; admin: Record<string, boolean> }
 type Updates = Record<string, unknown>;
 
+export const isEmulator = import.meta.env.VITE_USE_EMULATORS === 'true';
+
+export type DevRole = 'master' | 'admin' | 'user' | 'none';
+
+// Emulator-only accounts for the role switcher (also seeded by docker/firebase/seed.mjs)
+export const DEV_USERS: Record<'master' | 'admin' | 'user', { email: string; password: string; name: string; role: Role; admin?: Record<string, boolean> }> = {
+  master: {
+    email: 'master@torneio.local',
+    password: 'password123',
+    name: 'Master Admin',
+    role: 'master',
+  },
+  admin: {
+    email: 'admin@torneio.local',
+    password: 'password123',
+    name: 'Football Admin',
+    role: 'admin',
+    admin: { football: true },
+  },
+  user: {
+    email: 'user@torneio.local',
+    password: 'password123',
+    name: 'Test User',
+    role: 'user',
+  },
+};
+
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || (isEmulator ? 'demo-api-key' : undefined),
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || (isEmulator ? 'demo-torneio.firebaseapp.com' : undefined),
+  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL || (isEmulator ? 'https://demo-torneio-default-rtdb.firebaseio.com' : undefined),
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || (isEmulator ? 'demo-torneio' : undefined),
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || (isEmulator ? 'demo-app-id' : undefined),
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
@@ -33,9 +60,11 @@ const database = getDatabase(app);
 const auth = getAuth(app);
 
 // Development: use the local Firebase emulators instead of the real database
-if (import.meta.env.VITE_USE_EMULATORS === 'true') {
-  connectDatabaseEmulator(database, '127.0.0.1', 9000);
-  connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
+const EMULATOR_HOST = import.meta.env.VITE_FIREBASE_EMULATOR_HOST || '127.0.0.1';
+const EMULATOR_DB_PORT = 9000;
+if (isEmulator) {
+  connectDatabaseEmulator(database, EMULATOR_HOST, EMULATOR_DB_PORT);
+  connectAuthEmulator(auth, `http://${EMULATOR_HOST}:9099`, { disableWarnings: true });
 }
 
 const LOG_LIMIT = 200;
@@ -398,6 +427,57 @@ export function initAuth(callback: (info: AuthInfo) => void): void {
       console.error("Firebase error reading user role:", err);
     });
   });
+
+  // In emulator/docker mode, default to the saved dev role (or 'master')
+  if (isEmulator && !currentUser) {
+    const initialDevRole = getCurrentDevRole();
+    if (initialDevRole !== 'none') {
+      setDevRole(initialDevRole).catch((err) => console.error("Auto dev role initialization error:", err));
+    }
+  }
+}
+
+export function getCurrentDevRole(): DevRole {
+  return (localStorage.getItem('torneio_dev_role') as DevRole) || 'master';
+}
+
+export async function setDevRole(role: DevRole): Promise<void> {
+  if (!isEmulator) return;
+
+  if (role === 'none') {
+    await signOut(auth);
+    localStorage.setItem('torneio_dev_role', 'none');
+    return;
+  }
+
+  const devUser = DEV_USERS[role];
+  let userCred;
+  try {
+    userCred = await signInWithEmailAndPassword(auth, devUser.email, devUser.password);
+  } catch (err: unknown) {
+    const code = (err as { code?: string })?.code;
+    if (code !== 'auth/user-not-found' && code !== 'auth/invalid-credential') throw err;
+    userCred = await createUserWithEmailAndPassword(auth, devUser.email, devUser.password);
+    await updateProfile(userCred.user, { displayName: devUser.name });
+  }
+
+  // The rules only let a master write roles, so the emulator's admin token
+  // ("Bearer owner") sets them. The namespace comes from the database URL,
+  // which must be the one the emulator loaded database.rules.json into.
+  const ns = new URL(firebaseConfig.databaseURL ?? '').hostname.split('.')[0];
+  const res = await fetch(`http://${EMULATOR_HOST}:${EMULATOR_DB_PORT}/users/${userCred.user.uid}.json?ns=${ns}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer owner' },
+    body: JSON.stringify({
+      nome: devUser.name,
+      email: devUser.email,
+      role: devUser.role,
+      admin: devUser.admin || null,
+    }),
+  });
+  if (!res.ok) throw new Error(`Emulator role update failed: ${res.status} ${await res.text()}`);
+
+  localStorage.setItem('torneio_dev_role', role);
 }
 
 export function signInWithGoogle(): ReturnType<typeof signInWithPopup> {

@@ -26,6 +26,15 @@
             <span class="save-pill" id="savePill">Saved</span>
             <span class="backup-pill" id="backupPill">No backup</span>
             <button class="theme-toggle-btn" id="btnDarkMode" title="Toggle Dark/Light Mode">🌙</button>
+            <div id="devRoleContainer" class="dev-role-container" style="display:none;" title="Role Switcher (Emulator)">
+              <label for="devRoleSelect" class="dev-role-label">Role:</label>
+              <select id="devRoleSelect" class="dev-role-select" aria-label="Development Role">
+                <option value="master">👑 Master</option>
+                <option value="admin">🛡️ Admin</option>
+                <option value="user">👤 User</option>
+                <option value="none">👁️ Viewer</option>
+              </select>
+            </div>
             <button class="theme-toggle-btn auth-btn" id="btnConta" title="Sign in with Google"></button>
           </div>
         </div>
