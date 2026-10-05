@@ -2,9 +2,9 @@
 
 [← Back to the README](../README.md)
 
-How the app gets to the numbers it shows. The schedule, draft and archive logic lives in `src/core/`, and the football rules (standings, tiebreaks, playoff winner, player stats) in `src/sports/football/Football.ts`; `src/algorithms.ts` re-exports both. Tests are in `tests/core/` and `tests/football.test.ts`.
+How the app gets to the numbers it shows. The schedule, draft and archive logic lives in `src/core/`, and each sport's rules (standings, tiebreaks, playoff winner, player stats) in its class: `src/sports/football/Football.ts`, and `src/sports/RacketSport.ts` with `src/sports/padel/Padel.ts`. Tests are in `tests/core/`, `tests/football.test.ts` and `tests/padel.test.ts`.
 
-The rules below are football's, the only sport with its own rules so far. A tournament created with another sport (such as padel) currently uses the same rules (see [Multi-Sport](multi-sport.md)).
+Scoring, standings and player stats depend on the tournament's sport. The schedule, groups, playoffs and champion work the same for every sport. Padel's own rules are in [Padel](#padel).
 
 - [Scoring](#scoring)
 - [Standings and tiebreaks](#standings-and-tiebreaks)
@@ -15,8 +15,11 @@ The rules below are football's, the only sport with its own rules so far. A tour
 - [Player rating](#player-rating)
 - [Balanced teams (Single Match)](#balanced-teams-single-match)
 - [Player stats](#player-stats)
+- [Padel](#padel)
 
 ## Scoring
+
+Football. Padel has no points per match (see [Padel](#padel)).
 
 ![Blowout bonus](assets/illustrations/03-bonus-de-goleada.jpg)
 
@@ -37,7 +40,7 @@ Only league-stage matches with a score that are not *Scheduled* count. Playoff m
 
 ![Head-to-head tiebreak](assets/illustrations/04-desempate-confronto-direto.jpg)
 
-Teams are ranked by:
+In football, teams are ranked by:
 
 1. Points
 2. Goal difference
@@ -88,7 +91,7 @@ The number of qualified teams is *qualified per group × number of groups* and m
 
 ## Champion
 
-- With playoffs: the winner of the final.
+- With playoffs: the winner of the final (on penalties in football if it ends level; in padel, the pair that wins the most sets).
 - Without playoffs and with a single group: the league leader.
 - With several groups and no playoffs there is no automatic champion.
 
@@ -96,7 +99,14 @@ The number of qualified teams is *qualified per group × number of groups* and m
 
 ![Player rating](assets/illustrations/06-rating-do-jogador.jpg)
 
-Each player has 0 to 5 stars in six attributes: Pace, Shooting, Passing, Dribbling, Defending and Physical. Ratings are kept **per sport** (each player has a separate set for football, padel, …; today every sport uses these same six attributes). The **★ rating** is the average of the six for the tournament's sport, with one decimal place. A team's rating is the sum of its players' ratings.
+Each player has 0 to 5 stars in six attributes per sport, kept separately:
+
+| Sport | Attributes |
+|---|---|
+| ⚽ Football | Pace, Shooting, Passing, Dribbling, Defending, Physical |
+| 🎾 Padel | Volley, Smash, Lob, Wall play, Defense, Fitness |
+
+The **★ rating** is the average of that sport's six attributes for the tournament's sport, with one decimal place. A player never rated in a sport has ★ 0.0 there. A team's rating is the sum of its players' ratings.
 
 ## Balanced teams (Single Match)
 
@@ -121,3 +131,44 @@ For each player the app counts:
 | Record | Most goals in a single match |
 
 The Stats tab adds up the current tournament and its single matches. History and the player profile also add the archived tournaments.
+
+## Padel
+
+Padel is scored **game by game**: no 15-30-40 points. A score is saved as the games of each set, e.g. `6-4 3-6 10-7`.
+
+### Set format
+
+Set per tournament in ⚙️ Settings → *Set format*. Defaults are in brackets.
+
+| Setting | Values |
+|---|---|
+| Sets per match | 1, best of 3 [3], best of 5 |
+| Games per set | 1 to 9 [6] |
+| Super tie-break in the deciding set | on [on] / off |
+
+- A set is won by reaching the games per set with a 2-game lead (6-4), or 7-6 with 6 games per set.
+- The **super tie-break** replaces the deciding set (the 3rd of 3, the 5th of 5). It is played to 10 points with a 2-point lead and is entered with the same − / + buttons.
+- The match ends when a pair has won the majority of the sets. After that, + does nothing.
+
+### Standings
+
+There are no points per win. Pairs are ranked by:
+
+1. Games won (**GW**)
+2. Game difference (**GD**)
+3. Head-to-head: games won, then game difference, in the matches between the tied pairs
+4. Fewest games lost (**GL**)
+5. Alphabetical order
+
+A super tie-break counts as **one game** for the pair that wins it (10-7 counts as 1-0), so it does not outweigh a whole set. The table also shows matches played (P), won (W) and lost (L).
+
+### Pairs
+
+Each team is a pair of two players, without jersey numbers. In 👕 Squads an admin can:
+
+- **Fix the pairs:** add two players to each team.
+- **🎲 Draw pairs:** tick exactly two players per team. The players are sorted by padel rating, and the best is paired with the weakest, the second best with the second weakest, and so on. The pairs fill the teams in order, each team is renamed after its pair (e.g. "Rui / Nuno"), and the existing pairs are replaced.
+
+### Stats
+
+Padel records no goals, assists or MVP. The Stats tab shows games played, games per match, most games won, fewest games lost, the biggest win (by game difference) and most wins.

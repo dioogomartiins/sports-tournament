@@ -2,7 +2,7 @@
 
 Web app for running friendly sports tournaments: teams, squads, schedule, live results, playoffs, player stats and single matches. Several tournaments can run at the same time, and every connected phone sees each change instantly, without reloading the page.
 
-Football is fully supported today. The app is moving towards [supporting any sport](docs/multi-sport.md) — padel 🎾, basketball 🏀, handball 🤾, volleyball 🏐 and others — through one class per sport.
+Football ⚽ and padel 🎾 are supported today, each with its own scoring, standings and live score panel. The app is moving towards [supporting any sport](docs/multi-sport.md) — basketball 🏀, handball 🤾, volleyball 🏐 and others — through one class per sport.
 
 **App:** <https://dioogomartiins.github.io/torneio-ilog/>
 

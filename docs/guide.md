@@ -62,11 +62,11 @@ Several tournaments can run at the same time, each with its own sport, teams, sc
 
 These steps are done by an **admin** of the tournament's sport (or the Master Admin). Anyone else sees Teams, Squads and Players read-only, without edit buttons.
 
-1. **Players** (Manage → 👤 Players): create each player and give them 0 to 5 stars in Pace, Shooting, Passing, Dribbling, Defending and Physical. Each player has a separate set of ratings per sport, chosen in **Attribute Sport** in the player window; the average is the player's ★ rating for that sport. This database is shared by every tournament and by single matches.
+1. **Players** (Manage → 👤 Players): create each player and give them 0 to 5 stars in six attributes. Each sport has its own (football: Pace, Shooting, Passing, Dribbling, Defending, Physical; padel: Volley, Smash, Lob, Wall play, Defense, Fitness), chosen in **Attribute Sport** in the player window; the average is the player's ★ rating for that sport. This database is shared by every tournament and by single matches.
 2. **Tournament** (🏠 Dashboard → ➕ New Tournament): create it as described in [Tournaments](#tournaments).
-3. **Settings** (⚙️): set the name, the number of teams (2 to 32), the number of groups (1, 2, 4 or 8), the number of rounds, the scoring, and whether there are playoffs and how many teams qualify.
+3. **Settings** (⚙️): set the name, the number of teams (2 to 32), the number of groups (1, 2, 4 or 8), the number of rounds, and whether there are playoffs and how many teams qualify. Football also has the scoring (points per win, draw, loss and blowout bonus); padel has the **set format** instead (sets per match, games per set, super tie-break).
 4. **Teams** (Manage → 👥 Teams): give each team a name and a colour.
-5. **Squads** (Manage → 👕 Squads): pick the team and add players from the database, with their jersey number. The squad's average ★ is shown at the top.
+5. **Squads** (Manage → 👕 Squads): pick the team and add players from the database, with their jersey number. The squad's average ★ is shown at the top. In padel each team is a pair: add two players to each (no jersey number), or tap **🎲 Draw pairs**, tick two players per team, and the app pairs them by padel rating and names each team after its pair (see [Rules](rules.md#pairs)).
 6. **🔄 Generate Schedule** (⚙️ Settings): creates all the rounds. With more than one group, the teams are drawn into the groups at this point.
 
 Generating a new schedule deletes the results already entered (the app asks for confirmation). Teams, squads and settings are kept.
@@ -87,6 +87,8 @@ In the **⚽ Results** tab, each match has:
 
 You can also type the score straight into the boxes; in that case no scorers are attached.
 
+**Padel.** ＋ / − add or remove **one game** for that pair, with no scorer to pick. The boxes show the sets won and the games of every set are written underneath (e.g. `6-4 3-2`). When a set ends the next one starts on its own, and in the deciding set the super tie-break points are entered the same way. The match window shows a grid with each set's games and the set being played highlighted, and the animations say *GAME* and *SET!* instead of *GOAL*. Scores cannot be typed in padel.
+
 **Match window.** Opens with **📋 Match** in Results, or by tapping the match in the Schedule. It shows the score and, per team, each goal with the scorer and the assist. It updates by itself when someone records a goal on another phone. Once the match is finished, it has the **⭐ Pick MVP** and **📤 Share image** buttons (the result image).
 
 **Live on every phone.** When a match kicks off, a goal is scored (background in the team colour, scorer and assist), a goal is cancelled or the match ends, a short animation appears on every device, and in the Standings the teams slide to their new place. If the standings changed while you were on another tab, when you open it you briefly see the order from the last time you looked and then the teams slide to their current position. Next to the position, a green (▲) or red (▼) arrow shows how many places each team gained or lost since then, and stays until the order changes again. With *reduced motion* turned on in the phone, the animations do not play.
@@ -97,7 +99,7 @@ The standings, dashboard and stats update by themselves on every device.
 
 With playoffs enabled in the settings, the **🏆 Generate Playoffs** button appears in the Schedule (for admins) once every league match is *Finished*. The app qualifies the top teams of each group from the current standings and builds the bracket (up to 16 teams: Round of 16, Quarter-Finals, Semi-Finals and Final). How teams are paired is in [Rules and Calculations](rules.md#playoffs).
 
-A playoff match that finishes level shows the **Penalties** boxes. The winner moves automatically to the next match of the bracket.
+A football playoff match that finishes level shows the **Penalties** boxes (a padel match always has a winner). The winner moves automatically to the next match of the bracket.
 
 ## Finishing and archiving
 
@@ -128,10 +130,10 @@ Single matches are saved with the tournament being viewed. Their goals, assists 
 
 ![Goals, assists and MVP](assets/illustrations/11-golos-assistencias-mvp.jpg)
 
-- **📊 Stats**: table of scorers, assists and MVPs of the current tournament and its single matches.
+- **📊 Stats**: table of scorers, assists and MVPs of the current tournament and its single matches. In padel the cards count games (played, most won, fewest lost) and there are no scorer tables.
 - **🗄️ History**: list of archived tournaments and an all-time table (archived tournaments, the current tournament and single matches).
 - **Player profile**: tap a player's name to see their attributes, rating, and all-time goals, assists and MVPs.
-- **Share**: the **📤** button next to the Standings title, and **📤 Share image** in the window of each finished match. On a phone it opens the system share sheet (WhatsApp, etc.); on a computer it downloads the PNG image.
+- **Share**: the **📤** button next to the Standings title, and **📤 Share image** in the window of each finished match. The standings image uses the sport's columns (Pts in football, GW in padel); a padel result image shows the sets won with the games of each set. On a phone it opens the system share sheet (WhatsApp, etc.); on a computer it downloads the PNG image.
 
 ## Data: export, import and delete
 
