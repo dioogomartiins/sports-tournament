@@ -36,8 +36,12 @@ Database. Deployed to GitHub Pages at `/sports-tournament/` on release tags (`re
   `user`; none = read-only). `src/permissions.ts` mirrors those rules
   client-side; change both together. Every save also appends an entry to
   `tournament_log/<id>` (who changed what).
-- When building HTML strings, pass every value that comes from state through
-  `escapeHtml` (and team colours through `safeColor`). The Firebase data is
+- New UI is a Lit component in `src/components/` (base class `LightElement`,
+  light DOM, properties in and events out); the controller in `src/ui/` sets
+  its properties and handles its events instead of building HTML. Lit escapes
+  values in templates; never use `unsafeHTML` with state. Where HTML strings
+  remain, pass every value that comes from state through `escapeHtml`, and team
+  colours always through `safeColor`. The Firebase data is
   writable by anyone with the public config, so it is untrusted input.
 - The app is used live on phones during matches: check mobile widths and both
   light and dark themes when touching UI.

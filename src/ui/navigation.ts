@@ -1,15 +1,15 @@
-import { dom } from './dom.js';
-import { replayStandings } from './classificacao.js';
+import { panels } from './dom.js';
+import { replayStandings } from './standings.js';
 
 // ---------------------------------------------------------------------------
-// Navegação por tabs
+// Tab navigation
 // ---------------------------------------------------------------------------
-export function switchTab(name) {
+export function switchTab(name: string): void {
   const tabsContainer = document.getElementById('tabs');
-  Array.from(document.querySelectorAll('.tab')).forEach((b) => {
+  document.querySelectorAll<HTMLElement>('.tab').forEach((b) => {
     b.classList.toggle('active', b.dataset.tab === name);
   });
-  dom.panels.forEach((p) => { p.classList.toggle('active', p.id === `tab-${name}`); });
+  panels.forEach((p) => { p.classList.toggle('active', p.id === `tab-${name}`); });
   if (tabsContainer) tabsContainer.classList.remove('menu-open');
   if (name === 'standings') replayStandings();
 }

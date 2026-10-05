@@ -2,7 +2,7 @@ import { state } from '../state.js';
 import { escapeHtml, fmtTimestamp } from '../utils.js';
 import { ROLES, isKnownRole, roleLabel } from '../permissions.js';
 import { dom, isAdminView } from './dom.js';
-import { switchTab } from './navegacao.js';
+import { switchTab } from './navigation.js';
 import { renderSquadList } from './equipas.js';
 import { renderPlayersList } from './jogadores.js';
 import { en } from '../i18n/en.js';

@@ -2,6 +2,9 @@
 // English UI Strings (i18n)
 // ---------------------------------------------------------------------------
 
+import { html } from 'lit';
+
+// Strings with markup are Lit templates: values in them are escaped by Lit.
 export const en = {
   common: {
     tournament: 'Tournament',
@@ -71,7 +74,7 @@ export const en = {
     signIn: 'Sign In',
     signOut: 'Sign Out',
     noSchedule: 'NO SCHEDULE',
-    roundTicker: (current: number, total: number, played: number, matchesTotal: number) =>
+    roundTicker: (current: number | string, total: number, played: number, matchesTotal: number) =>
       `ROUND ${current} / ${total}   ·   ${played}/${matchesTotal} MATCHES PLAYED`,
   },
 
@@ -142,7 +145,7 @@ export const en = {
     scoringExample:
       'Example: Porto 4–1 Benfica with win=3 and bonus=1 for 3+ goals scored → Porto gets 3+1 = 4 points.',
     scheduleHintCurrent: (teams: number | string, rounds: number | string, matches: number) =>
-      `Current schedule: <strong>${teams} teams / ${rounds} round(s)</strong> · ${matches} matches.`,
+      html`Current schedule: <strong>${teams} teams / ${rounds} round(s)</strong> · ${matches} matches.`,
     scheduleHintConfigured: (teams: number, rounds: number) =>
       ` Currently configured: ${teams} teams / ${rounds} round(s) — click 🔄 Generate Schedule to apply.`,
   },
