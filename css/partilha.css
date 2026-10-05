@@ -19,7 +19,8 @@
   font: inherit;
   font-size: 12px;
   font-weight: 600;
-  padding: 4px 10px;
+  padding: 9px 14px;
+  min-height: var(--tap);
   border-radius: 999px;
   border: 1px solid var(--line);
   background: var(--paper);
@@ -29,10 +30,17 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  transition: border-color var(--quick) ease, transform var(--press) var(--ease-out);
 }
 
-.mini-btn:hover {
-  border-color: var(--gold);
+@media (hover: hover) {
+  .mini-btn:hover {
+    border-color: var(--gold);
+  }
+}
+
+.mini-btn:active {
+  transform: scale(.97);
 }
 
 .draft-mvp-btn {

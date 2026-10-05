@@ -141,7 +141,12 @@
     color: var(--ink-soft);
     font-size: 14px;
     font-weight: 700;
-    transition: background .2s ease, color .2s ease;
+    transition: background var(--quick) ease-out, color var(--quick) ease-out, transform var(--press) var(--ease-out);
+  }
+
+  .bottom-nav .tab:active,
+  .bottom-nav .bn-more:active {
+    transform: scale(.93);
   }
 
   .bn-icon {
@@ -189,7 +194,7 @@
     right: 0;
     bottom: 0;
     z-index: 300;
-    max-height: 80vh;
+    max-height: 80dvh;
     flex-direction: column;
     flex-wrap: nowrap;
     gap: 0;
@@ -201,13 +206,13 @@
     box-shadow: var(--shadow-md);
     transform: translateY(100%);
     visibility: hidden;
-    transition: transform .25s ease, visibility 0s linear .25s;
+    transition: transform var(--slide) var(--ease-drawer), visibility 0s linear var(--slide);
   }
 
   .tabs.menu-open {
     transform: none;
     visibility: visible;
-    transition: transform .25s ease;
+    transition: transform var(--slide) var(--ease-drawer);
   }
 
   .tabs > .tab[data-tab="dashboard"],
@@ -246,6 +251,11 @@
     background: rgba(255, 255, 255, .12);
     color: #dfe8de;
     font-size: 16px;
+    transition: transform var(--press) var(--ease-out), background-color var(--quick) ease;
+  }
+
+  .drawer-close:active {
+    transform: scale(.92);
   }
 
   .drawer-backdrop {
@@ -256,7 +266,7 @@
     background: rgba(0, 0, 0, .45);
     opacity: 0;
     pointer-events: none;
-    transition: opacity .25s ease;
+    transition: opacity var(--slide) ease-out;
   }
 
   .tabs.menu-open + .drawer-backdrop {
@@ -362,9 +372,15 @@
   }
 }
 
-@media (prefers-reduced-motion:reduce) {
+/* Reduced motion means less movement, not no feedback: colour and opacity
+   transitions stay so a tapped control still answers, while anything that
+   moves, scales or loops is dropped. */
+@media (prefers-reduced-motion: reduce) {
   * {
-    animation: none !important;
-    transition: none !important;
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-property: opacity, background-color, border-color, color, box-shadow !important;
+    transition-duration: 120ms !important;
+    scroll-behavior: auto !important;
   }
 }

@@ -1,4 +1,4 @@
-# Torneio ILOG 🏆⚽
+# Sports Tournaments 🏆⚽
 
 Web app for running friendly sports tournaments: teams, squads, schedule, live results, playoffs, player stats and single matches. Several tournaments can run at the same time, and every connected phone sees each change instantly, without reloading the page.
 
