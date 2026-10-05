@@ -1,7 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getDatabase, connectDatabaseEmulator, ref, onValue, update, push, query, orderByChild, limitToLast, serverTimestamp, get } from "firebase/database";
 import { getAuth, connectAuthEmulator, GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
-import { diffSnapshot, describeUpdates, onlyMetadata, normalizeMeta, normalizeConfig } from "./sync.js";
+import { diffSnapshot, describeUpdates, onlyMetadata, normalizeMeta, normalizeConfig, legacyRoleUpdates } from "./sync.js";
 import { en } from "./i18n/en.js";
 import { blockedPaths, roleLabel, isSportAdmin, isMaster } from "./permissions.js";
 
@@ -276,33 +276,19 @@ async function checkAndMigrateLegacyState() {
 
   await update(ref(database), rootUpdates);
   console.log("Tournament migration completed");
+}
 
-  // Migração de utilizadores para users se users ainda não existir
-  try {
-    const usersSnap = await get(ref(database, 'users'));
-    if (!usersSnap.exists() || Object.keys(usersSnap.val() || {}).length === 0) {
-      const utilSnap = await get(ref(database, 'utilizadores'));
-      const utilData = utilSnap.val();
-      if (utilData && typeof utilData === 'object') {
-        const userUpdates = {};
-        Object.keys(utilData).forEach((uid) => {
-          const u = utilData[uid];
-          const isMasterUser = u.role === 'admin';
-          userUpdates[`users/${uid}`] = {
-            nome: u.nome || '',
-            email: u.email || '',
-            foto: u.foto || '',
-            ultimoAcesso: u.ultimoAcesso || Date.now(),
-            role: isMasterUser ? 'master' : (u.role || 'user'),
-            ...(isMasterUser ? { admin: { football: true, padel: true } } : {}),
-          };
-        });
-        await update(ref(database), userUpdates);
-        console.log("utilizadores migrated to users");
-      }
-    }
-  } catch (err) {
-    console.error("Users migration failed:", err);
+// Copies the legacy roles (utilizadores) of users who have no role in users
+// yet. Only a master may write roles, so it runs once per session for them.
+let legacyRolesChecked = false;
+async function migrateLegacyRoles() {
+  if (legacyRolesChecked) return;
+  legacyRolesChecked = true;
+  const [utilSnap, usersSnap] = await Promise.all([get(ref(database, 'utilizadores')), get(ref(database, 'users'))]);
+  const roleUpdates = legacyRoleUpdates(utilSnap.val(), usersSnap.val());
+  if (Object.keys(roleUpdates).length) {
+    await update(ref(database), roleUpdates);
+    console.log(`Legacy roles copied to users: ${Object.keys(roleUpdates).length} paths`);
   }
 }
 
@@ -342,6 +328,9 @@ export function initAuth(callback) {
         } catch (err) {
           console.error("Legacy migration check failed:", err);
         }
+      }
+      if (currentRole === 'master') {
+        migrateLegacyRoles().catch((err) => console.error("Users migration failed:", err));
       }
     }, (err) => {
       console.error("Firebase error reading user role:", err);

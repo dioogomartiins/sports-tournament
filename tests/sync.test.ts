@@ -7,6 +7,7 @@ import {
   onlyMetadata,
   normalizeConfig,
   normalizeMeta,
+  legacyRoleUpdates,
 } from '../src/sync.js';
 
 describe('diffSnapshot', () => {
@@ -189,3 +190,20 @@ describe('normalizeMeta', () => {
   });
 });
 
+
+describe('legacyRoleUpdates', () => {
+  it('copies roles of users without a role in users', () => {
+    const utilizadores = { a: { role: 'admin' }, u: { role: 'user' }, x: { role: 'hacker' }, n: null };
+    const users = { a: { role: null }, u: {} };
+    expect(legacyRoleUpdates(utilizadores, users)).toEqual({
+      'users/a/role': 'admin',
+      'users/a/admin/football': true,
+      'users/u/role': 'user',
+    });
+  });
+
+  it('keeps roles already set in users', () => {
+    expect(legacyRoleUpdates({ a: { role: 'admin' } }, { a: { role: 'user' } })).toEqual({});
+    expect(legacyRoleUpdates(null, null)).toEqual({});
+  });
+});
