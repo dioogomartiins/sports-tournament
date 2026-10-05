@@ -40,6 +40,8 @@ export interface ScoreMatch {
   result?: MatchResult;
   /** Racket sports: the tournament's set format. */
   format?: SetFormat;
+  /** Racket sports played to points (padel Americano): the match total. */
+  points?: number;
 }
 
 const PLACEHOLDER_CREST = '#888888';

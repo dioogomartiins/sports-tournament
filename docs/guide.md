@@ -71,6 +71,8 @@ These steps are done by an **admin** of the tournament's sport (or the Master Ad
 
 Generating a new schedule deletes the results already entered (the app asks for confirmation). Teams, squads and settings are kept.
 
+**Americano and Mexicano (padel):** in ⚙️ Settings → *Pairs*, pick the format and the points per match, set the number of teams to the number of players (a multiple of 4) and tap **👤 Choose players**. Then generate the schedule. In Mexicano only the first round is drawn; when it is finished, tap **➕ Next Mexicano Round** in the Schedule. See [Rules](rules.md#americano-and-mexicano).
+
 **Extra round:** in a single-league tournament without playoffs, the **➕ Add Extra Round (Keep Results)** button in the Schedule adds one more round without losing results. The new round swaps who plays at home.
 
 ## During the matches

@@ -39,8 +39,8 @@ export abstract class Sport {
   abstract readonly name: string;
   abstract readonly icon: string;
 
-  /** Columns of the standings table, in order. */
-  abstract standingsColumns(): StandingsColumn[];
+  /** Columns of the standings table, in order (some sports change them with the tournament's config). */
+  abstract standingsColumns(config?: Config | null): StandingsColumn[];
 
   /** Player rating attributes (key → label), each rated 0-5 in the player editor. */
   abstract ratingAttributes(): Record<string, string>;

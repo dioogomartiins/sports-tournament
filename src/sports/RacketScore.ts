@@ -91,7 +91,9 @@ export abstract class RacketScore extends ScoreBase {
   `];
 
   protected get pointLabels(): { add: string; cancel: string } {
-    return { add: en.racketScore.addGameTitle, cancel: en.racketScore.cancelGameTitle };
+    return this.points
+      ? { add: en.racketScore.addPointTitle, cancel: en.racketScore.cancelPointTitle }
+      : { add: en.racketScore.addGameTitle, cancel: en.racketScore.cancelGameTitle };
   }
 
   protected isPointEvent(ev: GameEvent): boolean {
@@ -102,12 +104,18 @@ export abstract class RacketScore extends ScoreBase {
     return this.sport.setsOf(this.match?.result);
   }
 
+  /** Total points of the match when it is played to points (Americano), else null. */
+  private get points(): number | null {
+    return this.match?.points || null;
+  }
+
   private get setFormat() {
     return this.sport.format(this.match?.format ? { setFormat: this.match.format } : null);
   }
 
-  /** The header shows sets won. */
+  /** The header shows sets won, or the points in a match played to points. */
   get score(): { home: number; away: number } | null {
+    if (this.points) return this.sport.pointsOf(this.match?.result);
     const sets = this.sets;
     return sets.length ? this.sport.setsWon(sets, this.setFormat) : null;
   }
@@ -116,7 +124,7 @@ export abstract class RacketScore extends ScoreBase {
     const m = this.match;
     const team = ev.side && m ? m[ev.side].name : '';
     if (ev.type === 'game') {
-      return html`<div class="anim-title">${en.racketScore.game}</div><div class="anim-sub">${this.sport.icon} ${team}</div>`;
+      return html`<div class="anim-title">${this.points ? en.racketScore.point : en.racketScore.game}</div><div class="anim-sub">${this.sport.icon} ${team}</div>`;
     }
     if (ev.type === 'set') {
       const sets = this.sets;
@@ -124,7 +132,7 @@ export abstract class RacketScore extends ScoreBase {
       return html`<div class="anim-title">${en.racketScore.set}</div><div class="anim-sub">${this.sport.icon} ${team}</div>${last ? html`<div class="anim-sub2">${last.home}-${last.away}</div>` : nothing}`;
     }
     if (ev.type === 'anulado') {
-      return html`<div class="anim-title">${en.racketScore.gameCancelled}</div><div class="anim-sub"><s>${team}</s></div>`;
+      return html`<div class="anim-title">${this.points ? en.racketScore.pointCancelled : en.racketScore.gameCancelled}</div><div class="anim-sub"><s>${team}</s></div>`;
     }
     if (ev.type === 'inicio') {
       return this.whistleMessage(en.racketScore.matchStart, m ? `${m.home.name} vs ${m.away.name}` : '');
@@ -134,6 +142,12 @@ export abstract class RacketScore extends ScoreBase {
   }
 
   protected renderBody(): TemplateResult {
+    const total = this.points;
+    if (total) {
+      const pts = this.score;
+      const left = Math.max(0, total - (pts ? pts.home + pts.away : 0));
+      return html`<div class="gm-body"><p class="ps-format">${en.racketScore.pointsLine(total, left)}</p></div>`;
+    }
     const f = this.setFormat;
     return html`
       <div class="gm-body">

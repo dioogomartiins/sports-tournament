@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import type { PlayerIndex, Team, ArchiveEntry } from './types.js';
+import type { PlayerIndex, Team, ArchiveEntry, Match } from './types.js';
 
 export function clamp(n: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, n));
@@ -50,6 +50,13 @@ export function getTeamName(idx: number | string): string {
   const teams = state.teams as Team[] | null | undefined;
   const t = teams?.[idx];
   return t && t.name ? t.name : `Team ${idx + 1}`;
+}
+
+/** Name of a match side: the team, or both players of a rotating pair ("Ana / Rui"). */
+export function sideName(game: Match, side: 'home' | 'away'): string {
+  const partner = game.partners?.[side];
+  const first = getTeamName(game[side]);
+  return typeof partner === 'number' ? `${first} / ${getTeamName(partner)}` : first;
 }
 
 export function getActiveTeamNames(): string[] {

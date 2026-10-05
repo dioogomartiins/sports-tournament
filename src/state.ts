@@ -4,6 +4,7 @@
 
 import type { TemplateResult } from 'lit';
 import { generateSchedule } from './algorithms.js';
+import { americanoRounds, mexicanoRound, rotationSchedule, type RotationFormat } from './core/americano.js';
 import { pushStateToFirebase, getSyncedSnapshot, getCurrentRole } from './firebase.js';
 import {
   normalizeResults,
@@ -33,7 +34,8 @@ import { en } from './i18n/en.js';
 // Constants
 // ---------------------------------------------------------------------------
 // 10: config.setFormat (padel) and per-sport rating attribute keys
-export const SNAPSHOT_VERSION = 10;
+// 11: padel Americano / Mexicano (config.padelFormat, config.matchPoints, schedule[].partners)
+export const SNAPSHOT_VERSION = 11;
 export const MAX_TEAMS = 32;
 const DEFAULT_COLOR = '#2F7A4F';
 
@@ -461,6 +463,31 @@ export function applyGeneratedSchedule(
   state.roundsMeta = out.roundsMeta;
   state.scheduleTeamCount = numEquipas;
   state.scheduleVoltas = numVoltas;
+}
+
+/**
+ * Americano / Mexicano schedule: each team slot is one player. Americano plays
+ * every partner rotation `numVoltas` times; Mexicano draws only the first round,
+ * from `ranking` (player slots, best first), and the next ones from the standings.
+ */
+export function applyRotationSchedule(
+  format: RotationFormat,
+  numPlayers: number,
+  numVoltas: number,
+  ranking: number[],
+): void {
+  const cycle = americanoRounds(numPlayers);
+  const rounds = format === 'americano'
+    ? Array.from({ length: numVoltas }, () => cycle).flat()
+    : [mexicanoRound(ranking)];
+  const out = rotationSchedule(rounds);
+  for (let i = 0; i < numPlayers; i++) {
+    if (state.teams?.[i]) state.teams[i].group = 0;
+  }
+  state.schedule = out.games;
+  state.roundsMeta = out.rounds;
+  state.scheduleTeamCount = numPlayers;
+  state.scheduleVoltas = format === 'americano' ? numVoltas : 1;
 }
 
 // ---------------------------------------------------------------------------

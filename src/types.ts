@@ -87,6 +87,10 @@ export interface Config {
   sport: string;
   /** Racket sports: how a match is played (see RacketSport). */
   setFormat?: SetFormat;
+  /** Padel: fixed pairs (default), or partners that rotate every round. */
+  padelFormat?: 'pairs' | 'americano' | 'mexicano';
+  /** Americano / Mexicano: total points of each match (24 by default). */
+  matchPoints?: number;
   [key: string]: unknown;
 }
 
@@ -109,6 +113,8 @@ export interface Match {
   playoffMatchId?: string | number;
   nextMatchId?: string | number | null;
   label?: string;
+  /** Americano / Mexicano: the second player of each pair (home and away hold the first). */
+  partners?: { home: number; away: number };
   [key: string]: unknown;
 }
 

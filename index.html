@@ -161,6 +161,29 @@
           </div>
         </div>
 
+        <div class="card" data-sport-only="padel" hidden>
+          <div class="section-title">🔄 Pairs</div>
+          <div class="form-grid">
+            <div class="field">
+              <label for="cfgPadelFormat">Format</label>
+              <select id="cfgPadelFormat" class="input">
+                <option value="pairs">Fixed pairs</option>
+                <option value="americano">Americano (partners rotate)</option>
+                <option value="mexicano">Mexicano (partners by ranking)</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="cfgMatchPoints">Points per match</label>
+              <input type="number" id="cfgMatchPoints" class="input" min="4" max="99" step="1">
+            </div>
+          </div>
+          <p class="field-note" style="margin-top:10px;">In Americano and Mexicano each team is one player and partners
+            change every round. Each match is played to the points above and every player keeps the points their pair
+            won. Americano: everyone partners everyone once. Mexicano: one round at a time, 1st and 4th play 2nd and 3rd.
+            The number of teams is the number of players, a multiple of 4.</p>
+          <button class="btn btn-gold" id="btnPickRotationPlayers" style="margin-top:10px;">👤 Choose players</button>
+        </div>
+
         <div class="card" data-sport-only="padel tennis" hidden>
           <div class="section-title">🎾 Set format</div>
           <div class="form-grid">
@@ -393,7 +416,7 @@
           </div>
           <p class="field-note" style="margin-top:14px;" data-sport-only="football">Tiebreaker criteria, in order: points → goal difference → goals
             scored → head-to-head (mini-table of matches between tied teams) → fewest goals conceded → alphabetical order.</p>
-          <p class="field-note" style="margin-top:14px;" data-sport-only="padel tennis" hidden>Ranked by games won (GW). Tiebreaker
+          <p id="standingsNoteRacket" class="field-note" style="margin-top:14px;" data-sport-only="padel tennis" hidden>Ranked by games won (GW). Tiebreaker
             criteria, in order: game difference → head-to-head → fewest games lost → alphabetical order. A super tie-break
             counts as one game.</p>
         </div>

@@ -14,7 +14,7 @@ Database. Deployed to GitHub Pages at `/torneio-ilog/` on release tags (`release
 
 - Module roles:
   - `src/state.ts` owns global state and persistence (localStorage + Firebase push).
-  - `src/core/` holds pure tournament logic (Berger schedule, playoff bracket, snake/balanced draft, archive).
+  - `src/core/` holds pure tournament logic (Berger schedule, playoff bracket, Americano/Mexicano rounds, snake/balanced draft, archive).
   - `src/sports/` defines the abstract `Sport` class, `registry.ts` (`getSport(id)`), and sport implementations (`src/sports/football/Football.ts` for standings, head-to-head, playoff winner, player stats and goal handling).
   - `src/algorithms.ts` re-exports core and football sport methods for backward compatibility.
   - `src/sync.ts` diffs snapshots for `update()`, normalizes older saved data

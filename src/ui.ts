@@ -10,6 +10,9 @@ import { renderPlayersList } from './ui/players.js';
 import { renderDraftPlayerList, renderSingularHistorico } from './ui/singular.js';
 import { renderHistorico } from './ui/history.js';
 import { renderHeaderTournament } from './ui/tournaments.js';
+import { getSport } from './sports/registry.js';
+import { padel } from './sports/padel/Padel.js';
+import { en } from './i18n/en.js';
 
 // The rest of the interface lives in src/ui/, one module per section; this file
 // brings everything together for modules importing from './ui.js'.
@@ -56,12 +59,18 @@ export function refreshComputed() {
   renderScheduleHint();
 
   // Hide "Add Extra Round" when the tournament uses groups (only a single league is supported)
+  // Mexicano draws its rounds one at a time with the same button
+  const rotation = getSport(state.meta?.sport) === padel ? padel.rotation(state.config) : null;
   if (dom.btnAdicionarVolta) {
     const isLeague = (state.config?.numGrupos || 1) === 1;
     dom.btnAdicionarVolta.style.display = isLeague ? '' : 'none';
+    dom.btnAdicionarVolta.textContent = rotation === 'mexicano' ? en.schedule.nextMexicanoRound : en.schedule.addExtraRound;
   }
 
-  if (state.config?.mataMata && dom.btnGerarEliminatorias) {
+  if (dom.standingsNoteRacket) dom.standingsNoteRacket.textContent = rotation ? en.standings.rotationNote : en.standings.racketNote;
+
+  if (dom.btnGerarEliminatorias && rotation) dom.btnGerarEliminatorias.style.display = 'none';
+  else if (state.config?.mataMata && dom.btnGerarEliminatorias) {
     let leagueTotal = 0;
     let leaguePlayed = 0;
     let hasPlayoffs = false;

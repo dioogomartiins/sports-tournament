@@ -37,6 +37,8 @@ export function populateConfigForm(): void {
   field('cfgSets').value = String(f.sets);
   field('cfgGamesPerSet').value = String(f.gamesPerSet);
   field('cfgSuperTieBreak').checked = f.superTieBreak;
+  field('cfgPadelFormat').value = padel.rotation(c) || 'pairs';
+  field('cfgMatchPoints').value = String(padel.pointsPerMatch({ ...c, padelFormat: 'americano' }));
 }
 
 /** The schedule in use, and the configured one when it differs (not generated yet). */

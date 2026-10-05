@@ -1,10 +1,13 @@
-import { state, loadedConfig, loadedTeams, loadedSquads, persistConfigTeams, loadState, persistSchedule, persistResults, storeAllLayers, notifyPushError, currentTheme, setCurrentTheme, exportJSON, importJSON, applyGeneratedSchedule, applySnapshot, buildSnapshot, defaultTeams, defaultSquads, setStateHooks, setCurrentTournamentId, getCurrentTournamentId } from './state.js';
-import { closeGameModal, openGameModal, animateResultChanges, dom, cacheDom, renderAll, refreshComputed, renderScheduleHint, renderSquadList, renderSquadsDropdown, flashError, flashBackup, renderCalendar, renderResults, showToast, flashSaved, openConfirm, closeConfirm, runConfirm, openDangerConfirm, switchTab, openScorerModal, openPlayerProfile, computeStatsSummary, renderPlayersList, openPlayerModal, renderSquadPlayerFromDBDropdown, renderAuth, renderUsers, renderLog, openPickPlayerModal, squadPickList, renderTournamentsList, openNovoTorneioModal, openDrawPairsModal, bindHistoryEvents, bindPlayersEvents, bindSingleMatchEvents, fieldValue, setFieldValue, isChecked, onEvent } from './ui.js';
+import { state, loadedConfig, loadedTeams, loadedSquads, persistConfigTeams, loadState, persistSchedule, persistResults, storeAllLayers, notifyPushError, currentTheme, setCurrentTheme, exportJSON, importJSON, applyGeneratedSchedule, applyRotationSchedule, applySnapshot, buildSnapshot, defaultTeams, defaultSquads, setStateHooks, setCurrentTournamentId, getCurrentTournamentId } from './state.js';
+import { closeGameModal, openGameModal, animateResultChanges, dom, cacheDom, renderAll, refreshComputed, renderScheduleHint, renderSquadList, renderSquadsDropdown, flashError, flashBackup, renderCalendar, renderResults, showToast, flashSaved, openConfirm, closeConfirm, runConfirm, openDangerConfirm, switchTab, openScorerModal, openPlayerProfile, computeStatsSummary, renderPlayersList, openPlayerModal, renderSquadPlayerFromDBDropdown, renderAuth, renderUsers, renderLog, openPickPlayerModal, squadPickList, renderTournamentsList, openNovoTorneioModal, openDrawPairsModal, openRotationPlayersModal, bindHistoryEvents, bindPlayersEvents, bindSingleMatchEvents, fieldValue, setFieldValue, isChecked, onEvent } from './ui.js';
 import { html } from 'lit';
 import { clamp, numOr, buildPlayerIndex } from './utils.js';
 import { shareStandings, shareResult } from './share.js';
 import { bergerRounds, balancedPairs, buildExtraVolta, buildArchiveEntry, GAME_STATUS } from './algorithms.js';
 import { buildPlayoffBracket, firstRoundIndex, playoffSeeds, advanceWinner } from './core/playoffs.js';
+import { americanoRounds, mexicanoRound, rotationSchedule, lastRoundFinished, isRotationFormat, validPlayerCount, type RotationFormat, type RotationMatch } from './core/americano.js';
+import { getPlayerRating } from './core/draft.js';
+import { Padel, DEFAULT_MATCH_POINTS } from './sports/padel/Padel.js';
 import type { Sport } from './sports/Sport.js';
 import type { GameStatus, MatchResult, Player, Score } from './types.js';
 import type { AuthInfo, TournamentListing } from './firebase.js';
@@ -36,6 +39,9 @@ export function onConfigFieldChange(): void {
   config.mataMata = isChecked('cfgMataMata');
   config.numPlayoffTeams = parseInt(fieldValue('cfgNumPlayoffTeams'), 10) || 4;
   config.numGrupos = parseInt(fieldValue('cfgNumGrupos'), 10) || 1;
+  const padelFormat = fieldValue('cfgPadelFormat');
+  config.padelFormat = isRotationFormat(padelFormat) ? padelFormat : 'pairs';
+  config.matchPoints = clamp(parseInt(fieldValue('cfgMatchPoints'), 10) || DEFAULT_MATCH_POINTS, 4, 99);
   persistConfigTeams();
   refreshComputed();
 }
@@ -97,6 +103,7 @@ export function onAddPlayerFromDB(): void {
 
 /** Draws balanced pairs from the chosen players into the tournament's teams, in order. */
 function onDrawPairs(): void {
+  if (rotationFormat()) { showToast(en.toasts.rotationNoPairs, 'error'); return; }
   const sportId = currentSport().id;
   openDrawPairsModal((ids) => {
     const chosen = ids.map((id) => state.players.find((p) => p.id === id)).filter((p): p is Player => !!p);
@@ -149,6 +156,40 @@ function commitResult(gi: number, next: MatchResult | undefined): void {
 /** The sport of the tournament on screen. */
 function currentSport(): Sport {
   return getSport(state.meta?.sport || state.config?.sport);
+}
+
+/** Americano or Mexicano when the tournament on screen rotates padel partners, else null. */
+function rotationFormat(): RotationFormat | null {
+  const sport = currentSport();
+  return sport instanceof Padel ? sport.rotation(state.config) : null;
+}
+
+/** Player slots ordered by their padel rating, best first (Mexicano's first round). */
+function ratingRanking(n: number): number[] {
+  const rating = (i: number) => {
+    const id = state.squads?.[i]?.[0]?.id;
+    return getPlayerRating(state.players.find((p) => p.id === id), 'padel');
+  };
+  return Array.from({ length: n }, (_, i) => i).sort((a, b) => rating(b) - rating(a) || a - b);
+}
+
+/** Americano / Mexicano: one player from the database in each of the first n team slots. */
+function onPickRotationPlayers(): void {
+  const n = clamp(parseInt(fieldValue('cfgNumEquipas'), 10) || loadedConfig().numEquipas, 2, 32);
+  if (!validPlayerCount(n)) { showToast(en.toasts.rotationPlayerCount, 'error'); return; }
+  openRotationPlayersModal(n, (ids) => {
+    const teams = loadedTeams();
+    const squads = loadedSquads();
+    ids.forEach((id, i) => {
+      const p = state.players.find((x) => x.id === id);
+      if (!p) return;
+      teams[i].name = p.nome;
+      squads[i] = [{ id: p.id, num: 1, name: p.nome }];
+    });
+    persistConfigTeams();
+    renderAll();
+    showToast(en.toasts.rotationPlayersSet(ids.length), 'ok');
+  });
 }
 
 function changeGameStatus(gi: number, status: GameStatus): void {
@@ -245,11 +286,14 @@ export function onGerarCalendario(): void {
   const v = clamp(parseInt(fieldValue('cfgNumVoltas'), 10) || loadedConfig().numVoltas, 1, 20);
   const hasResults = Object.keys(state.results).length > 0;
   const estimate = bergerRounds(n).reduce((s, r) => s + r.pairs.length, 0) * v;
+  const rotation = rotationFormat();
+  if (rotation && !validPlayerCount(n)) { showToast(en.toasts.rotationPlayerCount, 'error'); return; }
 
   function doIt() {
     config.numEquipas = n;
     config.numVoltas = v;
-    applyGeneratedSchedule(n, v, true);
+    if (rotation) applyRotationSchedule(rotation, n, v, ratingRanking(n));
+    else applyGeneratedSchedule(n, v, true);
     state.results = {};
     persistConfigTeams();
     persistSchedule();
@@ -436,6 +480,8 @@ export function onAtualizar(): void {
 
 export function onAdicionarVolta(): void {
   if (!state.schedule.length) return;
+  const rotation = rotationFormat();
+  if (rotation) { addRotationRound(rotation); return; }
 
   if ((loadedConfig().numGrupos || 1) > 1) {
     showToast(en.toasts.extraRoundGroupsUnsupported, 'error');
@@ -467,7 +513,39 @@ export function onAdicionarVolta(): void {
   );
 }
 
+/** Americano: plays every partner rotation once more. Mexicano: draws the next round from the standings. */
+function addRotationRound(format: RotationFormat): void {
+  const n = state.scheduleTeamCount;
+  const last = state.roundsMeta.reduce((m, r) => Math.max(m, Number(r.jornada) || 0), 0);
+  const append = (rounds: RotationMatch[][]) => {
+    const { games, rounds: meta } = rotationSchedule(rounds, last + 1);
+    state.schedule = state.schedule.concat(games);
+    state.roundsMeta = state.roundsMeta.concat(meta);
+    persistSchedule();
+    renderAll();
+  };
+
+  if (format === 'mexicano') {
+    if (!lastRoundFinished(state.schedule, state.results)) { showToast(en.toasts.mexicanoRoundPending, 'error'); return; }
+    const ranking = computeStatsSummary().groupsData[0]?.standings.map((s) => s.idx) || [];
+    append([mexicanoRound(ranking)]);
+    showToast(en.toasts.mexicanoRoundAdded(last + 1), 'ok');
+    return;
+  }
+
+  const novaVolta = state.scheduleVoltas + 1;
+  openConfirm(en.confirmations.addExtraRoundTitle, en.confirmations.addExtraRoundPrompt(novaVolta), () => {
+    state.scheduleVoltas = novaVolta;
+    loadedConfig().numVoltas = novaVolta;
+    setFieldValue('cfgNumVoltas', novaVolta);
+    persistConfigTeams();
+    append(americanoRounds(n));
+    showToast(en.toasts.extraRoundAdded, 'ok');
+  });
+}
+
 export function onGerarEliminatorias(): void {
+  if (rotationFormat()) { showToast(en.toasts.rotationNoPlayoffs, 'error'); return; }
   const summary = computeStatsSummary();
   const numPlayoffTeamsPerGroup = loadedConfig().numPlayoffTeams || 4;
   const numGrupos = loadedConfig().numGrupos || 1;
@@ -632,6 +710,7 @@ export function bindEvents(): void {
   });
   dom.btnAddPlayerFromDB.addEventListener('click', onAddPlayerFromDB);
   dom.btnDrawPairs.addEventListener('click', onDrawPairs);
+  dom.btnPickRotationPlayers.addEventListener('click', onPickRotationPlayers);
   onEvent<string>(dom.squadList, 'squad-remove', onSquadRemove);
   onEvent<string>(dom.squadList, 'player-stats', (pid) => openPlayerProfile(pid, Number(fieldValue('squadTeamSelect'))));
 
@@ -666,6 +745,8 @@ export function bindEvents(): void {
     el.addEventListener('blur', onFormatFieldChange);
   });
   dom.cfgNumGrupos.addEventListener('change', () => { onConfigFieldChange(); renderScheduleHint(); });
+  dom.cfgPadelFormat.addEventListener('change', () => { onConfigFieldChange(); renderAll(); });
+  dom.cfgMatchPoints.addEventListener('blur', onConfigFieldChange);
   dom.cfgMataMata.addEventListener('change', onConfigFieldChange);
   dom.cfgNumPlayoffTeams.addEventListener('change', onConfigFieldChange);
 

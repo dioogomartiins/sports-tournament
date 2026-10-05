@@ -35,8 +35,8 @@ describe('state and snapshot versioning', () => {
     state.arquivo = [];
   });
 
-  it('SNAPSHOT_VERSION is 10', () => {
-    expect(SNAPSHOT_VERSION).toBe(10);
+  it('SNAPSHOT_VERSION is 11', () => {
+    expect(SNAPSHOT_VERSION).toBe(11);
   });
 
   it('defaultConfig initializes sport as football', () => {
@@ -162,11 +162,11 @@ describe('state and snapshot versioning', () => {
     expect(state.meta?.createdAt).toBe(99999);
   });
 
-  it('buildSnapshot produces a version 10 snapshot with meta and sport', () => {
+  it('buildSnapshot produces a version 11 snapshot with meta and sport', () => {
     state.config = defaultConfig();
     state.meta = defaultMeta('padel', 'Open Padel');
     const snap = buildSnapshot();
-    expect(snap.version).toBe(10);
+    expect(snap.version).toBe(11);
     expect(snap.config.sport).toBe('football');
     expect(snap.meta.sport).toBe('padel');
     expect(snap.meta.name).toBe('Open Padel');
