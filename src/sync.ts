@@ -96,6 +96,25 @@ export function onlyMetadata(updates: Record<string, unknown>): boolean {
   return Object.keys(updates).every((p) => META_SECTIONS.includes(p));
 }
 
+/** Sections stored outside the tournament, at the database root. */
+const GLOBAL_SECTIONS: readonly string[] = ['players', 'arquivo'];
+
+/**
+ * The part of an update that can be saved while the current tournament does
+ * not exist in the database: only the global sections. `blocked` is true when
+ * the update also changes the tournament itself, which would otherwise create
+ * it with default settings and list it as an active tournament.
+ */
+export function globalUpdatesOnly(updates: Record<string, unknown>): { updates: Record<string, unknown>; blocked: boolean } {
+  const out: Record<string, unknown> = {};
+  let blocked = false;
+  Object.keys(updates).forEach((p) => {
+    if (GLOBAL_SECTIONS.includes(p)) out[p] = updates[p];
+    else if (!META_SECTIONS.includes(p)) blocked = true;
+  });
+  return { updates: out, blocked };
+}
+
 /**
  * Normalizes a tournament configuration, applying default values and ensuring
  * the sport is defined. If no sport is specified (e.g. from version <= 7 snapshots),

@@ -5,6 +5,7 @@ import {
   normalizeArquivo,
   describeUpdates,
   onlyMetadata,
+  globalUpdatesOnly,
   normalizeConfig,
   normalizeMeta,
   legacyRoleUpdates,
@@ -73,6 +74,19 @@ describe('onlyMetadata', () => {
     expect(onlyMetadata({ exportedAt: 'x', version: 7 })).toBe(true);
     expect(onlyMetadata({})).toBe(true);
     expect(onlyMetadata({ exportedAt: 'x', 'results/0': null })).toBe(false);
+  });
+});
+
+describe('globalUpdatesOnly', () => {
+  it('keeps players and the archive and drops metadata', () => {
+    const players = [{ id: 'p1' }];
+    expect(globalUpdatesOnly({ players, exportedAt: 'x', version: 11 })).toEqual({ updates: { players }, blocked: false });
+  });
+
+  it('blocks any change to the tournament itself', () => {
+    expect(globalUpdatesOnly({ players: [], config: {} }).blocked).toBe(true);
+    expect(globalUpdatesOnly({ 'results/0': null }).blocked).toBe(true);
+    expect(globalUpdatesOnly({ meta: { status: 'active' } }).blocked).toBe(true);
   });
 });
 

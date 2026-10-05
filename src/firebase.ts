@@ -1,7 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getDatabase, connectDatabaseEmulator, ref, onValue, update, push, query, orderByChild, limitToLast, serverTimestamp, get } from "firebase/database";
 import { getAuth, connectAuthEmulator, GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
-import { diffSnapshot, describeUpdates, onlyMetadata, normalizeMeta, normalizeConfig, legacyRoleUpdates } from "./sync.js";
+import { diffSnapshot, describeUpdates, onlyMetadata, globalUpdatesOnly, normalizeMeta, normalizeConfig, legacyRoleUpdates } from "./sync.js";
 import { en } from "./i18n/en.js";
 import { blockedPaths, roleLabel, isSportAdmin, isMaster } from "./permissions.js";
 import type { User } from "firebase/auth";
@@ -13,7 +13,7 @@ import type { LogEntry } from "./components/ActivityLog.js";
 export type Snapshot = Partial<Tournament>;
 /** A tournament as listed in tournaments/ (its meta plus the id). */
 export type TournamentListing = TournamentMeta & { id: string };
-export type PushResult = { ok: true } | { ok: false; reason: 'sem-sync' | 'sem-sessao' | 'sem-permissao' };
+export type PushResult = { ok: true } | { ok: false; reason: 'sem-sync' | 'sem-sessao' | 'sem-permissao' | 'sem-torneio' };
 export interface AuthInfo { user: User | null; role: Role | null; admin: Record<string, boolean> }
 type Updates = Record<string, unknown>;
 
@@ -45,6 +45,8 @@ let onStateChangeCallback: ((data: Snapshot, firstLoad: boolean) => void) | null
 let onPushErrorCallback: ((err: Error) => void) | null = null;
 let isFirstLoad = true;
 let lastSynced: Snapshot | null = null; // last snapshot equal to what Firebase holds
+/** False while tournaments/<id> holds nothing: only global sections may be saved then. */
+let tournamentExists = true;
 let stopStateListener: Unsubscribe | null = null;
 /** Counts tournament values from Firebase, so only the latest one is applied. */
 let serverStateSeq = 0;
@@ -122,32 +124,35 @@ async function applyServerState(value: Snapshot | null): Promise<void> {
       // Ignore permission or network errors
     }
   }
-  if (data) {
-    // The global archive lives in /arquivo
-    try {
-      const arqSnap = await get(ref(database, 'arquivo'));
-      const arqVal = arqSnap.val();
-      if (arqVal) data.arquivo = arqVal;
-    } catch {
-      // Ignora
-    }
+  const exists = !!data;
+  // No tournament under this id (none created yet, or the last one was
+  // removed): still read the global sections, so the empty tournament on
+  // screen becomes the synced baseline and changes to it can be told apart
+  const snap: Snapshot = data || {};
 
-    // Global players live in /players
-    try {
-      const playersSnap = await get(ref(database, 'players'));
-      const playersVal = playersSnap.val();
-      if (playersVal) data.players = playersVal;
-    } catch {
-      // Ignora
-    }
+  // The global archive lives in /arquivo
+  try {
+    const arqSnap = await get(ref(database, 'arquivo'));
+    const arqVal = arqSnap.val();
+    if (arqVal) snap.arquivo = arqVal;
+  } catch {
+    // Ignora
+  }
+
+  // Global players live in /players
+  try {
+    const playersSnap = await get(ref(database, 'players'));
+    const playersVal = playersSnap.val();
+    if (playersVal) snap.players = playersVal;
+  } catch {
+    // Ignora
   }
   // A newer value arrived while this one was reading the archive and players
   // (a rejected save fires the optimistic value, then the server one): skip it
   if (seq !== serverStateSeq) return;
-  // Empty database: already in sync, the first save sends everything
-  if (!data && !lastSynced) lastSynced = {};
-  if (data && onStateChangeCallback) {
-    onStateChangeCallback(data, isFirstLoad);
+  tournamentExists = exists;
+  if (onStateChangeCallback) {
+    onStateChangeCallback(snap, isFirstLoad);
     isFirstLoad = false;
   }
 }
@@ -183,14 +188,22 @@ export function getSyncedSnapshot(): Snapshot | null {
 // different games or sections don't overwrite each other. Each push also
 // appends an entry to tournament_log/<id> with who made the change.
 //
-// Returns { ok: true } or { ok: false, reason: 'sem-sync' | 'sem-sessao' | 'sem-permissao' }.
+// Returns { ok: true } or { ok: false, reason: 'sem-sync' | 'sem-sessao' | 'sem-permissao' | 'sem-torneio' }.
 // When it fails nothing is sent and the caller should restore the last synced state.
 export function pushStateToFirebase(newState: Snapshot, tournamentId: string = activeTournamentId): PushResult {
   if (!lastSynced) return { ok: false, reason: 'sem-sync' };
 
-  const updates = diffSnapshot(lastSynced, newState);
+  let updates = diffSnapshot(lastSynced, newState);
   // Only the export date changed: nothing to save
   if (onlyMetadata(updates)) return { ok: true };
+  // No tournament to save into: writing it would create one with default
+  // settings, so only players and the archive are saved
+  const exists = tournamentExists;
+  if (!exists) {
+    const global = globalUpdatesOnly(updates);
+    if (global.blocked) return { ok: false, reason: 'sem-torneio' };
+    updates = global.updates;
+  }
 
   if (!currentUser) return { ok: false, reason: 'sem-sessao' };
   const sport = newState?.meta?.sport || newState?.config?.sport || 'football';
@@ -214,7 +227,7 @@ export function pushStateToFirebase(newState: Snapshot, tournamentId: string = a
   const log = logEntry(describeUpdates(updates, newState) || en.sync.tournamentChanged, tournamentId);
   Object.assign(rootUpdates, log);
   const logKey = Object.keys(log)[0].split('/')[2];
-  rootUpdates[`tournaments/${tournamentId}/logRef`] = logKey;
+  if (exists) rootUpdates[`tournaments/${tournamentId}/logRef`] = logKey;
 
   update(ref(database), rootUpdates).catch((err) => {
     console.error("Firebase error pushing state:", err);
