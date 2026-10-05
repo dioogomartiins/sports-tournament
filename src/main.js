@@ -1,8 +1,7 @@
 import { state, persistConfigTeams, loadState, persistSchedule, persistResults, persistJogosSingulares, storeAllLayers, notifyPushError, currentTheme, setCurrentTheme, exportJSON, importJSON, applyGeneratedSchedule, applySnapshot, buildSnapshot, defaultTeams, defaultSquads, setStateHooks, setCurrentTournamentId, getCurrentTournamentId } from './state.js';
-import { closeGameModal, dom, cacheDom, renderAll, refreshComputed, renderScheduleHint, renderSquadList, renderSquadsDropdown, flashError, flashBackup, renderCalendar, renderResults, showToast, flashSaved, openConfirm, closeConfirm, openDangerConfirm, switchTab, confirmCallback, openScorerModal, openPlayerProfile, computeStatsSummary, renderPlayersList, openPlayerModal, renderSquadPlayerFromDBDropdown, renderDraftTeams, renderSingularHistorico, currentDraft, renderAuth, renderUsers, renderLog, openPickPlayerModal, squadPickList, renderTournamentsList, openNovoTorneioModal } from './ui.js';
+import { closeGameModal, animateResultChanges, dom, cacheDom, renderAll, refreshComputed, renderScheduleHint, renderSquadList, renderSquadsDropdown, flashError, flashBackup, renderCalendar, renderResults, showToast, flashSaved, openConfirm, closeConfirm, openDangerConfirm, switchTab, confirmCallback, openScorerModal, openPlayerProfile, computeStatsSummary, renderPlayersList, openPlayerModal, renderSquadPlayerFromDBDropdown, renderDraftTeams, renderSingularHistorico, currentDraft, renderAuth, renderUsers, renderLog, openPickPlayerModal, squadPickList, renderTournamentsList, openNovoTorneioModal } from './ui.js';
 import { clamp, numOr, escapeHtml, buildPlayerIndex } from './utils.js';
 import { shareStandings, shareResult } from './share.js';
-import { animateResultChanges } from './animations.js';
 import { bergerRounds, balancedDraft, buildFirstRoundSeeding, buildExtraVolta, getPlayoffWinner, buildArchiveEntry, GAME_STATUS, alignAssists, addGoal, removeGoal, setGameStatus } from './algorithms.js';
 import { initFirebaseListener, onFirebaseStateChange, onFirebasePushError, setSyncedSnapshot, initAuth, signInWithGoogle, signOutUser, getCurrentUser, getCurrentRole, getCurrentUserAdmin, listenUsers, listenLog, setUserRole, listenTournaments, createTournament, finishTournament, setActiveTournamentId } from './firebase.js';
 import { roleLabel } from './permissions.js';
@@ -109,13 +108,10 @@ function propagatePlayoffWinner(gi) {
   }
 }
 
-function onStatusBtnClick(btn) {
-  const gi = btn.dataset.gi;
-
-  const res = state.results[gi];
-  const current = (res && typeof res === 'object' && res.status) || 'agendado';
-  const cycle = { agendado: 'decorrer', decorrer: 'terminado', terminado: 'agendado' };
-  state.results[gi] = setGameStatus(res, cycle[current] ?? 'agendado');
+/** Saves a match result and plays the change on every screen. */
+function commitResult(gi, next) {
+  if (next === state.results[gi]) return;
+  state.results[gi] = next;
   propagatePlayoffWinner(gi);
 
   // Anima depois de gravar: se a gravação for recusada o estado já voltou atrás
@@ -125,37 +121,41 @@ function onStatusBtnClick(btn) {
   refreshComputed();
 }
 
-function onScoreBtnClick(btn) {
-  const gi = btn.dataset.gi;
-  const side = btn.dataset.side;
-  const action = btn.dataset.action;
+function changeGameStatus(gi, status) {
+  commitResult(gi, setGameStatus(state.results[gi], status));
+}
 
+function onStatusBtnClick(btn) {
+  const res = state.results[btn.dataset.gi];
+  const current = (res && typeof res === 'object' && res.status) || 'agendado';
+  const cycle = { agendado: 'decorrer', decorrer: 'terminado', terminado: 'agendado' };
+  changeGameStatus(btn.dataset.gi, cycle[current] ?? 'agendado');
+}
+
+/** Asks for the scorer (and assist) and then adds the goal. */
+function onGoalAdd(gi, side) {
   // O resultado é sempre calculado a partir do estado no momento de gravar:
   // entre o clique e a escolha do marcador pode chegar um golo de outro telemóvel.
-  const commitGoal = (next) => {
-    if (next === state.results[gi]) return;
-    state.results[gi] = next;
-    propagatePlayoffWinner(gi);
-    persistResults().then(() => animateResultChanges());
-    renderResults();
-    renderCalendar();
-    refreshComputed();
-  };
+  openScorerModal(gi, side, (pid) => {
+    const game = state.schedule[gi];
+    if (!game) return;
+    const teamIdx = side === 'home' ? game.home : game.away;
+    const registerGoal = (aid) => commitResult(gi, addGoal(state.results[gi], side, pid, aid));
 
-  if (action === 'add') {
-    openScorerModal(gi, side, (pid) => {
-      const game = state.schedule[gi];
-      if (!game) return;
-      const teamIdx = side === 'home' ? game.home : game.away;
-      const registerGoal = (aid) => commitGoal(addGoal(state.results[gi], side, pid, aid));
+    // Autogolo não tem assistência
+    if (pid === 'auto') registerGoal('');
+    else openPickPlayerModal(en.singleMatch.pickAssistTitle, squadPickList(teamIdx, pid), en.singleMatch.noAssistLabel, registerGoal);
+  });
+}
 
-      // Autogolo não tem assistência
-      if (pid === 'auto') registerGoal('');
-      else openPickPlayerModal(en.singleMatch.pickAssistTitle, squadPickList(teamIdx, pid), en.singleMatch.noAssistLabel, registerGoal);
-    });
-  } else if (action === 'sub') {
-    commitGoal(removeGoal(state.results[gi], side));
-  }
+function onGoalCancel(gi, side) {
+  commitResult(gi, removeGoal(state.results[gi], side));
+}
+
+function onScoreBtnClick(btn) {
+  const { gi, side, action } = btn.dataset;
+  if (action === 'add') onGoalAdd(gi, side);
+  else if (action === 'sub') onGoalCancel(gi, side);
 }
 
 export function onMvpClick(gi) {
@@ -868,13 +868,14 @@ export function bindEvents() {
   // Janela do jogo
   const gameOverlay = document.getElementById('gameOverlay');
   document.getElementById('gameModalClose').addEventListener('click', closeGameModal);
-  document.getElementById('gameModalContent').addEventListener('click', (e) => {
-    const btn = e.target.closest('[data-action]');
-    const head = document.querySelector('#gameModalContent [data-game]');
-    if (!btn || !head) return;
-    if (btn.dataset.action === 'mvp') onMvpClick(head.dataset.game);
-    else if (btn.dataset.action === 'share') shareResult(head.dataset.game);
-  });
+  // Events from <football-score> (detail: { gi, side })
+  const gameModalContent = document.getElementById('gameModalContent');
+  gameModalContent.addEventListener('point', (e) => onGoalAdd(e.detail.gi, e.detail.side));
+  gameModalContent.addEventListener('cancelled', (e) => onGoalCancel(e.detail.gi, e.detail.side));
+  gameModalContent.addEventListener('started', (e) => changeGameStatus(e.detail.gi, GAME_STATUS.DECORRER));
+  gameModalContent.addEventListener('finished', (e) => changeGameStatus(e.detail.gi, GAME_STATUS.TERMINADO));
+  gameModalContent.addEventListener('mvp', (e) => onMvpClick(e.detail.gi));
+  gameModalContent.addEventListener('share', (e) => shareResult(e.detail.gi));
   gameOverlay.addEventListener('click', (e) => { if (e.target === gameOverlay) closeGameModal(); });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !gameOverlay.hidden) closeGameModal(); });
 

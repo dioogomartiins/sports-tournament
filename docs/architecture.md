@@ -47,7 +47,8 @@ It is a single page app in TypeScript and JavaScript (ES Modules) with no framew
 | `src/types.ts` | TypeScript domain types (`Tournament`, `TournamentMeta`, `Config`, `Match`, `Score`, `Player`, `Team`, etc.). |
 | `src/i18n/en.ts` | Every user-facing string, in English. |
 | `src/ui.js` and `src/ui/` | Draw every screen and modal. Each section has its own module in `src/ui/` (`torneios.js`, `classificacao.js`, `calendario.js`, `jogo.js`, `jogadores.js`, `historico.js`, `admin.js`, `modais.js`, …); `dom.js` holds the elements and `avisos.js` the toasts. `ui.js` has `renderAll`/`refreshComputed` and re-exports the rest, so other modules import everything from `./ui.js`. Modules in `src/ui/` never import `ui.js`. |
-| `src/animations.js` | Live animations (kick-off, goal, goal cancelled, full time). They come from comparing the previous result with the new one, so they appear on every device. Turned off with *reduced motion*. |
+| `src/components/ScoreBase.ts` | Lit base class of the live score panel: header, admin controls (emits `point`, `cancelled`, `started`, `finished`) and the event banners (kick-off, goal, goal cancelled, full time) with the score bump. Turned off with *reduced motion*. |
+| `src/sports/football/FootballScore.ts` | `<football-score>`: the match window for football (goal banners, goals timeline, MVP and share). |
 | `src/share.js` | Draws the standings and result PNG images on a `<canvas>` and shares them. |
 | `src/utils.ts` | Small helpers: `escapeHtml`, `safeColor`, team and player names (`playerName`, `buildPlayerIndex`), dates, `prefersReducedMotion`. |
 | `database.rules.json` | Realtime Database security rules, published by the deployment. |

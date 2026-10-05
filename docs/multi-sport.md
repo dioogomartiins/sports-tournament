@@ -183,7 +183,7 @@ The phases below are the original ones. The current phases (TypeScript and `Spor
 | `src/state.js` | 🔄 `config.tipoDesporto`, dynamic attributes | 🟢 Low |
 | `src/ui.js` | 🔄 Labels, icons, conditional columns | 🔴 High |
 | `src/main.js` | 🔄 Score input delegated to the profile | 🟡 Medium |
-| `src/animations.js` | 🔄 Events read from the profile | 🟢 Low |
+| `src/components/ScoreBase.ts` | 🔄 Event banners come from each sport's score component | 🟢 Low |
 | `src/share.js` | 🔄 Columns and labels from the profile | 🟡 Medium |
 | `src/sync.js` | 🔄 Conditional `normalizeResults` | 🟢 Low |
 | `index.html` | 🔄 Sport selector, dynamic labels | 🟡 Medium |

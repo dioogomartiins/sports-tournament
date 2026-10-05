@@ -14,4 +14,5 @@
 @import './historico.css'; /* Histórico de torneios arquivados */
 @import './torneios.css'; /* Lista de torneios ativos e cartões */
 @import './partilha.css'; /* Assistências, MVP e partilha */
-@import './jogo.css'; /* Janela do jogo e animações */
+@import './jogo.css'; /* Janela do jogo */
+@import './score-events.css'; /* Match event animations */
