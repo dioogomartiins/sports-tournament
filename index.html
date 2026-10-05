@@ -80,11 +80,15 @@
       <section id="tab-dashboard" class="panel active">
         <div class="card" id="cardTorneiosAtivos">
           <div class="torneios-header">
-            <div class="section-title" style="margin-bottom:0;">🏆 Active Tournaments</div>
+            <button type="button" class="section-title collapse-toggle" id="btnToggleTorneios" aria-expanded="true" aria-controls="torneiosBody">
+              🏆 Active Tournaments <span class="collapse-count" id="torneiosCount"></span><span class="collapse-chevron" aria-hidden="true">▾</span>
+            </button>
             <button class="btn btn-sm btn-gold" id="btnNovoTorneioModal" data-requires="admin">➕ New Tournament</button>
           </div>
-          <p class="section-sub">Select the tournament you want to follow on this device.</p>
-          <tournament-list class="torneios-grid" id="listaTorneiosAtivos"></tournament-list>
+          <div id="torneiosBody">
+            <p class="section-sub">Select the tournament you want to follow on this device.</p>
+            <tournament-list class="torneios-grid" id="listaTorneiosAtivos"></tournament-list>
+          </div>
         </div>
 
         <div class="card">
@@ -96,7 +100,7 @@
           <div class="stats-grid"><stat-cards id="dashboardStats"></stat-cards></div>
         </div>
         <div class="card">
-          <top-scorers id="dashboardScorers"></top-scorers>
+          <dashboard-leaders id="dashboardScorers"></dashboard-leaders>
         </div>
       </section>
 
@@ -434,7 +438,7 @@
       <section id="tab-historico" class="panel">
         <div class="card">
           <div class="section-title">🌟 All-Time Stats</div>
-          <p class="section-sub">All archived tournaments, the current tournament, and single matches.</p>
+          <p class="section-sub">Finished tournaments of this sport. The tournament being played counts once it is finished.</p>
           <all-time-stats id="historicoSempre"></all-time-stats>
         </div>
         <div class="card">

@@ -17,6 +17,27 @@ export function renderTournamentsList(tournaments: TournamentEntry[], currentId:
   if (!list) return;
   list.tournaments = tournaments;
   list.currentId = currentId;
+  if (dom.torneiosCount) dom.torneiosCount.textContent = tournaments.length ? `(${tournaments.length})` : '';
+}
+
+const COLLAPSED_KEY = 'torneio_tournaments_collapsed';
+
+/** Folds or unfolds the Active Tournaments card. */
+function setTournamentsOpen(open: boolean): void {
+  dom.btnToggleTorneios?.setAttribute('aria-expanded', String(open));
+  if (dom.torneiosBody) dom.torneiosBody.hidden = !open;
+}
+
+/** Wires the fold button of Active Tournaments; the choice is remembered on this device. */
+export function bindTournamentsToggle(): void {
+  let collapsed = false;
+  try { collapsed = localStorage.getItem(COLLAPSED_KEY) === '1'; } catch { /* storage blocked */ }
+  setTournamentsOpen(!collapsed);
+  dom.btnToggleTorneios?.addEventListener('click', () => {
+    const open = dom.btnToggleTorneios.getAttribute('aria-expanded') !== 'true';
+    setTournamentsOpen(open);
+    try { localStorage.setItem(COLLAPSED_KEY, open ? '0' : '1'); } catch { /* storage blocked */ }
+  });
 }
 
 /** Header title and sport badge of the tournament on screen; shows only its sport's settings. */

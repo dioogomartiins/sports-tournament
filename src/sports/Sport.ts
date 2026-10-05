@@ -1,4 +1,5 @@
 import { GAME_STATUS } from '../types.js';
+import { en } from '../i18n/en.js';
 import type {
   Config,
   GameEvent,
@@ -38,6 +39,14 @@ export interface PlayerRecord {
   won: number;
 }
 
+/** One extra column of the all-time table in History (goals, assists… in football). */
+export interface AllTimeColumn {
+  key: keyof PlayerStats;
+  /** Short header (an icon), with `title` as its tooltip. */
+  label: string;
+  title: string;
+}
+
 /** One card of the player profile. */
 export interface ProfileStat {
   label: string;
@@ -46,6 +55,28 @@ export interface ProfileStat {
   unit?: string;
   /** Takes the full width of the two-column grid. */
   wide?: boolean;
+}
+
+/** A player with goals, for the football leaderboard. */
+export interface ScorerCount {
+  name: string;
+  team: string;
+  count: number;
+}
+
+/** One line of the dashboard leaderboard. */
+export interface LeaderRow {
+  name: string;
+  /** Small text after the name (team, matches…). */
+  detail?: string;
+  value: string;
+}
+
+/** The dashboard leaderboard: top scorers in football, most wins elsewhere. */
+export interface Leaderboard {
+  title: string;
+  rows: LeaderRow[];
+  empty: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -230,6 +261,24 @@ export abstract class Sport {
       count(m.equipaB || [], score.away > score.home);
     });
     return out;
+  }
+
+  /** Extra columns of the all-time table, after matches and wins. None by default. */
+  allTimeColumns(): AllTimeColumn[] {
+    return [];
+  }
+
+  /**
+   * The dashboard leaderboard: by default the sides (teams, pairs or, in
+   * Americano, players) with the most wins, then the most points.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  leaderboard(standings: StandingsRow[], scorers: ScorerCount[]): Leaderboard {
+    const rows = standings
+      .filter((s) => s.V > 0)
+      .sort((a, b) => (b.V - a.V) || (b.Pts - a.Pts) || (a.J - b.J))
+      .map((s) => ({ name: s.name, detail: en.dashboard.matchesLabel(s.J), value: en.dashboard.winsLabel(s.V) }));
+    return { title: en.dashboard.mostWins, rows, empty: en.dashboard.noWinsYet };
   }
 
   /**

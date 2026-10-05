@@ -26,7 +26,7 @@ export function cacheDom(): void {
     'singularHistoricoList',
     'btnConta', 'usersList', 'logList',
     'historicoSempre', 'arquivoList', 'btnArquivar', 'btnPartilharTabela',
-    'cardTorneiosAtivos', 'listaTorneiosAtivos', 'btnNovoTorneioModal', 'headerSportBadge',
+    'cardTorneiosAtivos', 'listaTorneiosAtivos', 'btnToggleTorneios', 'torneiosBody', 'torneiosCount', 'btnNovoTorneioModal', 'headerSportBadge',
   ].forEach((id) => {
     const el = document.getElementById(id);
     if (el) dom[id] = el;

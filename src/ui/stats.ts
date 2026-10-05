@@ -7,11 +7,12 @@ import type { GroupStandings, Score, StandingsRow } from '../types.js';
 import type { StatsTable } from '../components/StatsTable.js';
 import type { StatCard, StatCards } from '../components/StatCards.js';
 import type { DashboardPodium } from '../components/DashboardPodium.js';
-import type { ScorerRow, TopScorers } from '../components/TopScorers.js';
+import type { DashboardLeaders } from '../components/DashboardLeaders.js';
+import type { ScorerCount } from '../sports/Sport.js';
 import '../components/StatsTable.js';
 import '../components/StatCards.js';
 import '../components/DashboardPodium.js';
-import '../components/TopScorers.js';
+import '../components/DashboardLeaders.js';
 import { dom } from './dom.js';
 import { en } from '../i18n/en.js';
 
@@ -39,9 +40,9 @@ export interface StatsSummary {
 }
 
 /** Goals per player in the tournament and the single matches, most first. */
-export function computeScorerStats(): ScorerRow[] {
+export function computeScorerStats(): ScorerCount[] {
   const playerIndex = buildPlayerIndex();
-  const stats: Record<string, ScorerRow> = {};
+  const stats: Record<string, ScorerCount> = {};
 
   function addGoal(pId: string): void {
     if (pId === 'auto') return;
@@ -192,8 +193,8 @@ export function renderDashboard(summary: StatsSummary): void {
   }
   const cards = dom.dashboardStats as StatCards | undefined;
   if (cards) cards.cards = statCards(summary);
-  const scorers = dom.dashboardScorers as TopScorers | undefined;
-  if (scorers) scorers.scorers = computeScorerStats();
+  const leaders = dom.dashboardScorers as DashboardLeaders | undefined;
+  if (leaders) leaders.board = getSport(state.meta?.sport).leaderboard(summary.flatStandings, computeScorerStats());
 }
 
 export function updateTicker(summary: StatsSummary): void {

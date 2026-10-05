@@ -142,10 +142,12 @@ async function savePlayer(existing: Player | null, editor: PlayerEditor): Promis
   }
   const fields = { nome: name, teamIdx, ratings, atributos: ratings.football || defaultPlayerAttrs('football') };
 
+  let saved: Player | null;
   if (existing) {
     const idx = state.players.findIndex((p) => p.id === existing.id);
     const updated = normalizePlayer({ ...existing, ...fields });
     if (idx !== -1 && updated) state.players[idx] = updated;
+    saved = updated;
     (state.squads || []).forEach((squad) => {
       const sp = squad.find((p) => p.id === existing.id);
       if (sp) sp.name = name;
@@ -153,11 +155,37 @@ async function savePlayer(existing: Player | null, editor: PlayerEditor): Promis
   } else {
     const created = normalizePlayer({ id: crypto.randomUUID(), ...fields });
     if (created) state.players.push(created);
+    saved = created;
   }
 
   await persistPlayers();
+  // The team picked in the editor is the player's squad in this tournament
+  if (saved && (!existing || existing.teamIdx !== teamIdx)) await placeInSquad(saved, teamIdx);
   refreshPlayerLists();
   showToast(existing ? en.toasts.playerUpdated : en.toasts.playerCreated, 'ok');
+}
+
+/**
+ * Moves a player to a team's squad in the tournament on screen (out of any
+ * other squad), with the next jersey number; no team takes them out.
+ */
+async function placeInSquad(player: Player, teamIdx: number | null): Promise<void> {
+  const squads = state.squads;
+  if (!squads) return;
+  const target = teamIdx !== null ? squads[teamIdx] : undefined;
+  if (target?.some((p) => p.id === player.id)) return;
+  if (target && !getSport(currentSportId()).usesJerseyNumbers && target.length >= 2) {
+    showToast(en.toasts.pairFull, 'error');
+    return;
+  }
+  squads.forEach((squad, i) => { squads[i] = squad.filter((p) => p.id !== player.id); });
+  if (target) {
+    const next = Math.max(0, ...target.map((p) => Number(p.num) || 0)) + 1;
+    squads[teamIdx!].push({ id: player.id, num: next, name: player.nome });
+  }
+  await persistConfigTeams();
+  renderSquadList();
+  renderSquadPlayerFromDBDropdown();
 }
 
 // ---------------------------------------------------------------------------

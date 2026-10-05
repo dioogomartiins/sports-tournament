@@ -1,4 +1,4 @@
-import { Sport, type PlayerStatColumn, type ProfileStat, type StandingsColumn } from '../Sport.js';
+import { Sport, type AllTimeColumn, type Leaderboard, type PlayerStatColumn, type ProfileStat, type ScorerCount, type StandingsColumn } from '../Sport.js';
 import { en } from '../../i18n/en.js';
 import {
   GAME_STATUS,
@@ -254,6 +254,23 @@ export class Football extends Sport {
     const pen = this.scoreTotals(res.penalties);
     if (!pen || pen.home === pen.away) return null;
     return pen.home > pen.away ? 'home' : 'away';
+  }
+
+  allTimeColumns(): AllTimeColumn[] {
+    return [
+      { key: 'golos', label: '⚽', title: en.historyTab.goalsTitle },
+      { key: 'assistencias', label: '🅰️', title: en.historyTab.assistsTitle },
+      { key: 'mvp', label: '⭐', title: en.historyTab.mvpTitle },
+    ];
+  }
+
+  /** Football's dashboard leaderboard is the top scorers. */
+  leaderboard(_standings: StandingsRow[], scorers: ScorerCount[]): Leaderboard {
+    return {
+      title: en.dashboard.topScorers,
+      rows: scorers.map((s) => ({ name: s.name, detail: s.team, value: en.statsTab.goalsLabel(s.count) })),
+      empty: en.statsTab.noGoalsYet,
+    };
   }
 
   profileStats(totals: PlayerStats): ProfileStat[] {
