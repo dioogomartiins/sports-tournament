@@ -48,7 +48,7 @@
   font-weight: 700;
   letter-spacing: .04em;
   line-height: 1;
-  animation: anim-pop .5s cubic-bezier(.2, 1.6, .4, 1) both .08s;
+  animation: anim-pop .32s cubic-bezier(.16, 1, .3, 1) both .05s;
 }
 
 .anim-sub {
@@ -94,7 +94,7 @@
 }
 
 @keyframes anim-pop {
-  from { opacity: 0; transform: scale(.5); }
+  from { opacity: 0; transform: scale(.92); }
   to { opacity: 1; transform: none; }
 }
 

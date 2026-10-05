@@ -51,9 +51,19 @@ Database. Deployed to GitHub Pages at `/sports-tournament/` on release tags (`re
   `multi-sport.md` (multi-sport plan).
   Update the matching page in the same PR when behaviour, rules or the state
   shape change.
-- Commit messages follow conventional commits (`feat:`, `fix:`, `refactor:`, ...).
 - Documentation illustrations use the `ian-xiaohei-illustrations` skill (same
   style as the CarCity docs); the shot list and prompts live in issue #10.
+
+## UI Design & Polish Skills
+
+The project adopts specialized design skills in `.claude/skills/`:
+- **`impeccable`** (`.claude/skills/impeccable`): Use for UI audits (`audit`), UX reviews (`critique`), and visual polish (`polish`) targeting typography, spacing, contrast, dark mode, cognitive load, and design system consistency. Use on UI surfaces before shipping.
+- **`emil-design-eng` / `animate` / `review-animations`** (`.claude/skills/`): Use for motion, interaction polish, and animation code:
+  - Entrances must use `ease-out` (starts fast, feels responsive) with physical curves (e.g. `cubic-bezier(0.16, 1, 0.3, 1)` or bottom sheet `cubic-bezier(0.32, 0.72, 0, 1)`). Avoid generic `ease` or overshoot springs.
+  - Scale entrances start at `scale(0.92–0.97)`, never `scale(0)`.
+  - Add tactile `:active` press feedback (`transform: scale(0.97)`) on buttons and touch targets.
+  - Always respect `prefers-reduced-motion: reduce`.
+- **`mobile-native`** (`.claude/skills/mobile-native`): Use when polishing the mobile web experience (touch targets ≥44px, sticky headers, viewport safe areas, responsive tables).
 
 ## Checks
 

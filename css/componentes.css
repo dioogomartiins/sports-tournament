@@ -52,6 +52,7 @@
   justify-content: center;
   padding: 20px;
   z-index: 1000;
+  animation: overlay-in 180ms ease-out;
 }
 
 .modal-overlay[hidden] {
@@ -67,6 +68,17 @@
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   max-height: 90vh;
   overflow-y: auto;
+  animation: modal-scale-in 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modal-scale-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 .modal .btn-ghost {
@@ -123,7 +135,7 @@
   box-shadow: var(--shadow-md);
   opacity: 0;
   transform: translateY(8px);
-  transition: opacity .25s, transform .25s;
+  transition: opacity .2s ease-out, transform .2s cubic-bezier(0.16, 1, 0.3, 1);
   max-width: 90vw;
   text-align: center;
 }
@@ -150,4 +162,22 @@
   text-align: center;
   color: var(--ink-faint);
   font-size: 12px;
+}
+
+.btn {
+  transition: transform .1s ease, background-color .15s ease, border-color .15s ease, opacity .15s ease;
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-overlay,
+  .modal,
+  .toast,
+  .btn {
+    animation: none !important;
+    transition: none !important;
+  }
 }
