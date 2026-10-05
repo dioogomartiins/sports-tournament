@@ -300,6 +300,14 @@ export const en = {
       ga: 'GA',
       gd: 'GD',
     },
+    racketCols: {
+      p: 'P',
+      w: 'W',
+      l: 'L',
+      gw: 'GW',
+      gl: 'GL',
+      gd: 'GD',
+    },
   },
 
   statsTab: {

@@ -314,25 +314,6 @@ export class Football extends Sport {
     return out;
   }
 
-  mergePlayerStats(
-    ...tallies: Array<Record<string, PlayerStats> | undefined | null>
-  ): Record<string, PlayerStats> {
-    const out: Record<string, PlayerStats> = Object.create(null);
-    tallies.forEach((tally) => {
-      Object.keys(tally || {}).forEach((pid) => {
-        const t = tally![pid];
-        if (!out[pid]) out[pid] = emptyPlayerTally();
-        const o = out[pid];
-        o.golos += t.golos || 0;
-        o.assistencias += t.assistencias || 0;
-        o.mvp += t.mvp || 0;
-        o.jogosAMarcar += t.jogosAMarcar || 0;
-        o.recorde = Math.max(o.recorde, t.recorde || 0);
-      });
-    });
-    return out;
-  }
-
   alignAssists(scorers: string[], assists?: string[]): string[] {
     const out = (assists || []).slice(0, (scorers || []).length);
     while (out.length < (scorers || []).length) out.push('');
@@ -360,6 +341,14 @@ export class Football extends Sport {
     sideScorers.push(pid);
     assists[side]!.push(aid || '');
     return out;
+  }
+
+  addPoint(res: MatchResult | undefined, side: 'home' | 'away', _config?: Config, pid = '', aid = ''): Score {
+    return this.addGoal(res, side, pid, aid);
+  }
+
+  removePoint(res: MatchResult | undefined, side: 'home' | 'away'): Score {
+    return this.removeGoal(res, side);
   }
 
   removeGoal(res: MatchResult | undefined, side: 'home' | 'away'): Score {
@@ -452,29 +441,6 @@ export class Football extends Sport {
       }
     });
     return events;
-  }
-
-  standingsOrder(groupsData: GroupStandings[]): Map<string, { g: number; r: number }> {
-    const order = new Map<string, { g: number; r: number }>();
-    (groupsData || []).forEach((group, g) => {
-      group.standings.forEach((s, r) => order.set(String(s.idx), { g, r }));
-    });
-    return order;
-  }
-
-  rankMoves(
-    before: Map<string, { g: number; r: number }> | null | undefined,
-    after: Map<string, { g: number; r: number }> | null | undefined
-  ): Map<string, number> {
-    const moves = new Map<string, number>();
-    if (!before || !after) return moves;
-    after.forEach((now, team) => {
-      const old = before.get(team);
-      if (old && old.g === now.g && old.r !== now.r) {
-        moves.set(team, old.r - now.r);
-      }
-    });
-    return moves;
   }
 }
 
