@@ -4,7 +4,7 @@
 import { html } from 'lit';
 import type { TemplateResult } from 'lit';
 import { styleMap } from 'lit/directives/style-map.js';
-import type { Team } from '../types.js';
+import type { Match, Team } from '../types.js';
 import { safeColor } from '../utils.js';
 
 /** A coloured dot, like a team crest in the tables. */
@@ -26,4 +26,13 @@ export function teamLabel(teams: (Team | undefined)[] | null | undefined, idx: n
   const team = teams?.[idx];
   const name = (team && team.name) || `Team ${idx + 1}`;
   return html`<span style="display:inline-flex; align-items:center; white-space:nowrap;">${colorDot(team ? team.color : '#2F7A4F')}${name}</span>`;
+}
+
+/** A match side: the team label, or both players of a rotating pair ("Ana / Rui", no dot). */
+export function sideLabel(teams: (Team | undefined)[] | null | undefined, game: Match, side: 'home' | 'away'): TemplateResult {
+  const partner = game.partners?.[side];
+  const first = game[side];
+  if (typeof partner !== 'number' || typeof first !== 'number') return teamLabel(teams, first);
+  const name = (idx: number) => teams?.[idx]?.name || `Player ${idx + 1}`;
+  return html`<span class="pair-label">${name(first)} / ${name(partner)}</span>`;
 }

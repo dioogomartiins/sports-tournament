@@ -38,7 +38,7 @@ It is a single page app in TypeScript and JavaScript (ES Modules) with no framew
 | `css/` | Styles split by area (`base.css` holds the light and dark theme variables). `style.css` only `@import`s the others, in cascade order; Vite merges everything into one file in the build. New styles go into the file for their area. |
 | `src/main.ts` | Wires UI events to actions (generate schedule, record goals, create, switch and finish tournaments, …) and starts the app. Lit components emit events (`open-match`, `score-commit`, …) that bubble to their container, where `main.ts` handles them through `onEvent<T>()` (typed detail); the single match tab wires its own events (`bindSingleMatchEvents`). Remembers the last tournament viewed on the device. |
 | `src/state.ts` | Global state (including the current tournament id; `loadedConfig()`, `loadedTeams()` and `loadedSquads()` return the sections handlers rely on), default values, snapshots (`buildSnapshot` / `applySnapshot`), persistence in localStorage and pushes to Firebase. Undoes local changes Firebase would not accept. Does not import `ui.ts`: notices and `renderAll` come in through `setStateHooks`, called by `main.ts` at startup. |
-| `src/core/` | Core tournament logic in TypeScript: Berger, schedule, extra round and first-round seeding (`schedule.ts`), the knockout bracket and winner advancement (`playoffs.ts`), ratings and draft (`draft.ts`), archive and champion (`archive.ts`). |
+| `src/core/` | Core tournament logic in TypeScript: Berger, schedule, extra round and first-round seeding (`schedule.ts`), the knockout bracket and winner advancement (`playoffs.ts`), Americano / Mexicano rounds and per-player standings (`americano.ts`), ratings and draft (`draft.ts`), archive and champion (`archive.ts`). |
 | `src/sports/` | Multi-sport architecture: the abstract `Sport.ts` class, the sport registry (`registry.ts`, `getSport(id)`, falling back to football), and one class per sport. `football/Football.ts` has standings, tiebreaks, playoff winner, player stats and goals. `RacketSport.ts` holds what set-based sports share (set format, set and match winner, game-by-game scoring, game-based standings), and `padel/Padel.ts` and `tennis/Tennis.ts` extend it with each sport's default format. Each sport also declares its standings columns, player leaderboards, rating attributes and whether squads use jersey numbers. The UI asks the tournament's sport (`getSport(state.meta.sport)`) instead of calling football directly. |
 | `src/algorithms.ts` | Re-exports core and football functions for compatibility with existing modules. |
 | `src/sync.ts` | Diffs between snapshots for `update()`, normalisation of data saved by Firebase or by older versions (config, meta, results, archive, players) and the activity log text. |
@@ -64,15 +64,15 @@ Each tournament lives in its own node, `tournaments/<id>` (`default` for the tou
 | Section | Contents |
 |---|---|
 | `meta` | `{ name, sport, status, createdAt }`. `status` is `active` or `finished`; `sport` (`football`, `padel`, `tennis`, …) is fixed at creation. |
-| `config` | Name, sport, number of teams, groups, rounds, scoring, playoffs. Padel and tennis tournaments also have `setFormat: { sets, gamesPerSet, superTieBreak }` (defaults 3, 6, true in padel; 3, 6, false in tennis). |
+| `config` | Name, sport, number of teams, groups, rounds, scoring, playoffs. Padel and tennis tournaments also have `setFormat: { sets, gamesPerSet, superTieBreak }` (defaults 3, 6, true in padel; 3, 6, false in tennis). Padel also has `padelFormat` (`pairs`, `americano` or `mexicano`) and `matchPoints` (24 by default), the points each Americano / Mexicano match is played to. |
 | `teams` | 32 slots `{ name, color, group }` (unused ones have an empty name). |
 | `squads` | 32 lists of players per team `{ id, num, name }`. In padel a squad is a pair, and in tennis one player or a pair; `num` (1, 2) only keeps the order. |
-| `schedule` | List of matches `{ jornada, home, away, group }`; playoff matches have `isPlayoff`, `playoffMatchId` and `nextMatchId`. |
+| `schedule` | List of matches `{ jornada, home, away, group }`; playoff matches have `isPlayoff`, `playoffMatchId` and `nextMatchId`. In padel Americano / Mexicano each team slot is one player: `home` and `away` are the first player of each pair and `partners: { home, away }` the second. |
 | `roundsMeta` | One entry per matchday, with the team that has a bye. |
 | `scheduleTeamCount`, `scheduleVoltas` | Teams and rounds the schedule was generated with. |
 | `results` | By the match's index in `schedule`: `{ score: "2-1", status, scorers: { home, away }, assists: { home, away }, mvp, penalties }`. In padel and tennis `score` holds the games of each set (`"6-4 3-6 10-7"`) and there are no scorers, assists or penalties; the rules only accept that format in tournaments whose `meta.sport` is `padel` or `tennis`. |
 | `jogosSingulares` | The tournament's single matches, with both teams, score, scorers, assists and MVP. |
-| `version`, `exportedAt` | Format version (`SNAPSHOT_VERSION`, currently 10) and date of the last save. |
+| `version`, `exportedAt` | Format version (`SNAPSHOT_VERSION`, currently 11) and date of the last save. |
 | `logRef` | Key of the `tournament_log/<id>` entry of the last save (see [Activity log](#activity-log)). |
 
 Shared by every tournament, at the root of the database:
@@ -174,9 +174,9 @@ npm run test:rules   # Firebase rules in the emulator (needs Java)
 | `tests/football.test.ts` | Football logic: standings, head-to-head, playoff winner, player stats, goals, animation events, rank moves |
 | `tests/padel.test.ts` | Padel logic: set format, parsing sets, set and match winner, adding and removing games, super tie-break, game-based standings and head-to-head, playoff winner, animation events |
 | `tests/tennis.test.ts` | Tennis: registry, default format with a full deciding set, best of 5, scoring a three-set match, games in the standings |
-| `tests/core/` | Core logic: `schedule.test.ts` (Berger, rounds, seeding), `draft.test.ts` (ratings per sport, drafts, balanced pairs), `archive.test.ts` (archive), `playoffs.test.ts` (bracket, seeds, winner advancement) |
+| `tests/core/` | Core logic: `schedule.test.ts` (Berger, rounds, seeding), `draft.test.ts` (ratings per sport, drafts, balanced pairs), `archive.test.ts` (archive), `playoffs.test.ts` (bracket, seeds, winner advancement), `americano.test.ts` (partner rotation, Mexicano pairing, player standings, padel played to points) |
 | `tests/sync.test.ts` | `diffSnapshot`, `normalizeResults`, `onlyMetadata`, `describeUpdates`, `normalizeArquivo`, `normalizeConfig`, `normalizeMeta` |
-| `tests/state.test.ts` | `SNAPSHOT_VERSION`, `applySnapshot` with version 7, 8, 9 and 10 snapshots (meta derived for older ones), `buildSnapshot`, `defaultConfig`, `defaultMeta`, current tournament id |
+| `tests/state.test.ts` | `SNAPSHOT_VERSION`, `applySnapshot` with version 7 to 10 snapshots (meta derived for older ones), `buildSnapshot`, `defaultConfig`, `defaultMeta`, current tournament id |
 | `tests/players.test.ts` | `defaultPlayerAttrs`, `normalizePlayer`, `normalizePlayers` and per-sport ratings in `applySnapshot` |
 | `tests/torneios.test.ts` | Active tournament filter and sport badge (`src/components/TournamentList.ts`), the header (`src/ui/tournaments.ts`) and the last tournament viewed on the device |
 | `tests/permissions.test.js` | `canWritePath`, `blockedPaths`, `roleLabel`, `isMaster`, `isSportAdmin` |

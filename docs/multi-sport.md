@@ -201,4 +201,5 @@ How the code on `main` differs from the proposal above:
 - **Padel.** `src/sports/RacketSport.ts` (shared by set-based sports) and `src/sports/padel/Padel.ts`, with `<padel-score>`, a configurable set format, game-based standings, pairs fixed or drawn by rating, and rules that accept set scores in padel tournaments. The rules are in [Rules](rules.md#padel).
 - **Tennis.** `src/sports/tennis/Tennis.ts` reuses `RacketSport` with a full deciding set by default; singles or doubles. `<tennis-score>` and `<padel-score>` share `RacketScore`. See [Rules](rules.md#tennis).
 - **Per-sport admins.** `users/<uid>/admin/<sport>`, enforced by `database.rules.json` (see [Architecture](architecture.md#permissions)).
-- **Not done yet:** basketball, handball and volleyball, and Americano/Mexicano padel formats.
+- **Americano / Mexicano.** Padel tournaments can rotate partners (`config.padelFormat`); matches are played to points and players are ranked on their own (`src/core/americano.ts`, [Rules](rules.md#americano-and-mexicano)).
+- **Not done yet:** basketball, handball and volleyball.

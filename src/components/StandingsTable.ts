@@ -7,7 +7,7 @@
 import { html, nothing } from 'lit';
 import type { TemplateResult } from 'lit';
 import type { Sport, StandingsColumn } from '../sports/Sport.js';
-import type { GroupStandings, StandingsRow, Team } from '../types.js';
+import type { Config, GroupStandings, StandingsRow, Team } from '../types.js';
 import { en } from '../i18n/en.js';
 import { prefersReducedMotion } from '../utils.js';
 import { LightElement } from './LightElement.js';
@@ -19,12 +19,14 @@ export class StandingsTable extends LightElement {
   static properties = {
     groups: { attribute: false },
     sport: { attribute: false },
+    config: { attribute: false },
     teams: { attribute: false },
     moves: { attribute: false },
   };
 
   declare groups: GroupStandings[];
   declare sport: Sport | null;
+  declare config: Config | null;
   declare teams: Team[];
   /** Places gained (>0) or lost (<0) per team index, shown as arrows. */
   declare moves: Map<string, number>;
@@ -37,6 +39,7 @@ export class StandingsTable extends LightElement {
     super();
     this.groups = [];
     this.sport = null;
+    this.config = null;
     this.teams = [];
     this.moves = new Map();
   }
@@ -71,7 +74,7 @@ export class StandingsTable extends LightElement {
   }
 
   render(): TemplateResult {
-    const columns = this.sport ? this.sport.standingsColumns() : [];
+    const columns = this.sport ? this.sport.standingsColumns(this.config) : [];
     if (!this.groups.length || !this.groups[0].standings.length) {
       return html`<table class="standings-table"><tr><td colspan=${columns.length + 2} class="empty">${en.standings.noTeams}</td></tr></table>`;
     }

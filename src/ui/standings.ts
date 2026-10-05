@@ -33,6 +33,7 @@ function standingsTable(): StandingsTable {
     dom.standingsWrapper.replaceChildren(table);
   }
   table.sport = getSport(state.meta?.sport);
+  table.config = state.config;
   table.teams = state.teams || [];
   return table;
 }

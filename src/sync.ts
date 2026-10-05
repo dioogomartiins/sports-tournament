@@ -3,6 +3,7 @@
 // ---------------------------------------------------------------------------
 
 import type {
+  Match,
   Tournament,
   TournamentMeta,
   Config,
@@ -290,6 +291,12 @@ function teamLabel(snap: Partial<Tournament>, idx: number | string): string {
   return t && t.name ? t.name : en.sync.defaultTeamLabel(Number(idx) + 1);
 }
 
+function sideText(snap: Partial<Tournament>, game: Match, side: 'home' | 'away'): string {
+  const partner = game.partners?.[side];
+  const first = teamLabel(snap, game[side]);
+  return typeof partner === 'number' ? `${first} / ${teamLabel(snap, partner)}` : first;
+}
+
 /**
  * Formats a human-readable description of Firebase updates for the audit log
  * (who changed what).
@@ -319,7 +326,7 @@ export function describeUpdates(
       if (deleted.length > 1 && updates[path] == null) return;
       const game = (snap.schedule || [])[Number(gi)];
       const jogo = game
-        ? `${teamLabel(snap, game.home)} vs ${teamLabel(snap, game.away)}`
+        ? `${sideText(snap, game, 'home')} vs ${sideText(snap, game, 'away')}`
         : en.sync.defaultMatchLabel(Number(gi) + 1);
       const r = updates[path] as Score | string | null | undefined;
       if (r === null || r === undefined) {

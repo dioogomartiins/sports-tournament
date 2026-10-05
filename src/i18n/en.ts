@@ -185,6 +185,10 @@ export const en = {
     drawPairsNote: (needed: number) =>
       `Pick ${needed} players. The best is paired with the weakest, and so on, by rating. This replaces the current pairs and team names.`,
     drawPairsCount: (n: number, needed: number) => `${n} / ${needed} players selected`,
+    rotationPlayersTitle: '👤 Choose players',
+    rotationPlayersButton: 'Use these players',
+    rotationPlayersNote: (needed: number) =>
+      `Pick ${needed} players, one per team. Partners change every round. This replaces the current teams and squads.`,
   },
 
   players: {
@@ -285,6 +289,7 @@ export const en = {
     sub: 'Generated automatically using the Berger pairing system.',
     empty: 'No schedule yet. Go to Settings and click 🔄 Generate Schedule.',
     addExtraRound: '➕ Add Extra Round (Keep Results)',
+    nextMexicanoRound: '➕ Next Mexicano Round',
     generatePlayoffs: '🏆 Generate Playoffs',
     roundHead: (j: string | number) => `Round ${j}`,
     viewMatchTitle: 'View match',
@@ -333,6 +338,17 @@ export const en = {
       gw: 'GW',
       gl: 'GL',
       gd: 'GD',
+    },
+    racketNote: 'Ranked by games won (GW). Tiebreaker criteria, in order: game difference → head-to-head → fewest games lost → alphabetical order. A super tie-break counts as one game.',
+    rotationNote: 'Each player is ranked on their own by points won (PW). Tiebreaker criteria, in order: point difference → matches won → alphabetical order.',
+    /** Americano / Mexicano: points instead of games. */
+    pointsCols: {
+      p: 'P',
+      w: 'W',
+      l: 'L',
+      gw: 'PW',
+      gl: 'PL',
+      gd: 'PD',
     },
   },
 
@@ -442,6 +458,11 @@ export const en = {
   racketScore: {
     addGameTitle: 'Add game',
     cancelGameTitle: 'Cancel last game',
+    addPointTitle: 'Add point',
+    cancelPointTitle: 'Cancel last point',
+    pointsLine: (total: number, left: number) => `Played to ${total} points · ${left} left`,
+    point: 'POINT',
+    pointCancelled: 'POINT CANCELLED',
     setCol: (n: number) => `Set ${n}`,
     superTieBreakCol: 'STB',
     formatLine: (sets: number, games: number, stb: boolean) =>
@@ -519,6 +540,12 @@ export const en = {
     playerAddedToSquad: 'Player added to squad!',
     pairFull: 'This pair already has 2 players.',
     pairsDrawn: 'Pairs drawn!',
+    rotationPlayersSet: (n: number) => `${n} players ready. Generate the schedule to start.`,
+    rotationPlayerCount: 'Americano and Mexicano need a multiple of 4 players (4, 8, 12, …). Change the number of teams.',
+    rotationNoPairs: 'Partners rotate in this format: use 👤 Choose players in Settings instead.',
+    rotationNoPlayoffs: 'Americano and Mexicano have no playoffs: the standings are the final ranking.',
+    mexicanoRoundPending: 'Finish every match of the current round first.',
+    mexicanoRoundAdded: (r: number) => `Round ${r} drawn from the standings.`,
     nameRequired: 'Name is required.',
     playerUpdated: 'Player updated!',
     playerCreated: 'Player created!',

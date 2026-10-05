@@ -16,6 +16,7 @@ Scoring, standings and player stats depend on the tournament's sport. The schedu
 - [Balanced teams (Single Match)](#balanced-teams-single-match)
 - [Player stats](#player-stats)
 - [Padel](#padel)
+- [Americano and Mexicano](#americano-and-mexicano)
 - [Tennis](#tennis)
 
 ## Scoring
@@ -174,6 +175,17 @@ Each team is a pair of two players, without jersey numbers. In 👕 Squads an ad
 ### Stats
 
 Padel records no goals, assists or MVP. The Stats tab shows games played, games per match, most games won, fewest games lost, the biggest win (by game difference) and most wins.
+
+## Americano and Mexicano
+
+Padel formats where **partners change every round** and every player is ranked on their own. They are chosen in ⚙️ Settings → *Pairs* → *Format* (Fixed pairs is the default). The logic is in `src/core/americano.ts`.
+
+- **Players:** each team is one player. The number of teams is the number of players, a multiple of 4 (4, 8, 12, …). **👤 Choose players** (same card) picks them from the database and names each team after its player.
+- **Matches:** each match is two pairs of players, played to a fixed total of **points** (*Points per match*, 24 by default, 4 to 99). − / + add or remove one point; once the total is reached, + does nothing. Every player keeps the points their pair won.
+- **Americano:** the schedule has n − 1 rounds for n players, and every player partners every other player exactly once. *Number of rounds* repeats that cycle, and **➕ Add Extra Round** adds one more cycle.
+- **Mexicano:** **🔄 Generate Schedule** draws only the first round, from the padel rating: in each group of four, the 1st and 4th play the 2nd and 3rd. When every match of the round is finished, **➕ Next Mexicano Round** (Schedule) draws the next round the same way from the current standings.
+- **Standings:** per player, by points won (**PW**), then point difference (**PD**), then matches won, then alphabetical order. The table also shows points lost (**PL**) and matches played, won and lost.
+- **No playoffs:** the standings are the final ranking, and the champion is the player at the top.
 
 ## Tennis
 

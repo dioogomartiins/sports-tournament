@@ -17,7 +17,7 @@ import type { Sport } from '../sports/Sport.js';
 import { RacketSport } from '../sports/RacketSport.js';
 import { en } from '../i18n/en.js';
 import { LightElement } from './LightElement.js';
-import { teamLabel } from './templates.js';
+import { sideLabel } from './templates.js';
 import { groupRounds, statusBadge, statusOf } from './rounds.js';
 import type { Round } from './rounds.js';
 
@@ -96,13 +96,13 @@ export class ResultsList extends LightElement {
 
     return html`
       <div class="fixture fixture-input" data-game=${gi}>
-        <span class="fx-home">${teamLabel(this.teams, game.home)}</span>
+        <span class="fx-home">${sideLabel(this.teams, game, 'home')}</span>
         <div class="result-split">
           ${this.stepButton(gi, 'home', 'sub')}${box('home', score ? score[1] : '', 'res-box')}${this.stepButton(gi, 'home', 'add')}
           <span class="res-sep">-</span>
           ${this.stepButton(gi, 'away', 'sub')}${box('away', score ? score[2] : '', 'res-box')}${this.stepButton(gi, 'away', 'add')}
         </div>
-        <span class="fx-away">${teamLabel(this.teams, game.away)}</span>
+        <span class="fx-away">${sideLabel(this.teams, game, 'away')}</span>
         ${showPenalties ? html`
           <div class="penalties-split">
             <span class="pen-label">${en.results.penalties}</span>
@@ -112,20 +112,27 @@ export class ResultsList extends LightElement {
       </div>`;
   }
 
-  /** Sets won with − / + one game per side; scores are typed game by game only. */
+  /**
+   * Sets won with − / + one game per side; scores are typed game by game only.
+   * In a match played to points (Americano), the points with − / + one point.
+   */
   private racketRow(sport: RacketSport, game: Match, gi: number): TemplateResult {
     const val = this.results[gi];
-    const sets = sport.setsOf(val);
-    const won = sets.length ? sport.setsWon(sets, sport.format(this.config)) : null;
+    const toPoints = !!sport.pointsPerMatch(this.config);
+    const sets = toPoints ? [] : sport.setsOf(val);
+    const shown = toPoints ? sport.pointsOf(val) : (sets.length ? sport.setsWon(sets, sport.format(this.config)) : null);
+    const titles = toPoints
+      ? { sub: en.racketScore.cancelPointTitle, add: en.racketScore.addPointTitle }
+      : { sub: en.racketScore.cancelGameTitle, add: en.racketScore.addGameTitle };
     const side = (s: ScoreSide) => html`
-      ${this.stepButton(gi, s, 'sub', en.racketScore.cancelGameTitle)}
-      <span class="res-box res-static" data-side=${s}>${won ? won[s] : ''}</span>
-      ${this.stepButton(gi, s, 'add', en.racketScore.addGameTitle)}`;
+      ${this.stepButton(gi, s, 'sub', titles.sub)}
+      <span class="res-box res-static" data-side=${s}>${shown ? shown[s] : ''}</span>
+      ${this.stepButton(gi, s, 'add', titles.add)}`;
     return html`
       <div class="fixture fixture-input" data-game=${gi}>
-        <span class="fx-home">${teamLabel(this.teams, game.home)}</span>
+        <span class="fx-home">${sideLabel(this.teams, game, 'home')}</span>
         <div class="result-split">${side('home')}<span class="res-sep">-</span>${side('away')}</div>
-        <span class="fx-away">${teamLabel(this.teams, game.away)}</span>
+        <span class="fx-away">${sideLabel(this.teams, game, 'away')}</span>
         ${sets.length ? html`<div class="sets-line">${sport.formatSets(sets)}</div>` : nothing}
         ${this.actionsTemplate(gi, statusOf(val))}
       </div>`;

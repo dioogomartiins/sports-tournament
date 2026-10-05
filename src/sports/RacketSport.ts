@@ -20,7 +20,8 @@ import { en } from '../i18n/en.js';
 // ---------------------------------------------------------------------------
 // A match is scored game by game (no 15-30-40). The score is saved as the
 // games of each set, e.g. "6-4 3-6 10-7"; the last set is the one being
-// played. Standings count games only: games won, then game difference, then
+// played. A sport can instead play matches to a total of points
+// (pointsPerMatch, e.g. padel Americano): the score is then "15-9". Standings count games only: games won, then game difference, then
 // head-to-head. There are no points per win.
 
 export type Side = 'home' | 'away';
@@ -76,6 +77,21 @@ export abstract class RacketSport extends Sport {
 
   formatSets(sets: SetScore[]): string {
     return sets.map((s) => `${s.home}-${s.away}`).join(' ');
+  }
+
+  /**
+   * Total points of a match when matches are played to points instead of
+   * sets (e.g. 24 in padel Americano), or null. None by default.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  pointsPerMatch(config?: Partial<Config> | null): number | null {
+    return null;
+  }
+
+  /** Points per side of a match played to points ("15-9"), or null. */
+  pointsOf(res: MatchResult | undefined): SetScore | null {
+    const sets = this.setsOf(res);
+    return sets.length === 1 ? sets[0] : null;
   }
 
   /** Sets of a saved result. */
@@ -167,8 +183,13 @@ export abstract class RacketSport extends Sport {
     return out;
   }
 
-  /** Adds one game to a side; a finished set opens the next one. No-op once the match is decided. */
+  /**
+   * Adds one game to a side; a finished set opens the next one. No-op once the
+   * match is decided. In a match played to points, adds a point until the total.
+   */
   addPoint(res: MatchResult | undefined, side: Side, config: Config): Score {
+    const total = this.pointsPerMatch(config);
+    if (total) return this.addMatchPoint(res, side, total);
     const format = this.format(config);
     const sets = this.setsOf(res);
     if (this.matchWinner(sets, format)) return this.copy(res);
@@ -179,6 +200,16 @@ export abstract class RacketSport extends Sport {
     if (last < 0 || this.setWinner(sets[last], last, format)) sets.push({ home: 0, away: 0 });
     sets[sets.length - 1][side]++;
     out.score = this.formatSets(sets);
+    return out;
+  }
+
+  private addMatchPoint(res: MatchResult | undefined, side: Side, total: number): Score {
+    const pts = this.pointsOf(res) || { home: 0, away: 0 };
+    const out = this.copy(res);
+    if (pts.home + pts.away >= total) return out;
+    if (!out.status || out.status === GAME_STATUS.AGENDADO) out.status = GAME_STATUS.DECORRER;
+    pts[side]++;
+    out.score = this.formatSets([pts]);
     return out;
   }
 
@@ -392,7 +423,7 @@ export abstract class RacketSport extends Sport {
           return;
         }
         const last = setsB.length - 1;
-        const wonSet = this.setWinner(setsB[last], last, format) === side;
+        const wonSet = !this.pointsPerMatch(config) && this.setWinner(setsB[last], last, format) === side;
         events.push({ type: wonSet ? 'set' : 'game', gi, side });
       });
       if (!changed && sb === GAME_STATUS.DECORRER && sa !== GAME_STATUS.DECORRER) {
@@ -416,8 +447,9 @@ export abstract class RacketSport extends Sport {
   // Tables
   // -------------------------------------------------------------------------
 
-  standingsColumns(): StandingsColumn[] {
-    const c = en.standings.racketCols;
+  /** Games won first; in a match played to points, points won (PW, PL, PD). */
+  standingsColumns(config?: Config | null): StandingsColumn[] {
+    const c = this.pointsPerMatch(config) ? en.standings.pointsCols : en.standings.racketCols;
     return [
       { label: c.gw, value: (s) => s.GM, className: 'pts-cell' },
       { label: c.p, value: (s) => s.J },

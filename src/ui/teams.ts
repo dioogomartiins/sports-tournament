@@ -97,19 +97,37 @@ export function pickerRows(players: Player[], withTeam = false): PickerRow[] {
  */
 export function openDrawPairsModal(onDraw: (ids: string[]) => void): void {
   const needed = state.scheduleTeamCount * 2;
+  openChoosePlayersModal(needed, {
+    title: en.squads.drawPairsTitle,
+    note: en.squads.drawPairsNote(needed),
+    button: en.squads.drawPairsButton,
+  }, onDraw);
+}
+
+/** Americano / Mexicano: picks one player per team. */
+export function openRotationPlayersModal(needed: number, onPick: (ids: string[]) => void): void {
+  openChoosePlayersModal(needed, {
+    title: en.squads.rotationPlayersTitle,
+    note: en.squads.rotationPlayersNote(needed),
+    button: en.squads.rotationPlayersButton,
+  }, onPick);
+}
+
+/** A dialog that picks exactly `needed` players from the database. */
+function openChoosePlayersModal(needed: number, text: { title: string; note: string; button: string }, onPick: (ids: string[]) => void): void {
   let chosen: string[] = [];
   const onChange = (e: Event) => {
     chosen = (e as CustomEvent<string[]>).detail;
     setConfirmEnabled(chosen.length === needed);
   };
   openDialog({
-    title: en.squads.drawPairsTitle,
+    title: text.title,
     body: html`
-      <p class="field-note" style="margin-bottom:10px;">${en.squads.drawPairsNote(needed)}</p>
+      <p class="field-note" style="margin-bottom:10px;">${text.note}</p>
       <player-picker .rows=${pickerRows(state.players)} .countLabel=${(n: number) => en.squads.drawPairsCount(n, needed)}
         empty=${en.players.noPlayersAdmin} @selection-change=${onChange}></player-picker>`,
-    confirm: { label: en.squads.drawPairsButton, tone: 'gold' },
-    onConfirm: () => onDraw(chosen),
+    confirm: { label: text.button, tone: 'gold' },
+    onConfirm: () => onPick(chosen),
   });
   setConfirmEnabled(false);
 }

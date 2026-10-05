@@ -5,7 +5,7 @@
 import { state } from './state.js';
 import { getSport } from './sports/registry.js';
 import { RacketSport } from './sports/RacketSport.js';
-import { getTeamName, safeColor, playerName } from './utils.js';
+import { sideName, safeColor, playerName } from './utils.js';
 import { showToast } from './ui/toasts.js';
 import type { Score } from './types.js';
 import { en } from './i18n/en.js';
@@ -156,7 +156,7 @@ export async function shareStandings(): Promise<void> {
   img.header(tournamentName(), en.share.standingsSubtitle(played));
 
   // Columns of the sport, the highlighted one (Pts, GW) last, right-aligned in the row
-  const sportCols = sport.standingsColumns();
+  const sportCols = sport.standingsColumns(config);
   const ordered = [...sportCols.filter((c) => !c.className), ...sportCols.filter((c) => c.className)];
   const COL_W = 64;
   const lastX = W - PAD - 20;
@@ -223,9 +223,9 @@ export async function shareResult(gi: string | number): Promise<void> {
   const round = typeof game.jornada === 'number' ? en.gameModal.roundLabel(game.jornada) : String(game.jornada || '');
   img.header(tournamentName(), round ? en.share.roundResult(round) : en.share.finalResult);
 
-  // Football: goals. Racket sports: sets won, with the games of each set underneath
+  // Football and matches played to points: the score. Racket sports: sets won, with the games of each set underneath
   const sport = getSport(state.meta?.sport);
-  const racket = sport instanceof RacketSport ? sport : null;
+  const racket = sport instanceof RacketSport && !sport.pointsPerMatch(state.config) ? sport : null;
   const sets = racket ? racket.setsOf(res) : [];
   const [h, a] = racket
     ? Object.values(racket.setsWon(sets, racket.format(state.config)))
@@ -236,8 +236,8 @@ export async function shareResult(gi: string | number): Promise<void> {
 
   img.dot(colHome, 300, 34, teamColor(game.home));
   img.dot(colAway, 300, 34, teamColor(game.away));
-  img.text(getTeamName(game.home), colHome, 380, { font: `700 40px ${DISPLAY}`, align: 'center', maxW: W / 2 - 80 });
-  img.text(getTeamName(game.away), colAway, 380, { font: `700 40px ${DISPLAY}`, align: 'center', maxW: W / 2 - 80 });
+  img.text(sideName(game, 'home'), colHome, 380, { font: `700 40px ${DISPLAY}`, align: 'center', maxW: W / 2 - 80 });
+  img.text(sideName(game, 'away'), colAway, 380, { font: `700 40px ${DISPLAY}`, align: 'center', maxW: W / 2 - 80 });
 
   img.text(`${h}  -  ${a}`, W / 2, 500, { font: `700 140px ${DISPLAY}`, color: C.gold, align: 'center' });
   let y = 600;
@@ -260,5 +260,5 @@ export async function shareResult(gi: string | number): Promise<void> {
   }
 
   img.footer();
-  await img.deliver(en.share.resultFilename, `${getTeamName(game.home)} ${res.score} ${getTeamName(game.away)}`);
+  await img.deliver(en.share.resultFilename, `${sideName(game, 'home')} ${res.score} ${sideName(game, 'away')}`);
 }

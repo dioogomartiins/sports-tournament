@@ -1,5 +1,5 @@
 import { state } from '../state.js';
-import { getTeamName, buildPlayerIndex } from '../utils.js';
+import { sideName, buildPlayerIndex } from '../utils.js';
 import { GAME_STATUS } from '../algorithms.js';
 import { getSport } from '../sports/registry.js';
 import { RacketSport } from '../sports/RacketSport.js';
@@ -139,7 +139,7 @@ export function computeStatsSummary(): StatsSummary {
     if (!pts) return;
     const diff = Math.abs(pts.home - pts.away);
     if (!biggestWin || diff > biggestWin.diff) {
-      biggestWin = { diff, text: `${getTeamName(g.home)} ${resStr} ${getTeamName(g.away)}` };
+      biggestWin = { diff, text: `${sideName(g, 'home')} ${resStr} ${sideName(g, 'away')}` };
     }
   });
 

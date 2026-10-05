@@ -1,5 +1,5 @@
 import { state } from '../state.js';
-import { getTeamName, safeColor, prefersReducedMotion } from '../utils.js';
+import { sideName, safeColor, prefersReducedMotion } from '../utils.js';
 import { getSport } from '../sports/registry.js';
 import type { Sport } from '../sports/Sport.js';
 import { RacketSport } from '../sports/RacketSport.js';
@@ -34,17 +34,21 @@ export function matchView(gi: string | number): ScoreMatch | null {
   const g = state.schedule[Number(gi)];
   if (!g) return null;
   const sport = currentSport();
-  const team = (idx: number | string) => ({
-    name: getTeamName(idx),
-    color: typeof idx === 'number' && state.teams?.[idx] ? safeColor(state.teams[idx].color) : null,
-  });
+  const team = (side: 'home' | 'away') => {
+    const idx = g[side];
+    return {
+      name: sideName(g, side),
+      color: typeof idx === 'number' && state.teams?.[idx] ? safeColor(state.teams[idx].color) : null,
+    };
+  };
   return {
     gi: String(gi),
     round: typeof g.jornada === 'number' ? en.gameModal.roundLabel(g.jornada) : String(g.jornada || ''),
-    home: team(g.home),
-    away: team(g.away),
+    home: team('home'),
+    away: team('away'),
     result: state.results[gi],
     format: sport instanceof RacketSport ? sport.format(state.config) : undefined,
+    points: sport instanceof RacketSport ? sport.pointsPerMatch(state.config) ?? undefined : undefined,
   };
 }
 
