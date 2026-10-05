@@ -27,7 +27,8 @@ export function renderHeaderTournament(meta: { name?: string; sport?: string } |
   const sportId = getSport(meta?.sport).id;
   document.body.dataset.sport = sportId;
   document.querySelectorAll<HTMLElement>('[data-sport-only]').forEach((el) => {
-    el.hidden = el.dataset.sportOnly !== sportId;
+    // A space-separated list of sport ids, e.g. "padel tennis"
+    el.hidden = !(el.dataset.sportOnly || '').split(' ').includes(sportId);
   });
 }
 

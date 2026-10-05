@@ -118,9 +118,9 @@ export class ResultsList extends LightElement {
     const sets = sport.setsOf(val);
     const won = sets.length ? sport.setsWon(sets, sport.format(this.config)) : null;
     const side = (s: ScoreSide) => html`
-      ${this.stepButton(gi, s, 'sub', en.padelScore.cancelGameTitle)}
+      ${this.stepButton(gi, s, 'sub', en.racketScore.cancelGameTitle)}
       <span class="res-box res-static" data-side=${s}>${won ? won[s] : ''}</span>
-      ${this.stepButton(gi, s, 'add', en.padelScore.addGameTitle)}`;
+      ${this.stepButton(gi, s, 'add', en.racketScore.addGameTitle)}`;
     return html`
       <div class="fixture fixture-input" data-game=${gi}>
         <span class="fx-home">${teamLabel(this.teams, game.home)}</span>

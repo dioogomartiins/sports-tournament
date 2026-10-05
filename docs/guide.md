@@ -25,7 +25,7 @@ Anyone with the link can view the tournaments, without an account. To change any
 |---|---|
 | **Pending** (just signed in) | Only view. Waits for the Master Admin to give them a role. |
 | **User** | Record results, scorers, assists and MVP, change match status (including playoff matches) and record single matches. |
-| **Admin** (per sport) | For tournaments of the sports they administer (⚽ Football, 🎾 Padel): everything else — create and finish tournaments, settings, schedule, playoffs, teams, squads, import, delete data and remove archived tournaments from History. Admins can also edit the players database. In tournaments of other sports they have no admin rights. |
+| **Admin** (per sport) | For tournaments of the sports they administer (⚽ Football, 🎾 Padel, 🎾 Tennis): everything else — create and finish tournaments, settings, schedule, playoffs, teams, squads, import, delete data and remove archived tournaments from History. Admins can also edit the players database. In tournaments of other sports they have no admin rights. |
 | **Master Admin** | Everything, in every sport, plus managing users. |
 
 The Master Admin assigns roles in **🛠️ Manage → 👮 Users**: pick *Pending*, *User*, *Admin* or *Master Admin* for each person and, for an Admin, tick the sports they administer. The same page has the **Activity Log**: the last 200 changes to the tournament being viewed, with who made them and when.
@@ -62,11 +62,11 @@ Several tournaments can run at the same time, each with its own sport, teams, sc
 
 These steps are done by an **admin** of the tournament's sport (or the Master Admin). Anyone else sees Teams, Squads and Players read-only, without edit buttons.
 
-1. **Players** (Manage → 👤 Players): create each player and give them 0 to 5 stars in six attributes. Each sport has its own (football: Pace, Shooting, Passing, Dribbling, Defending, Physical; padel: Volley, Smash, Lob, Wall play, Defense, Fitness), chosen in **Attribute Sport** in the player window; the average is the player's ★ rating for that sport. This database is shared by every tournament and by single matches.
+1. **Players** (Manage → 👤 Players): create each player and give them 0 to 5 stars in six attributes. Each sport has its own (football: Pace, Shooting, Passing, Dribbling, Defending, Physical; padel: Volley, Smash, Lob, Wall play, Defense, Fitness; tennis: Serve, Return, Forehand, Backhand, Volley, Fitness), chosen in **Attribute Sport** in the player window; the average is the player's ★ rating for that sport. This database is shared by every tournament and by single matches.
 2. **Tournament** (🏠 Dashboard → ➕ New Tournament): create it as described in [Tournaments](#tournaments).
-3. **Settings** (⚙️): set the name, the number of teams (2 to 32), the number of groups (1, 2, 4 or 8), the number of rounds, and whether there are playoffs and how many teams qualify. Football also has the scoring (points per win, draw, loss and blowout bonus); padel has the **set format** instead (sets per match, games per set, super tie-break).
+3. **Settings** (⚙️): set the name, the number of teams (2 to 32), the number of groups (1, 2, 4 or 8), the number of rounds, and whether there are playoffs and how many teams qualify. Football also has the scoring (points per win, draw, loss and blowout bonus); padel and tennis have the **set format** instead (sets per match, games per set, super tie-break).
 4. **Teams** (Manage → 👥 Teams): give each team a name and a colour.
-5. **Squads** (Manage → 👕 Squads): pick the team and add players from the database, with their jersey number. The squad's average ★ is shown at the top. In padel each team is a pair: add two players to each (no jersey number), or tap **🎲 Draw pairs**, tick two players per team, and the app pairs them by padel rating and names each team after its pair (see [Rules](rules.md#pairs)).
+5. **Squads** (Manage → 👕 Squads): pick the team and add players from the database, with their jersey number. The squad's average ★ is shown at the top. In padel each team is a pair: add two players to each (no jersey number), or tap **🎲 Draw pairs**, tick two players per team, and the app pairs them by padel rating and names each team after its pair (see [Rules](rules.md#pairs)). In tennis a team is one player (singles) or two (doubles), added the same way.
 6. **🔄 Generate Schedule** (⚙️ Settings): creates all the rounds. With more than one group, the teams are drawn into the groups at this point.
 
 Generating a new schedule deletes the results already entered (the app asks for confirmation). Teams, squads and settings are kept.
@@ -87,7 +87,7 @@ In the **⚽ Results** tab, each match has:
 
 You can also type the score straight into the boxes; in that case no scorers are attached.
 
-**Padel.** ＋ / − add or remove **one game** for that pair, with no scorer to pick. The boxes show the sets won and the games of every set are written underneath (e.g. `6-4 3-2`). When a set ends the next one starts on its own, and in the deciding set the super tie-break points are entered the same way. The match window shows a grid with each set's games and the set being played highlighted, and the animations say *GAME* and *SET!* instead of *GOAL*. Scores cannot be typed in padel.
+**Padel.** ＋ / − add or remove **one game** for that pair, with no scorer to pick. The boxes show the sets won and the games of every set are written underneath (e.g. `6-4 3-2`). When a set ends the next one starts on its own, and in the deciding set the super tie-break points are entered the same way. The match window shows a grid with each set's games and the set being played highlighted, and the animations say *GAME* and *SET!* instead of *GOAL*. Scores cannot be typed in padel. **Tennis** works the same way; by default its deciding set is a normal set, not a super tie-break.
 
 **Match window.** Opens with **📋 Match** in Results, or by tapping the match in the Schedule. It shows the score and, per team, each goal with the scorer and the assist. It updates by itself when someone records a goal on another phone. Once the match is finished, it has the **⭐ Pick MVP** and **📤 Share image** buttons (the result image).
 

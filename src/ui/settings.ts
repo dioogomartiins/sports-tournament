@@ -4,6 +4,8 @@ import { clamp } from '../utils.js';
 import { dom } from './dom.js';
 import { en } from '../i18n/en.js';
 import { padel } from '../sports/padel/Padel.js';
+import { getSport } from '../sports/registry.js';
+import { RacketSport } from '../sports/RacketSport.js';
 
 // ---------------------------------------------------------------------------
 // Settings form
@@ -29,7 +31,9 @@ export function populateConfigForm(): void {
   field('cfgGoleada').value = String(c.golosGoleada);
   field('cfgMataMata').checked = c.mataMata || false;
   field('cfgNumPlayoffTeams').value = String(c.numPlayoffTeams || 4);
-  const f = padel.format(c);
+  // Set format of a racket sport (the fields are hidden for the others)
+  const sport = getSport(state.meta?.sport || c.sport);
+  const f = (sport instanceof RacketSport ? sport : padel).format(c);
   field('cfgSets').value = String(f.sets);
   field('cfgGamesPerSet').value = String(f.gamesPerSet);
   field('cfgSuperTieBreak').checked = f.superTieBreak;
