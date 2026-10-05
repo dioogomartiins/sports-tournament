@@ -46,7 +46,7 @@ Database. Deployed to GitHub Pages at `/torneio-ilog/` on release tags (`release
 - The app is used live on phones during matches: check mobile widths and both
   light and dark themes when touching UI.
 - Docs live in `README.md` and `docs/` (in English): `guide.md` (using the
-  app), `rules.md` (scoring, tiebreaks, draft), `configuration.md` (Firebase,
+  app), `sports.md` (what changes per sport), `rules.md` (scoring, tiebreaks, draft), `configuration.md` (Firebase,
   env, deploy), `architecture.md` (modules, data model, sync, permissions),
   `multi-sport.md` (multi-sport plan).
   Update the matching page in the same PR when behaviour, rules or the state
