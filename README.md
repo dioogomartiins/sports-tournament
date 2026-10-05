@@ -4,6 +4,8 @@ Web app for running friendly sports tournaments: teams, squads, schedule, live r
 
 Football ⚽, padel 🎾 (fixed pairs, Americano or Mexicano) and tennis 🎾 are supported today, each with its own scoring, standings and live score panel ([Sports](docs/sports.md)). The app is moving towards [supporting any sport](docs/multi-sport.md) — basketball 🏀, handball 🤾, volleyball 🏐 and others — through one class per sport.
 
+![One tournament, one sport](docs/assets/illustrations/17-desportos.jpg)
+
 **App:** <https://dioogomartiins.github.io/sports-tournament/>
 
 ## ✨ What it does

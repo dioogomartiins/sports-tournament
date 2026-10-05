@@ -1,5 +1,7 @@
 # Sports
 
+![One tournament, one sport](assets/illustrations/17-desportos.jpg)
+
 Every tournament has one sport, chosen when it is created and fixed afterwards (`meta.sport`). The sport decides how a match is scored, how the standings are ranked, what the match window shows and which player ratings are used. The schedule, groups, playoffs, archive and permissions work the same for every sport.
 
 | | ⚽ Football | 🎾 Padel | 🎾 Padel Americano / Mexicano | 🎾 Tennis |
@@ -25,4 +27,4 @@ Each sport is a class in `src/sports/` registered in `src/sports/registry.ts`: `
 
 ## Planned
 
-Basketball 🏀 ([#59](https://github.com/dioogomartiins/torneio-ilog/issues/59)), handball 🤾 ([#60](https://github.com/dioogomartiins/torneio-ilog/issues/60)) and volleyball 🏐 ([#61](https://github.com/dioogomartiins/torneio-ilog/issues/61)) are planned, each with its own rules, score component and tests.
+Basketball 🏀 ([#59](https://github.com/dioogomartiins/sports-tournament/issues/59)), handball 🤾 ([#60](https://github.com/dioogomartiins/sports-tournament/issues/60)) and volleyball 🏐 ([#61](https://github.com/dioogomartiins/sports-tournament/issues/61)) are planned, each with its own rules, score component and tests.

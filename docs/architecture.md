@@ -32,6 +32,8 @@ It is a single page app in TypeScript and JavaScript (ES Modules) with no framew
 
 ## Modules
 
+![Lit components in the light DOM](assets/illustrations/26-componentes-lit.jpg)
+
 | File | Role |
 |---|---|
 | `index.html` | Structure of every tab and modal. |
@@ -56,6 +58,42 @@ It is a single page app in TypeScript and JavaScript (ES Modules) with no framew
 | `database.rules.json` | Realtime Database security rules, published by the deployment. |
 | `firebase.json` | Tells the Firebase CLI where the rules are (used by the deployment). |
 | `tests/` | Vitest tests; `tests/rules/` holds the rules tests for the emulator. |
+
+## Multi-sport architecture
+
+![One class per sport](assets/illustrations/27-uma-classe-por-desporto.jpg)
+
+Every tournament belongs to one sport (`meta.sport`), which delegates scoring, standings, leaderboards, and UI panels to a sport profile class.
+
+### Adding a sport (checklist)
+
+When implementing a new sport (e.g. basketball, handball, volleyball):
+
+1. **Sport class (`src/sports/<sport>/<Sport>.ts`):**
+   - Extend `Sport` (or a base like `RacketSport`).
+   - Define `id`, `name`, `icon`, `ratingAttributes`, `standingsColumns`, `usesJerseyNumbers`.
+   - Implement `computeStandings`, `resolveHeadToHead`, `getPlayoffWinner`, `tallyPlayerStats`, and scoring methods (`addPoint`/`removePoint` or sport-specific events).
+2. **Registry (`src/sports/registry.ts`):**
+   - Register the new sport with `registerSport(sportInstance)`.
+3. **Live score component (`src/sports/<sport>/<Sport>Score.ts`):**
+   - Create custom element `<sport-score>` extending `ScoreBase`.
+   - Register it in `SCORE_PANELS` inside `src/ui/match.ts`.
+4. **Translations (`src/i18n/en.ts`):**
+   - Add rating attribute names (e.g. `en.players.<sport>Attributes`).
+   - Add live banner text, score panel buttons, and sport-specific labels.
+5. **UI & Forms (`index.html` and `src/ui/settings.ts`):**
+   - Tag sport-specific settings or squad options with `data-sport-only="<sport>"`.
+   - Update `populateConfigForm` in `src/ui/settings.ts` if the sport adds configurable scoring parameters.
+6. **Firebase Security Rules (`database.rules.json`):**
+   - Add validation rules under `tournaments/$tournamentId/results/$jogo` for the sport's score format.
+   - Update `src/permissions.ts` if new data paths are introduced.
+   - Add emulator test cases in `tests/rules/rules.check.mjs`.
+7. **Unit tests (`tests/<sport>.test.ts`):**
+   - Test standings calculation, tiebreaker chain, playoff winner determination, score formatting, and player stats tallying.
+8. **Documentation:**
+   - Add a column to `docs/sports.md`.
+   - Document rules, scoring and formats in `docs/rules.md`.
+   - Update `docs/guide.md` and `README.md`.
 
 ## Data model
 

@@ -137,6 +137,8 @@ The Stats tab adds up the current tournament and its single matches. History and
 
 ## Padel
 
+![Padel game by game](assets/illustrations/19-padel-jogo-a-jogo.jpg)
+
 Padel is scored **game by game**: no 15-30-40 points. A score is saved as the games of each set, e.g. `6-4 3-6 10-7`.
 
 ### Set format
@@ -155,6 +157,8 @@ Set per tournament in ⚙️ Settings → *Set format*. Defaults are in brackets
 
 ### Standings
 
+![Super tie-break in standings](assets/illustrations/20-super-tie-break.jpg)
+
 There are no points per win. Pairs are ranked by:
 
 1. Games won (**GW**)
@@ -167,6 +171,8 @@ A super tie-break counts as **one game** for the pair that wins it (10-7 counts 
 
 ### Pairs
 
+![Draw pairs](assets/illustrations/21-sorteio-de-pares.jpg)
+
 Each team is a pair of two players, without jersey numbers. In 👕 Squads an admin can:
 
 - **Fix the pairs:** add two players to each team.
@@ -178,6 +184,10 @@ Padel records no goals, assists or MVP. The Stats tab shows games played, games 
 
 ## Americano and Mexicano
 
+![Americano partner rotation](assets/illustrations/23-americano-rotacao.jpg)
+
+![Mexicano ranking](assets/illustrations/24-mexicano-ranking.jpg)
+
 Padel formats where **partners change every round** and every player is ranked on their own. They are chosen in ⚙️ Settings → *Pairs* → *Format* (Fixed pairs is the default). The logic is in `src/core/americano.ts`.
 
 - **Players:** each team is one player. The number of teams is the number of players, a multiple of 4 (4, 8, 12, …). **👤 Choose players** (same card) picks them from the database and names each team after its player.
@@ -185,9 +195,14 @@ Padel formats where **partners change every round** and every player is ranked o
 - **Americano:** the schedule has n − 1 rounds for n players, and every player partners every other player exactly once. *Number of rounds* repeats that cycle, and **➕ Add Extra Round** adds one more cycle.
 - **Mexicano:** **🔄 Generate Schedule** draws only the first round, from the padel rating: in each group of four, the 1st and 4th play the 2nd and 3rd. When every match of the round is finished, **➕ Next Mexicano Round** (Schedule) draws the next round the same way from the current standings.
 - **Standings:** per player, by points won (**PW**), then point difference (**PD**), then matches won, then alphabetical order. The table also shows points lost (**PL**) and matches played, won and lost.
+
+![Points per player](assets/illustrations/25-pontos-por-jogador.jpg)
+
 - **No playoffs:** the standings are the final ranking, and the champion is the player at the top.
 
 ## Tennis
+
+![Tennis singles and doubles](assets/illustrations/22-tenis-singulares-pares.jpg)
 
 Tennis uses the same rules as padel: scored **game by game** (no 15-30-40), saved as the games of each set, ranked by games won, with the same tiebreaks and stats. The differences:
 

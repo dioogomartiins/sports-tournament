@@ -52,6 +52,8 @@ On a phone, the header is a single line pinned to the top: on the left the tourn
 
 ## Tournaments
 
+![Multiple tournaments and device memory](assets/illustrations/18-varios-torneios.jpg)
+
 Several tournaments can run at the same time, each with its own sport, teams, schedule, results and single matches. The players database and the History are shared by all of them.
 
 - **🏆 Active Tournaments** (on the 🏠 Dashboard) lists every tournament that has not been finished. Tap a card, or **👁️ View Tournament**, to follow it; the whole app then shows that tournament. Each device remembers the last tournament it viewed.
@@ -64,7 +66,10 @@ These steps are done by an **admin** of the tournament's sport (or the Master Ad
 
 1. **Players** (Manage → 👤 Players): create each player and give them 0 to 5 stars in six attributes. Each sport has its own (football: Pace, Shooting, Passing, Dribbling, Defending, Physical; padel: Volley, Smash, Lob, Wall play, Defense, Fitness; tennis: Serve, Return, Forehand, Backhand, Volley, Fitness), chosen in **Attribute Sport** in the player window; the average is the player's ★ rating for that sport. This database is shared by every tournament and by single matches.
 2. **Tournament** (🏠 Dashboard → ➕ New Tournament): create it as described in [Tournaments](#tournaments).
-3. **Settings** (⚙️): set the name, the number of teams (2 to 32), the number of groups (1, 2, 4 or 8), the number of rounds, and whether there are playoffs and how many teams qualify. Football also has the scoring (points per win, draw, loss and blowout bonus); padel and tennis have the **set format** instead (sets per match, games per set, super tie-break).
+3. **Settings** (⚙️): set the name, the number of teams (2 to 32), the number of groups (1, 2, 4 or 8), the number of rounds, and whether there are playoffs and how many teams qualify. The remaining cards on the Settings page adapt dynamically to the sport:
+   - **⚽ Football — 📐 Scoring card:** points for Win (default 3), Draw (1), Loss (0), Bonus (+1), and Goals scored for bonus (3).
+   - **🎾 Padel — 🔄 Pairs card:** Format (*Fixed pairs*, *Americano*, or *Mexicano*), Points per match (4–99, default 24), and the **👤 Choose players** button.
+   - **🎾 Padel & Tennis — 🎾 Set format card:** Sets per match (*1 set*, *Best of 3*, *Best of 5*), Games per set (1 to 9, default 6), and the **Super tie-break in the deciding set** checkbox (checked by default in padel; unchecked by default in tennis).
 4. **Teams** (Manage → 👥 Teams): give each team a name and a colour.
 5. **Squads** (Manage → 👕 Squads): pick the team and add players from the database, with their jersey number. The squad's average ★ is shown at the top. In padel each team is a pair: add two players to each (no jersey number), or tap **🎲 Draw pairs**, tick two players per team, and the app pairs them by padel rating and names each team after its pair (see [Rules](rules.md#pairs)). In tennis a team is one player (singles) or two (doubles), added the same way.
 6. **🔄 Generate Schedule** (⚙️ Settings): creates all the rounds. With more than one group, the teams are drawn into the groups at this point.
@@ -130,9 +135,14 @@ Single matches are saved with the tournament being viewed. Their goals, assists 
 
 ## Stats, player profile and sharing
 
-![Goals, assists and MVP](assets/illustrations/11-golos-assistencias-mvp.jpg)
+![Goals, assists and MVP (football)](assets/illustrations/11-golos-assistencias-mvp.jpg)
 
-- **📊 Stats**: table of scorers, assists and MVPs of the current tournament and its single matches. In padel the cards count games (played, most won, fewest lost) and there are no scorer tables.
+*(The illustration above shows football's Stats tab with goals, assists and MVPs. Padel and tennis track games, and Americano/Mexicano track individual points.)*
+
+- **📊 Stats**: what is displayed depends on the sport:
+  - **⚽ Football:** leaderboards for Top Scorers, Top Assists, and MVPs for the current tournament and its single matches, plus stat cards (total goals, goals per match, highest score, most wins).
+  - **🎾 Padel & Tennis:** stat cards highlighting games played, games per match, most games won, fewest games lost, biggest win (by game difference), and most match wins. There are no individual scorer tables because matches are tracked game by game without player goal events.
+  - **🎾 Americano & Mexicano:** rankings and stats are strictly per individual player (points won, point difference, and matches won) rather than team pairs.
 - **🗄️ History**: list of archived tournaments and an all-time table (archived tournaments, the current tournament and single matches).
 - **Player profile**: tap a player's name to see their attributes, rating, and all-time goals, assists and MVPs.
 - **Share**: the **📤** button next to the Standings title, and **📤 Share image** in the window of each finished match. The standings image uses the sport's columns (Pts in football, GW in padel); a padel result image shows the sets won with the games of each set. On a phone it opens the system share sheet (WhatsApp, etc.); on a computer it downloads the PNG image.
