@@ -2,7 +2,17 @@
 // Domain Types for Torneio ILOG
 // ---------------------------------------------------------------------------
 
-export type Role = 'admin' | 'user';
+export type Role = 'master' | 'admin' | 'user';
+
+export interface UserProfile {
+  uid: string;
+  nome?: string;
+  email?: string;
+  foto?: string;
+  ultimoAcesso?: number;
+  role?: Role | null;
+  admin?: Record<string, boolean>;
+}
 
 export type GameStatus = 'agendado' | 'decorrer' | 'terminado';
 

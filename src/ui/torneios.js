@@ -98,7 +98,15 @@ export function renderHeaderTournament(meta) {
 /**
  * Abre o modal para criar um novo torneio.
  */
-export function openNovoTorneioModal(onCreate) {
+export function openNovoTorneioModal(onCreate, sportsList = null) {
+  const sports = sportsList || [
+    { id: 'football', label: '⚽ Futebol' },
+    { id: 'padel', label: '🎾 Padel' },
+  ];
+  const sportOptions = sports
+    .map((s) => `<option value="${escapeHtml(s.id)}">${escapeHtml(s.label)}</option>`)
+    .join('');
+
   dom.modalTitle.textContent = 'Novo Torneio';
   dom.modalBody.innerHTML = `
     <div style="display:flex; flex-direction:column; gap:12px;">
@@ -109,8 +117,7 @@ export function openNovoTorneioModal(onCreate) {
       <div class="field">
         <label for="novoTorneioSport">Modalidade</label>
         <select id="novoTorneioSport" class="input">
-          <option value="football">⚽ Futebol</option>
-          <option value="padel">🎾 Padel</option>
+          ${sportOptions}
         </select>
       </div>
       <div class="field">

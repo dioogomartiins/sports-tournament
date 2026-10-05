@@ -4,7 +4,7 @@ import { clamp, numOr, escapeHtml, buildPlayerIndex } from './utils.js';
 import { shareStandings, shareResult } from './share.js';
 import { animateResultChanges } from './animations.js';
 import { bergerRounds, balancedDraft, buildFirstRoundSeeding, buildExtraVolta, getPlayoffWinner, buildArchiveEntry, GAME_STATUS, alignAssists, addGoal, removeGoal, setGameStatus } from './algorithms.js';
-import { initFirebaseListener, onFirebaseStateChange, onFirebasePushError, setSyncedSnapshot, initAuth, signInWithGoogle, signOutUser, getCurrentUser, getCurrentRole, listenUsers, listenLog, setUserRole, listenTournaments, createTournament, finishTournament, setActiveTournamentId } from './firebase.js';
+import { initFirebaseListener, onFirebaseStateChange, onFirebasePushError, setSyncedSnapshot, initAuth, signInWithGoogle, signOutUser, getCurrentUser, getCurrentRole, getCurrentUserAdmin, listenUsers, listenLog, setUserRole, listenTournaments, createTournament, finishTournament, setActiveTournamentId } from './firebase.js';
 import { roleLabel } from './permissions.js';
 
 // ---------------------------------------------------------------------------
@@ -358,10 +358,26 @@ export function onSelectTournament(id) {
     state.meta = { ...found };
   }
   renderTournaments();
+  renderAuth(getCurrentUser(), getCurrentRole(), getCurrentUserAdmin());
   renderAll();
 }
 
 export function onNovoTorneioModalClick() {
+  const role = getCurrentRole();
+  const userAdmin = getCurrentUserAdmin();
+  const allSports = [
+    { id: 'football', label: '⚽ Futebol' },
+    { id: 'padel', label: '🎾 Padel' },
+  ];
+  const allowedSports = role === 'master'
+    ? allSports
+    : allSports.filter((s) => userAdmin && userAdmin[s.id] === true);
+
+  if (!allowedSports.length) {
+    showToast('Não tens permissão para criar torneios.', 'error');
+    return;
+  }
+
   openNovoTorneioModal(async ({ name, sport, numEquipas }) => {
     const res = await createTournament({ name, sport, numEquipas });
     if (res && res.ok && res.tournamentId) {
@@ -370,7 +386,7 @@ export function onNovoTorneioModalClick() {
     } else {
       showToast('Não foi possível criar o torneio.', 'error');
     }
-  });
+  }, allowedSports);
 }
 
 export function onTerminarTorneio(tid = getCurrentTournamentId()) {
@@ -681,30 +697,46 @@ export function onContaClick() {
   }
   // No telemóvel o botão só mostra 👤, por isso a confirmação diz quem tem a sessão
   const user = getCurrentUser();
-  const quem = `${escapeHtml(user.displayName || user.email || '')} (${escapeHtml(roleLabel(getCurrentRole()))})`;
+  const quem = `${escapeHtml(user.displayName || user.email || '')} (${escapeHtml(roleLabel(getCurrentRole(), getCurrentUserAdmin()))})`;
   openConfirm('Terminar sessão', `Tens sessão iniciada como <strong>${quem}</strong>. Queres sair da tua conta? Continuas a ver o torneio, mas sem poder editar.`, () => {
     signOutUser();
   });
 }
 
-function onAuthChange({ user, role }) {
-  renderAuth(user, role);
+function onAuthChange({ user, role, admin }) {
+  renderAuth(user, role, admin);
 
-  const isAdmin = !!user && role === 'admin';
-  if (isAdmin && !stopAdminListeners) {
+  const isMst = !!user && role === 'master';
+  if (isMst && !stopAdminListeners) {
     const stopUsers = listenUsers((users) => renderUsers(users, user.uid));
     const stopLog = listenLog(renderLog);
     stopAdminListeners = () => { stopUsers(); stopLog(); };
-  } else if (!isAdmin && stopAdminListeners) {
+  } else if (!isMst && stopAdminListeners) {
     stopAdminListeners();
     stopAdminListeners = null;
   }
 }
 
 export function onUserRoleChange(e) {
-  const sel = e.target.closest('select[data-uid]');
+  const row = e.target.closest('.user-row');
+  if (!row) return;
+  const sel = row.querySelector('select[data-uid]');
   if (!sel) return;
-  setUserRole(sel.dataset.uid, sel.value || null, sel.dataset.nome)
+  const uid = sel.dataset.uid;
+  const nome = sel.dataset.nome;
+  const role = sel.value || null;
+
+  let sportAdmins = null;
+  if (role === 'admin') {
+    sportAdmins = {};
+    row.querySelectorAll('.user-sport-cb').forEach((cb) => {
+      sportAdmins[cb.dataset.sport] = cb.checked;
+    });
+  } else if (role === 'master') {
+    sportAdmins = { football: true, padel: true };
+  }
+
+  setUserRole(uid, role, sportAdmins, nome)
     .then(() => showToast('Perfil atualizado.', 'ok'))
     .catch((err) => {
       console.error('Erro ao mudar perfil:', err);

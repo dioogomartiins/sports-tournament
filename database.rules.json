@@ -5,27 +5,30 @@
       ".write": false
     },
     "torneio_log": {
-      ".read": "auth != null && root.child('utilizadores').child(auth.uid).child('role').val() === 'admin'",
+      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'master'",
       ".write": false
     },
     "arquivo": {
       ".read": true,
-      ".write": "auth != null && root.child('utilizadores').child(auth.uid).child('role').val() === 'admin'"
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'master'",
+      "$entryId": {
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'master' || (newData.child('sport').exists() && root.child('users').child(auth.uid).child('admin').child(newData.child('sport').val()).val() === true) || (data.child('sport').exists() && root.child('users').child(auth.uid).child('admin').child(data.child('sport').val()).val() === true))"
+      }
     },
     "players": {
       ".read": true,
-      ".write": "auth != null && root.child('utilizadores').child(auth.uid).child('role').val() === 'admin'"
+      ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'master' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).hasChild('admin'))"
     },
     "tournaments": {
       ".read": true,
       "$tournamentId": {
         ".read": true,
         "logRef": {
-          ".write": "auth != null && (root.child('utilizadores').child(auth.uid).child('role').val() === 'admin' || root.child('utilizadores').child(auth.uid).child('role').val() === 'user') && newData.exists()",
+          ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'master' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).hasChild('admin') || root.child('users').child(auth.uid).child('role').val() === 'user') && newData.exists()",
           ".validate": "newData.isString() && newData.parent().parent().parent().child('tournament_log').child($tournamentId).child(newData.val()).child('uid').val() === auth.uid && !root.child('tournament_log').child($tournamentId).child(newData.val()).exists()"
         },
         "meta": {
-          ".write": "auth != null && root.child('utilizadores').child(auth.uid).child('role').val() === 'admin' && newData.parent().child('logRef').val() !== root.child('tournaments').child($tournamentId).child('logRef').val()",
+          ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'master' || (newData.child('sport').exists() && root.child('users').child(auth.uid).child('admin').child(newData.child('sport').val()).val() === true) || (root.child('tournaments').child($tournamentId).child('meta').child('sport').exists() && root.child('users').child(auth.uid).child('admin').child(root.child('tournaments').child($tournamentId).child('meta').child('sport').val()).val() === true)) && newData.parent().child('logRef').val() !== root.child('tournaments').child($tournamentId).child('logRef').val()",
           "sport": {
             ".validate": "newData.isString() && newData.val().length <= 50 && (!data.exists() || data.val() === newData.val())"
           },
@@ -43,9 +46,9 @@
           }
         },
         "results": {
-          ".write": "auth != null && root.child('utilizadores').child(auth.uid).child('role').val() === 'admin' && newData.parent().child('logRef').val() !== root.child('tournaments').child($tournamentId).child('logRef').val()",
+          ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'master' || (newData.parent().child('meta').child('sport').exists() && root.child('users').child(auth.uid).child('admin').child(newData.parent().child('meta').child('sport').val()).val() === true) || (root.child('tournaments').child($tournamentId).child('meta').child('sport').exists() && root.child('users').child(auth.uid).child('admin').child(root.child('tournaments').child($tournamentId).child('meta').child('sport').val()).val() === true)) && newData.parent().child('logRef').val() !== root.child('tournaments').child($tournamentId).child('logRef').val()",
           "$jogo": {
-            ".write": "auth != null && (root.child('utilizadores').child(auth.uid).child('role').val() === 'admin' || root.child('utilizadores').child(auth.uid).child('role').val() === 'user') && newData.parent().parent().child('logRef').val() !== root.child('tournaments').child($tournamentId).child('logRef').val()",
+            ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'master' || root.child('users').child(auth.uid).child('role').val() === 'user' || (newData.parent().parent().child('meta').child('sport').exists() && root.child('users').child(auth.uid).child('admin').child(newData.parent().parent().child('meta').child('sport').val()).val() === true) || (root.child('tournaments').child($tournamentId).child('meta').child('sport').exists() && root.child('users').child(auth.uid).child('admin').child(root.child('tournaments').child($tournamentId).child('meta').child('sport').val()).val() === true)) && newData.parent().parent().child('logRef').val() !== root.child('tournaments').child($tournamentId).child('logRef').val()",
             ".validate": "$jogo.matches(/^[0-9]{1,4}$/) && ((newData.isString() && newData.val().matches(/^[0-9]{1,3}-[0-9]{1,3}$/)) || newData.hasChild('score'))",
             "score": {
               ".validate": "newData.isString() && newData.val().matches(/^[0-9]{1,3}-[0-9]{1,3}$/)"
@@ -81,38 +84,38 @@
           }
         },
         "schedule": {
-          ".write": "auth != null && root.child('utilizadores').child(auth.uid).child('role').val() === 'admin' && newData.parent().child('logRef').val() !== root.child('tournaments').child($tournamentId).child('logRef').val()",
+          ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'master' || (newData.parent().child('meta').child('sport').exists() && root.child('users').child(auth.uid).child('admin').child(newData.parent().child('meta').child('sport').val()).val() === true) || (root.child('tournaments').child($tournamentId).child('meta').child('sport').exists() && root.child('users').child(auth.uid).child('admin').child(root.child('tournaments').child($tournamentId).child('meta').child('sport').val()).val() === true)) && newData.parent().child('logRef').val() !== root.child('tournaments').child($tournamentId).child('logRef').val()",
           "$i": {
             "home": {
-              ".write": "auth != null && (root.child('utilizadores').child(auth.uid).child('role').val() === 'admin' || root.child('utilizadores').child(auth.uid).child('role').val() === 'user') && newData.parent().parent().parent().child('logRef').val() !== root.child('tournaments').child($tournamentId).child('logRef').val()",
+              ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'master' || root.child('users').child(auth.uid).child('role').val() === 'user' || (newData.parent().parent().parent().child('meta').child('sport').exists() && root.child('users').child(auth.uid).child('admin').child(newData.parent().parent().parent().child('meta').child('sport').val()).val() === true) || (root.child('tournaments').child($tournamentId).child('meta').child('sport').exists() && root.child('users').child(auth.uid).child('admin').child(root.child('tournaments').child($tournamentId).child('meta').child('sport').val()).val() === true)) && newData.parent().parent().parent().child('logRef').val() !== root.child('tournaments').child($tournamentId).child('logRef').val()",
               ".validate": "newData.isNumber() || (newData.isString() && newData.val().length <= 100)"
             },
             "away": {
-              ".write": "auth != null && (root.child('utilizadores').child(auth.uid).child('role').val() === 'admin' || root.child('utilizadores').child(auth.uid).child('role').val() === 'user') && newData.parent().parent().parent().child('logRef').val() !== root.child('tournaments').child($tournamentId).child('logRef').val()",
+              ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'master' || root.child('users').child(auth.uid).child('role').val() === 'user' || (newData.parent().parent().parent().child('meta').child('sport').exists() && root.child('users').child(auth.uid).child('admin').child(newData.parent().parent().parent().child('meta').child('sport').val()).val() === true) || (root.child('tournaments').child($tournamentId).child('meta').child('sport').exists() && root.child('users').child(auth.uid).child('admin').child(root.child('tournaments').child($tournamentId).child('meta').child('sport').val()).val() === true)) && newData.parent().parent().parent().child('logRef').val() !== root.child('tournaments').child($tournamentId).child('logRef').val()",
               ".validate": "newData.isNumber() || (newData.isString() && newData.val().length <= 100)"
             }
           }
         },
         "jogosSingulares": {
-          ".write": "auth != null && (root.child('utilizadores').child(auth.uid).child('role').val() === 'admin' || root.child('utilizadores').child(auth.uid).child('role').val() === 'user') && newData.parent().child('logRef').val() !== root.child('tournaments').child($tournamentId).child('logRef').val()"
+          ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'master' || (newData.parent().child('meta').child('sport').exists() && root.child('users').child(auth.uid).child('admin').child(newData.parent().child('meta').child('sport').val()).val() === true) || (root.child('tournaments').child($tournamentId).child('meta').child('sport').exists() && root.child('users').child(auth.uid).child('admin').child(root.child('tournaments').child($tournamentId).child('meta').child('sport').val()).val() === true) || root.child('users').child(auth.uid).child('role').val() === 'user') && newData.parent().child('logRef').val() !== root.child('tournaments').child($tournamentId).child('logRef').val()"
         },
         "exportedAt": {
-          ".write": "auth != null && (root.child('utilizadores').child(auth.uid).child('role').val() === 'admin' || root.child('utilizadores').child(auth.uid).child('role').val() === 'user')",
+          ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'master' || (newData.parent().child('meta').child('sport').exists() && root.child('users').child(auth.uid).child('admin').child(newData.parent().child('meta').child('sport').val()).val() === true) || (root.child('tournaments').child($tournamentId).child('meta').child('sport').exists() && root.child('users').child(auth.uid).child('admin').child(root.child('tournaments').child($tournamentId).child('meta').child('sport').val()).val() === true) || root.child('users').child(auth.uid).child('role').val() === 'user')",
           ".validate": "newData.isString() && newData.val().length <= 40"
         },
         "version": {
-          ".write": "auth != null && (root.child('utilizadores').child(auth.uid).child('role').val() === 'admin' || root.child('utilizadores').child(auth.uid).child('role').val() === 'user')",
+          ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'master' || (newData.parent().child('meta').child('sport').exists() && root.child('users').child(auth.uid).child('admin').child(newData.parent().child('meta').child('sport').val()).val() === true) || (root.child('tournaments').child($tournamentId).child('meta').child('sport').exists() && root.child('users').child(auth.uid).child('admin').child(root.child('tournaments').child($tournamentId).child('meta').child('sport').val()).val() === true) || root.child('users').child(auth.uid).child('role').val() === 'user')",
           ".validate": "newData.isNumber()"
         },
         "$secao": {
-          ".write": "auth != null && root.child('utilizadores').child(auth.uid).child('role').val() === 'admin' && newData.parent().child('logRef').val() !== root.child('tournaments').child($tournamentId).child('logRef').val()"
+          ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'master' || (newData.parent().child('meta').child('sport').exists() && root.child('users').child(auth.uid).child('admin').child(newData.parent().child('meta').child('sport').val()).val() === true) || (root.child('tournaments').child($tournamentId).child('meta').child('sport').exists() && root.child('users').child(auth.uid).child('admin').child(root.child('tournaments').child($tournamentId).child('meta').child('sport').val()).val() === true)) && newData.parent().child('logRef').val() !== root.child('tournaments').child($tournamentId).child('logRef').val()"
         }
       }
     },
-    "utilizadores": {
-      ".read": "auth != null && root.child('utilizadores').child(auth.uid).child('role').val() === 'admin'",
+    "users": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'master'",
       "$uid": {
-        ".read": "auth != null && auth.uid === $uid",
+        ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'master')",
         "nome": {
           ".write": "auth != null && auth.uid === $uid",
           ".validate": "newData.isString() && newData.val().length <= 100"
@@ -130,22 +133,32 @@
           ".validate": "newData.val() === now"
         },
         "role": {
-          ".write": "auth != null && root.child('utilizadores').child(auth.uid).child('role').val() === 'admin'",
-          ".validate": "newData.val() === 'admin' || newData.val() === 'user'"
+          ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'master'",
+          ".validate": "newData.val() === 'master' || newData.val() === 'admin' || newData.val() === 'user'"
+        },
+        "admin": {
+          ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'master'",
+          "$sport": {
+            ".validate": "newData.isBoolean()"
+          }
         },
         "$outro": {
           ".validate": false
         }
       }
     },
+    "utilizadores": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'master' || root.child('utilizadores').child(auth.uid).child('role').val() === 'admin')",
+      ".write": false
+    },
     "tournament_log": {
       "$tournamentId": {
-        ".read": "auth != null && root.child('utilizadores').child(auth.uid).child('role').val() === 'admin'",
+        ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'master' || (root.child('tournaments').child($tournamentId).child('meta').child('sport').exists() && root.child('users').child(auth.uid).child('admin').child(root.child('tournaments').child($tournamentId).child('meta').child('sport').val()).val() === true))",
         ".indexOn": [
           "quando"
         ],
         "$entrada": {
-          ".write": "auth != null && !data.exists() && (root.child('utilizadores').child(auth.uid).child('role').val() === 'admin' || root.child('utilizadores').child(auth.uid).child('role').val() === 'user')",
+          ".write": "auth != null && !data.exists() && (root.child('users').child(auth.uid).child('role').val() === 'master' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).hasChild('admin') || root.child('users').child(auth.uid).child('role').val() === 'user')",
           ".validate": "newData.hasChildren(['uid', 'nome', 'acao', 'quando']) && newData.child('uid').val() === auth.uid && newData.child('quando').val() === now",
           "uid": {
             ".validate": "newData.isString()"

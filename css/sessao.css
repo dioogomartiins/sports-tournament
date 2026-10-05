@@ -1,11 +1,16 @@
 /* ---------------------------------------------------------------------
    Sessão e perfis
    --------------------------------------------------------------------- */
-body:not([data-role="admin"]) [data-requires="admin"] {
+body:not([data-role="admin"]):not([data-role="master"]) [data-requires="admin"] {
   display: none !important;
 }
 
-body[data-role="admin"] [data-hide-for="admin"] {
+body:not([data-role="master"]) [data-requires="master"] {
+  display: none !important;
+}
+
+body[data-role="admin"] [data-hide-for="admin"],
+body[data-role="master"] [data-hide-for="admin"] {
   display: none !important;
 }
 
@@ -14,7 +19,7 @@ body[data-role="admin"] [data-hide-for="admin"] {
 }
 
 /* Quem não é admin só vê as equipas do calendário atual */
-body:not([data-role="admin"]) .team-row-inactive {
+body:not([data-role="admin"]):not([data-role="master"]) .team-row-inactive {
   display: none;
 }
 
