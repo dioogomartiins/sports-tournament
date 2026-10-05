@@ -151,7 +151,7 @@ function onScoreBtnClick(btn) {
 
       // Autogolo não tem assistência
       if (pid === 'auto') registerGoal('');
-      else openPickPlayerModal(en.singleMatch.pickAssistTitle, squadPickList(teamIdx, pid), en.singleMatch.noAssist, registerGoal);
+      else openPickPlayerModal(en.singleMatch.pickAssistTitle, squadPickList(teamIdx, pid), en.singleMatch.noAssistLabel, registerGoal);
     });
   } else if (action === 'sub') {
     commitGoal(removeGoal(state.results[gi], side));
@@ -162,7 +162,7 @@ export function onMvpClick(gi) {
   const game = state.schedule[gi];
   if (!game) return;
   const players = [...squadPickList(game.home), ...squadPickList(game.away)];
-  openPickPlayerModal(en.singleMatch.pickMvpTitle, players, en.singleMatch.noMvp, (pid) => {
+  openPickPlayerModal(en.singleMatch.pickMvpTitle, players, en.singleMatch.noMvpLabel, (pid) => {
     const res = state.results[gi];
     if (!res || typeof res !== 'object') return;
     if (pid) res.mvp = pid;

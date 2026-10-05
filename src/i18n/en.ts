@@ -524,6 +524,11 @@ export const en = {
     defaultTeamLabel: (idx: number) => `Team ${idx}`,
     defaultMatchLabel: (idx: number) => `match ${idx}`,
     genericSectionUpdated: (section: string) => `${section} updated`,
+    tournamentChanged: 'Tournament changes',
+    legacyMigrated: 'Legacy tournament migrated to tournaments/default',
+    roleChanged: (name: string, role: string) => `${name}'s role changed to ${role}`,
+    tournamentFinished: (name: string) => `Tournament ${name} finished and archived`,
+    tournamentCreated: (name: string, sport: string) => `Tournament ${name} created (${sport})`,
   },
 };
 
