@@ -3,7 +3,7 @@ import { GAME_STATUS } from './algorithms.js';
 import { dom } from './ui/dom.js';
 import { populateConfigForm, renderScheduleHint } from './ui/settings.js';
 import { renderTeams, renderSquadsDropdown, renderSquadPlayerFromDBDropdown } from './ui/equipas.js';
-import { renderCalendar, renderResults } from './ui/calendario.js';
+import { renderCalendar, renderResults } from './ui/schedule.js';
 import { renderStandingsWrapper } from './ui/standings.js';
 import { renderStatsGrid, computeStatsSummary, renderDashboard, updateTicker } from './ui/stats.js';
 import { renderPlayersList } from './ui/jogadores.js';
@@ -18,7 +18,7 @@ export * from './ui/toasts.js';
 export * from './ui/navigation.js';
 export * from './ui/settings.js';
 export * from './ui/equipas.js';
-export * from './ui/calendario.js';
+export * from './ui/schedule.js';
 export * from './ui/standings.js';
 export * from './ui/stats.js';
 export * from './ui/modais.js';
@@ -26,7 +26,7 @@ export * from './ui/jogadores.js';
 export * from './ui/singular.js';
 export * from './ui/admin.js';
 export * from './ui/history.js';
-export * from './ui/jogo.js';
+export * from './ui/match.js';
 export * from './ui/torneios.js';
 
 // ---------------------------------------------------------------------------

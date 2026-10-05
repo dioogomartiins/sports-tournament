@@ -1,5 +1,5 @@
 import { state, persistConfigTeams, loadState, persistSchedule, persistResults, persistJogosSingulares, storeAllLayers, notifyPushError, currentTheme, setCurrentTheme, exportJSON, importJSON, applyGeneratedSchedule, applySnapshot, buildSnapshot, defaultTeams, defaultSquads, setStateHooks, setCurrentTournamentId, getCurrentTournamentId } from './state.js';
-import { closeGameModal, animateResultChanges, dom, cacheDom, renderAll, refreshComputed, renderScheduleHint, renderSquadList, renderSquadsDropdown, flashError, flashBackup, renderCalendar, renderResults, showToast, flashSaved, openConfirm, closeConfirm, openDangerConfirm, switchTab, confirmCallback, openScorerModal, openPlayerProfile, computeStatsSummary, renderPlayersList, openPlayerModal, renderSquadPlayerFromDBDropdown, renderDraftTeams, renderSingularHistorico, currentDraft, renderAuth, renderUsers, renderLog, openPickPlayerModal, squadPickList, renderTournamentsList, openNovoTorneioModal, openDrawPairsModal, bindHistoryEvents } from './ui.js';
+import { closeGameModal, openGameModal, animateResultChanges, dom, cacheDom, renderAll, refreshComputed, renderScheduleHint, renderSquadList, renderSquadsDropdown, flashError, flashBackup, renderCalendar, renderResults, showToast, flashSaved, openConfirm, closeConfirm, openDangerConfirm, switchTab, confirmCallback, openScorerModal, openPlayerProfile, computeStatsSummary, renderPlayersList, openPlayerModal, renderSquadPlayerFromDBDropdown, renderDraftTeams, renderSingularHistorico, currentDraft, renderAuth, renderUsers, renderLog, openPickPlayerModal, squadPickList, renderTournamentsList, openNovoTorneioModal, openDrawPairsModal, bindHistoryEvents } from './ui.js';
 import { clamp, numOr, escapeHtml, buildPlayerIndex } from './utils.js';
 import { shareStandings, shareResult } from './share.js';
 import { bergerRounds, balancedDraft, balancedPairs, buildFirstRoundSeeding, buildExtraVolta, buildArchiveEntry, GAME_STATUS, alignAssists } from './algorithms.js';
@@ -157,11 +157,12 @@ function changeGameStatus(gi, status) {
   commitResult(gi, currentSport().setGameStatus(state.results[gi], status));
 }
 
-function onStatusBtnClick(btn) {
-  const res = state.results[btn.dataset.gi];
+/** Moves a match to the next status: scheduled → in progress → finished → scheduled. */
+function onStatusClick(gi) {
+  const res = state.results[gi];
   const current = (res && typeof res === 'object' && res.status) || 'agendado';
   const cycle = { agendado: 'decorrer', decorrer: 'terminado', terminado: 'agendado' };
-  changeGameStatus(btn.dataset.gi, cycle[current] ?? 'agendado');
+  changeGameStatus(gi, cycle[current] ?? 'agendado');
 }
 
 /** Adds a point: in football asks for the scorer (and assist) first; in padel adds a game. */
@@ -189,8 +190,8 @@ function onGoalCancel(gi, side) {
   commitResult(gi, currentSport().removePoint(state.results[gi], side, state.config));
 }
 
-function onScoreBtnClick(btn) {
-  const { gi, side, action } = btn.dataset;
+/** A − / + button of the results list (detail: { gi, side, action }). */
+function onScoreStep({ gi, side, action }) {
   if (action === 'add') onGoalAdd(gi, side);
   else if (action === 'sub') onGoalCancel(gi, side);
 }
@@ -210,60 +211,32 @@ export function onMvpClick(gi) {
   });
 }
 
-function onResultCommit(inp) {
-  const gi = inp.dataset.gi;
-  const row = inp.closest('.fixture-input') || inp.closest('.result-split').parentNode;
-
-  const inps = row.querySelectorAll('.res-box');
-  const penInps = row.querySelectorAll('.pen-box');
-
-  const vHome = inps[0].value.trim();
-  const vAway = inps[1].value.trim();
-  const pHome = penInps.length ? penInps[0].value.trim() : '';
-  const pAway = penInps.length ? penInps[1].value.trim() : '';
-
-  const clearInvalid = () => {
-    inps[0].classList.remove('input-invalid');
-    inps[1].classList.remove('input-invalid');
-    if (penInps.length) {
-      penInps[0].classList.remove('input-invalid');
-      penInps[1].classList.remove('input-invalid');
-    }
-  };
-
-  if (vHome === '' && vAway === '') {
+/**
+ * A score typed in the results list (detail: { gi, score, penalties }).
+ * The list has already checked the boxes; a null score clears the result.
+ */
+function onScoreCommit({ gi, score, penalties }) {
+  if (score === null) {
+    if (!(gi in state.results)) return;
     delete state.results[gi];
-    clearInvalid();
-  } else if (vHome !== '' && vAway !== '' && !isNaN(vHome) && !isNaN(vAway)) {
-    const newScore = `${parseInt(vHome, 10)}-${parseInt(vAway, 10)}`;
-    let newPenalties;
-
-    if (pHome !== '' && pAway !== '' && !isNaN(pHome) && !isNaN(pAway)) {
-      newPenalties = `${parseInt(pHome, 10)}-${parseInt(pAway, 10)}`;
-    }
-
+  } else {
     if (!state.results[gi] || typeof state.results[gi] === 'string') {
-      state.results[gi] = { score: newScore, scorers: { home: [], away: [] }, status: 'terminado' };
+      state.results[gi] = { score, scorers: { home: [], away: [] }, status: 'terminado' };
     } else {
-      state.results[gi].score = newScore;
+      state.results[gi].score = score;
       if (state.results[gi].status === 'agendado') state.results[gi].status = 'terminado';
     }
 
-    if (newPenalties) state.results[gi].penalties = newPenalties;
+    if (penalties) state.results[gi].penalties = penalties;
     else delete state.results[gi].penalties;
 
     // Propagar vencedor para o próximo jogo de playoff
     propagatePlayoffWinner(gi);
-
-    clearInvalid();
-  } else {
-    inps[0].classList.toggle('input-invalid', vHome === '' || isNaN(vHome));
-    inps[1].classList.toggle('input-invalid', vAway === '' || isNaN(vAway));
-    return;
   }
 
   persistResults().then(() => animateResultChanges());
   renderResults();
+  renderCalendar();
   refreshComputed();
 }
 
@@ -868,19 +841,13 @@ export function bindEvents() {
   dom.teamsList.addEventListener('change', (e) => {
     if (e.target.matches('.team-prop[type="color"]')) onTeamPropChange(e.target);
   });
-  dom.calendarList.addEventListener('click', (e) => {
-    const badge = e.target.closest('.status-badge');
-    if (badge) onStatusBtnClick(badge);
+  // <schedule-list> and <results-list> (detail: the match gi, or an object with it)
+  [dom.calendarList, dom.resultsList].forEach((list) => {
+    list.addEventListener('open-match', (e) => openGameModal(e.detail));
+    list.addEventListener('status-click', (e) => onStatusClick(e.detail));
   });
-  dom.resultsList.addEventListener('click', (e) => {
-    const btn = e.target.closest('.score-btn, .status-badge');
-    if (!btn) return;
-    if (btn.matches('.score-btn')) onScoreBtnClick(btn);
-    else onStatusBtnClick(btn);
-  });
-  dom.resultsList.addEventListener('focusout', (e) => {
-    if (e.target.matches('.res-box, .pen-box')) onResultCommit(e.target);
-  });
+  dom.resultsList.addEventListener('score-step', (e) => onScoreStep(e.detail));
+  dom.resultsList.addEventListener('score-commit', (e) => onScoreCommit(e.detail));
 
   // Conta e administração
   dom.btnConta.addEventListener('click', onContaClick);
