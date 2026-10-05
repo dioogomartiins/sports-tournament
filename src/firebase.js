@@ -2,6 +2,7 @@ import { initializeApp } from "firebase/app";
 import { getDatabase, connectDatabaseEmulator, ref, onValue, update, push, query, orderByChild, limitToLast, serverTimestamp, get } from "firebase/database";
 import { getAuth, connectAuthEmulator, GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
 import { diffSnapshot, describeUpdates, onlyMetadata, normalizeMeta, normalizeConfig } from "./sync.js";
+import { en } from "./i18n/en.js";
 import { blockedPaths, roleLabel, isSportAdmin, isMaster } from "./permissions.js";
 
 const firebaseConfig = {
@@ -171,7 +172,7 @@ export function pushStateToFirebase(newState, tournamentId = activeTournamentId)
 
   // As regras exigem que cada gravação aponte (logRef) para uma entrada nova
   // do registo de alterações, escrita no mesmo update()
-  const log = logEntry(describeUpdates(updates, newState) || 'Alterações ao torneio', tournamentId);
+  const log = logEntry(describeUpdates(updates, newState) || en.sync.tournamentChanged, tournamentId);
   Object.assign(rootUpdates, log);
   const logKey = Object.keys(log)[0].split('/')[2];
   rootUpdates[`tournaments/${tournamentId}/logRef`] = logKey;
@@ -242,7 +243,7 @@ async function checkAndMigrateLegacyState() {
     [`tournament_log/default/${key}`]: {
       uid: currentUser.uid,
       nome: displayName(currentUser),
-      acao: 'Migração do torneio legado para tournaments/default',
+      acao: en.sync.legacyMigrated,
       quando: serverTimestamp(),
     },
     'tournaments/default/logRef': key,
@@ -274,7 +275,7 @@ async function checkAndMigrateLegacyState() {
   });
 
   await update(ref(database), rootUpdates);
-  console.log("Migração de torneio concluída com sucesso!");
+  console.log("Tournament migration completed");
 
   // Migração de utilizadores para users se users ainda não existir
   try {
@@ -297,11 +298,11 @@ async function checkAndMigrateLegacyState() {
           };
         });
         await update(ref(database), userUpdates);
-        console.log("Migração de utilizadores para users concluída!");
+        console.log("utilizadores migrated to users");
       }
     }
   } catch (err) {
-    console.error("Erro na migração de utilizadores:", err);
+    console.error("Users migration failed:", err);
   }
 }
 
@@ -339,7 +340,7 @@ export function initAuth(callback) {
         try {
           await checkAndMigrateLegacyState();
         } catch (err) {
-          console.error("Erro na verificação de migração legada:", err);
+          console.error("Legacy migration check failed:", err);
         }
       }
     }, (err) => {
@@ -379,7 +380,7 @@ export function listenLog(callback, tournamentId = activeTournamentId) {
 export function setUserRole(uid, role, sportAdmins = null, nome = '') {
   const updates = {
     [`users/${uid}/role`]: role || null,
-    ...logEntry(`Perfil de ${nome || uid} alterado para ${roleLabel(role, sportAdmins)}`),
+    ...logEntry(en.sync.roleChanged(nome || uid, roleLabel(role, sportAdmins))),
   };
   if (sportAdmins !== null) {
     updates[`users/${uid}/admin`] = sportAdmins;
@@ -447,7 +448,7 @@ export async function finishTournament(tournamentId = activeTournamentId, archiv
     createdAt: currentMeta.createdAt || Date.now(),
   };
 
-  const log = logEntry(`Torneio ${updatedMeta.name} terminado e arquivado`, tournamentId);
+  const log = logEntry(en.sync.tournamentFinished(updatedMeta.name), tournamentId);
   const logKey = Object.keys(log)[0].split('/')[2];
 
   const rootUpdates = {
@@ -486,7 +487,7 @@ export async function createTournament({ name, sport = 'football', numEquipas = 
   const emptyTeams = Array.from({ length: 32 }, () => ({ name: '', color: '#2F7A4F' }));
   const emptySquads = Array.from({ length: 32 }, () => []);
 
-  const log = logEntry(`Criação do torneio ${meta.name} (${sport})`, tournamentId);
+  const log = logEntry(en.sync.tournamentCreated(meta.name, sport), tournamentId);
   const logKey = Object.keys(log)[0].split('/')[2];
 
   const rootUpdates = {
