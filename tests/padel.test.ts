@@ -80,6 +80,11 @@ describe('scoring game by game', () => {
     expect(padel.removePoint({ score: '6-4 0-1', status: 'decorrer' }, 'home').score).toBe('6-4 0-1');
   });
 
+  it('starts at 0-0 in the first set', () => {
+    expect(padel.setGameStatus(undefined, 'decorrer')).toEqual({ score: '0-0', status: 'decorrer' });
+    expect(padel.addPoint(padel.setGameStatus(undefined, 'decorrer'), 'away', config()).score).toBe('0-1');
+  });
+
   it('does not change the saved result', () => {
     const saved: MatchResult = { score: '1-0', status: 'decorrer' };
     padel.addPoint(saved, 'home', config());
@@ -165,7 +170,7 @@ describe('live events', () => {
   it('reports games, sets, cancelled games, kick-off and full time', () => {
     const ev = (prev: MatchResult | undefined, next: MatchResult) =>
       padel.resultEvents(prev ? { 0: prev } : {}, { 0: next }, config());
-    expect(ev(undefined, { score: '', status: 'decorrer' })).toEqual([{ type: 'inicio', gi: '0' }]);
+    expect(ev(undefined, padel.setGameStatus(undefined, 'decorrer'))).toEqual([{ type: 'inicio', gi: '0' }]);
     expect(ev({ score: '1-0', status: 'decorrer' }, { score: '1-1', status: 'decorrer' })).toEqual([{ type: 'game', gi: '0', side: 'away' }]);
     expect(ev({ score: '5-4', status: 'decorrer' }, { score: '6-4', status: 'decorrer' })).toEqual([{ type: 'set', gi: '0', side: 'home' }]);
     expect(ev({ score: '6-4 1-0', status: 'decorrer' }, { score: '6-4 0-0', status: 'decorrer' })).toEqual([{ type: 'anulado', gi: '0', side: 'home' }]);

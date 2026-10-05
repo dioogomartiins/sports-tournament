@@ -3,6 +3,7 @@ import {
   GAME_STATUS,
   type Config,
   type GameEvent,
+  type GameStatus,
   type GroupStandings,
   type Match,
   type MatchResult,
@@ -151,6 +152,13 @@ export abstract class RacketSport extends Sport {
   private copy(res: MatchResult | undefined): Score {
     if (res && typeof res === 'object') return JSON.parse(JSON.stringify(res));
     return { score: typeof res === 'string' ? res : '' };
+  }
+
+  /** Changes the status; a match that starts with no score starts at 0-0 in the first set. */
+  setGameStatus(res: MatchResult | undefined, status: GameStatus): Score {
+    const out = super.setGameStatus(res, status);
+    if (!this.parseSets(out.score).length) out.score = '0-0';
+    return out;
   }
 
   /** Adds one game to a side; a finished set opens the next one. No-op once the match is decided. */
