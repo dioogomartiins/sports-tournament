@@ -2,7 +2,7 @@ import { initializeApp } from "firebase/app";
 import { getDatabase, connectDatabaseEmulator, ref, onValue, update, push, query, orderByChild, limitToLast, serverTimestamp, get } from "firebase/database";
 import { getAuth, connectAuthEmulator, GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
 import { diffSnapshot, describeUpdates, onlyMetadata, normalizeMeta, normalizeConfig } from "./sync.js";
-import { blockedPaths, roleLabel } from "./permissions.js";
+import { blockedPaths, roleLabel, isSportAdmin, isMaster } from "./permissions.js";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -153,7 +153,8 @@ export function pushStateToFirebase(newState, tournamentId = activeTournamentId)
   if (onlyMetadata(updates)) return { ok: true };
 
   if (!currentUser) return { ok: false, reason: 'sem-sessao' };
-  if (blockedPaths(currentRole, updates).length) return { ok: false, reason: 'sem-permissao' };
+  const sport = newState?.meta?.sport || newState?.config?.sport || 'football';
+  if (blockedPaths(currentRole, updates, { sport, userAdmin: currentUserAdmin }).length) return { ok: false, reason: 'sem-permissao' };
 
   lastSynced = JSON.parse(JSON.stringify(newState));
 
@@ -188,10 +189,18 @@ export function pushStateToFirebase(newState, tournamentId = activeTournamentId)
 // ---------------------------------------------------------------------------
 let currentUser = null;
 let currentRole = null;
+let currentUserAdmin = {};
 let stopRoleListener = null;
 
 export function getCurrentUser() { return currentUser; }
 export function getCurrentRole() { return currentRole; }
+export function getCurrentUserAdmin() { return currentUserAdmin; }
+export function isCurrentSportAdmin(sport = 'football') {
+  return isSportAdmin(currentRole, sport, currentUserAdmin);
+}
+export function isCurrentMaster() {
+  return isMaster(currentRole);
+}
 
 function displayName(user) {
   return (user.displayName || user.email || 'Sem nome').slice(0, 100);
@@ -265,18 +274,47 @@ async function checkAndMigrateLegacyState() {
   });
 
   await update(ref(database), rootUpdates);
-  console.log("Migração concluída com sucesso!");
+  console.log("Migração de torneio concluída com sucesso!");
+
+  // Migração de utilizadores para users se users ainda não existir
+  try {
+    const usersSnap = await get(ref(database, 'users'));
+    if (!usersSnap.exists() || Object.keys(usersSnap.val() || {}).length === 0) {
+      const utilSnap = await get(ref(database, 'utilizadores'));
+      const utilData = utilSnap.val();
+      if (utilData && typeof utilData === 'object') {
+        const userUpdates = {};
+        Object.keys(utilData).forEach((uid) => {
+          const u = utilData[uid];
+          const isMasterUser = u.role === 'admin';
+          userUpdates[`users/${uid}`] = {
+            nome: u.nome || '',
+            email: u.email || '',
+            foto: u.foto || '',
+            ultimoAcesso: u.ultimoAcesso || Date.now(),
+            role: isMasterUser ? 'master' : (u.role || 'user'),
+            ...(isMasterUser ? { admin: { football: true, padel: true } } : {}),
+          };
+        });
+        await update(ref(database), userUpdates);
+        console.log("Migração de utilizadores para users concluída!");
+      }
+    }
+  } catch (err) {
+    console.error("Erro na migração de utilizadores:", err);
+  }
 }
 
-// Calls callback({ user, role }) on sign-in, sign-out and role changes
+// Calls callback({ user, role, admin }) on sign-in, sign-out and role changes
 export function initAuth(callback) {
   onAuthStateChanged(auth, (user) => {
     if (stopRoleListener) { stopRoleListener(); stopRoleListener = null; }
     currentUser = user;
     currentRole = null;
+    currentUserAdmin = {};
 
     if (!user) {
-      callback({ user: null, role: null });
+      callback({ user: null, role: null, admin: {} });
       return;
     }
 
@@ -286,16 +324,18 @@ export function initAuth(callback) {
     };
     if (user.email) profile.email = user.email;
     if (user.photoURL) profile.foto = user.photoURL.slice(0, 500);
-    update(ref(database, `utilizadores/${user.uid}`), profile).catch((err) => {
+    update(ref(database, `users/${user.uid}`), profile).catch((err) => {
       console.error("Firebase error saving profile:", err);
     });
 
-    callback({ user, role: null });
-    stopRoleListener = onValue(ref(database, `utilizadores/${user.uid}/role`), async (snap) => {
-      currentRole = snap.val();
-      callback({ user, role: currentRole });
+    callback({ user, role: null, admin: {} });
+    stopRoleListener = onValue(ref(database, `users/${user.uid}`), async (snap) => {
+      const val = snap.val() || {};
+      currentRole = val.role || null;
+      currentUserAdmin = val.admin || {};
+      callback({ user, role: currentRole, admin: currentUserAdmin });
 
-      if (currentRole === 'admin') {
+      if (currentRole === 'master' || currentRole === 'admin') {
         try {
           await checkAndMigrateLegacyState();
         } catch (err) {
@@ -303,7 +343,7 @@ export function initAuth(callback) {
         }
       }
     }, (err) => {
-      console.error("Firebase error reading role:", err);
+      console.error("Firebase error reading user role:", err);
     });
   });
 }
@@ -317,10 +357,10 @@ export function signOutUser() {
 }
 
 // ---------------------------------------------------------------------------
-// Administração (só admins conseguem ler)
+// Administração (só master consegue ler)
 // ---------------------------------------------------------------------------
 export function listenUsers(callback) {
-  return onValue(ref(database, 'utilizadores'), (snap) => {
+  return onValue(ref(database, 'users'), (snap) => {
     const val = snap.val() || {};
     callback(Object.keys(val).map((uid) => ({ uid, ...val[uid] })));
   }, (err) => console.error("Firebase error reading users:", err));
@@ -335,12 +375,16 @@ export function listenLog(callback, tournamentId = activeTournamentId) {
   }, (err) => console.error("Firebase error reading log:", err));
 }
 
-// role: 'admin' | 'user' | null (pendente)
-export function setUserRole(uid, role, nome) {
-  return update(ref(database), {
-    [`utilizadores/${uid}/role`]: role,
-    ...logEntry(`Perfil de ${nome || uid} alterado para ${roleLabel(role)}`),
-  });
+// role: 'master' | 'admin' | 'user' | null (pendente)
+export function setUserRole(uid, role, sportAdmins = null, nome = '') {
+  const updates = {
+    [`users/${uid}/role`]: role || null,
+    ...logEntry(`Perfil de ${nome || uid} alterado para ${roleLabel(role, sportAdmins)}`),
+  };
+  if (sportAdmins !== null) {
+    updates[`users/${uid}/admin`] = sportAdmins;
+  }
+  return update(ref(database), updates);
 }
 
 // ---------------------------------------------------------------------------
@@ -384,7 +428,6 @@ export function listenTournaments(callback) {
 
 export async function finishTournament(tournamentId = activeTournamentId, archiveEntry) {
   if (!currentUser) return { ok: false, reason: 'sem-sessao' };
-  if (currentRole !== 'admin') return { ok: false, reason: 'sem-permissao' };
 
   let currentMeta = {};
   try {
@@ -394,9 +437,12 @@ export async function finishTournament(tournamentId = activeTournamentId, archiv
     // fallback
   }
 
+  const sport = currentMeta.sport || 'football';
+  if (!isSportAdmin(currentRole, sport, currentUserAdmin)) return { ok: false, reason: 'sem-permissao' };
+
   const updatedMeta = {
     name: currentMeta.name || 'Torneio',
-    sport: currentMeta.sport || 'football',
+    sport,
     status: 'finished',
     createdAt: currentMeta.createdAt || Date.now(),
   };
@@ -420,7 +466,7 @@ export async function finishTournament(tournamentId = activeTournamentId, archiv
 
 export async function createTournament({ name, sport = 'football', numEquipas = 8, numVoltas = 2 }) {
   if (!currentUser) return { ok: false, reason: 'sem-sessao' };
-  if (currentRole !== 'admin') return { ok: false, reason: 'sem-permissao' };
+  if (!isSportAdmin(currentRole, sport, currentUserAdmin)) return { ok: false, reason: 'sem-permissao' };
 
   const tournamentId = 't_' + Date.now();
   const meta = {

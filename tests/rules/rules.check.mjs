@@ -10,22 +10,37 @@ const env = await initializeTestEnvironment({
 });
 await env.withSecurityRulesDisabled(async (ctx) => {
   await set(ref(ctx.database()), {
-    utilizadores: { adm: { role: 'admin' }, usr: { role: 'user' }, pend: { nome: 'x' } },
+    users: {
+      mst: { role: 'master', nome: 'Master' },
+      adm_foot: { role: 'admin', admin: { football: true }, nome: 'Admin Futebol' },
+      adm_padel: { role: 'admin', admin: { padel: true }, nome: 'Admin Padel' },
+      usr: { role: 'user', nome: 'User' },
+      pend: { nome: 'Pendente' },
+    },
+    utilizadores: { adm: { role: 'admin' }, usr: { role: 'user' } },
     torneio_state: {
       config: { nome: 'T' },
       schedule: [{ home: 0, away: 1, jornada: 1 }],
     },
     tournaments: {
       t1: {
-        meta: { name: 'T1', sport: 'football', status: 'active', createdAt: 1000 },
-        config: { nome: 'T' },
+        meta: { name: 'T1 Futebol', sport: 'football', status: 'active', createdAt: 1000 },
+        config: { nome: 'T1' },
         schedule: [{ home: 0, away: 1, jornada: 1 }, { home: 'Vencedor M1', away: 2, isPlayoff: true, jornada: 'Final' }],
         results: { 0: { score: '1-0', status: 'terminado', scorers: { home: ['a'] } } },
         logRef: 'antigo',
       },
+      t2: {
+        meta: { name: 'T2 Padel', sport: 'padel', status: 'active', createdAt: 1500 },
+        config: { nome: 'T2' },
+        schedule: [{ home: 0, away: 1, jornada: 1 }],
+        results: { 0: { score: '6-4', status: 'terminado', scorers: { home: ['a'] } } },
+        logRef: 'antigo_padel',
+      },
     },
     tournament_log: {
       t1: { antigo: { uid: 'usr', nome: 'u', acao: 'x', quando: 1 } },
+      t2: { antigo_padel: { uid: 'usr', nome: 'u', acao: 'x', quando: 1 } },
     },
     arquivo: {
       a1: { id: 'a1', nome: 'Antigo', sport: 'football' },
@@ -55,12 +70,18 @@ async function check(name, expect, p) {
   }
 }
 
-const u = db('usr'), a = db('adm'), p = db('pend'), anon = env.unauthenticatedContext().database();
+const u = db('usr'),
+  mst = db('mst'),
+  adm_foot = db('adm_foot'),
+  adm_padel = db('adm_padel'),
+  p = db('pend'),
+  anon = env.unauthenticatedContext().database();
+
 const res = { score: '2-0', status: 'terminado', scorers: { home: ['a', 'b'], away: [] }, assists: { home: ['', 'c'] }, mvp: 'a' };
 
 // --- torneio_state (read-only) ---
 await check('anónimo lê torneio_state', true, get(ref(anon, 'torneio_state')));
-await check('admin não escreve em torneio_state', false, update(ref(a), { 'torneio_state/config/nome': 'Hacked' }));
+await check('master não escreve em torneio_state', false, update(ref(mst), { 'torneio_state/config/nome': 'Hacked' }));
 await check('user não escreve em torneio_state', false, update(ref(u), { 'torneio_state/results/0': res }));
 
 // --- tournaments / tournament_log ---
@@ -83,46 +104,78 @@ await check('user logRef para entrada antiga', false, update(ref(u), { 'tourname
 await check('user apaga logRef', false, update(ref(u), { 'tournaments/t1/results/1': { score: '0-0' }, 'tournaments/t1/logRef': null }));
 await check('user registo em nome de outro', false, (() => {
   const key = push(ref(u, 'tournament_log/t1')).key;
-  return update(ref(u), { 'tournaments/t1/results/1': { score: '0-0' }, [`tournament_log/t1/${key}`]: { uid: 'adm', nome: 'n', acao: 'x', quando: serverTimestamp() }, 'tournaments/t1/logRef': key });
+  return update(ref(u), { 'tournaments/t1/results/1': { score: '0-0' }, [`tournament_log/t1/${key}`]: { uid: 'mst', nome: 'n', acao: 'x', quando: serverTimestamp() }, 'tournaments/t1/logRef': key });
 })());
 await check('user jogos singulares com registo', true, update(ref(u), withLog(u, 'usr', { 'tournaments/t1/jogosSingulares': [{ resultado: '1-0' }] })));
 await check('pendente grava resultado', false, update(ref(p), withLog(p, 'pend', { 'tournaments/t1/results/1': { score: '0-0' } })));
 await check('anónimo lê torneio', true, get(ref(anon, 'tournaments/t1')));
 
-// --- admin operations ---
-await check('admin muda config com registo', true, update(ref(a), withLog(a, 'adm', { 'tournaments/t1/config/nome': 'Novo' })));
-await check('admin muda config sem registo', false, update(ref(a), { 'tournaments/t1/config/nome': 'Novo2' }));
-await check('admin novo calendário inteiro', true, update(ref(a), withLog(a, 'adm', { 'tournaments/t1/schedule': [{ home: 0, away: 1 }], 'tournaments/t1/results': null })));
-await check('admin envia novo torneio', true, update(ref(a), withLog(a, 'adm', {
-  'tournaments/t2/meta': { name: 'Padel Cup', sport: 'padel', status: 'active', createdAt: 2000 },
-  'tournaments/t2/results': { 0: res },
-  'tournaments/t2/schedule': [{ home: 0, away: 1 }],
-  'tournaments/t2/teams': [{ name: 'A' }],
-}, 't2')));
-await check('admin altera meta.name', true, update(ref(a), withLog(a, 'adm', {
+// --- master operations ---
+await check('master muda config com registo', true, update(ref(mst), withLog(mst, 'mst', { 'tournaments/t1/config/nome': 'Novo' })));
+await check('master muda config sem registo', false, update(ref(mst), { 'tournaments/t1/config/nome': 'Novo2' }));
+await check('master novo calendário inteiro', true, update(ref(mst), withLog(mst, 'mst', { 'tournaments/t1/schedule': [{ home: 0, away: 1 }], 'tournaments/t1/results': null })));
+await check('master altera meta.name', true, update(ref(mst), withLog(mst, 'mst', {
   'tournaments/t1/meta': { name: 'Novo Nome', sport: 'football', status: 'active', createdAt: 1000 },
 })));
-await check('admin tenta alterar meta.sport (imutável)', false, update(ref(a), withLog(a, 'adm', {
+await check('master tenta alterar meta.sport (imutável)', false, update(ref(mst), withLog(mst, 'mst', {
   'tournaments/t1/meta': { name: 'T1', sport: 'basketball', status: 'active', createdAt: 1000 },
 })));
-await check('admin muda perfil', true, update(ref(a), { 'utilizadores/pend/role': 'user' }));
+await check('master envia novo torneio de qualquer modalidade', true, update(ref(mst), withLog(mst, 'mst', {
+  'tournaments/t3_mst/meta': { name: 'Basquetebol Cup', sport: 'basketball', status: 'active', createdAt: 2000 },
+  'tournaments/t3_mst/results': { 0: res },
+  'tournaments/t3_mst/schedule': [{ home: 0, away: 1 }],
+  'tournaments/t3_mst/teams': [{ name: 'A' }],
+}, 't3_mst')));
+
+// --- per-sport admin operations ---
+await check('admin futebol muda config de futebol', true, update(ref(adm_foot), withLog(adm_foot, 'adm_foot', { 'tournaments/t1/config/nome': 'Futebol Editado' })));
+await check('admin futebol NÃO muda config de padel', false, update(ref(adm_foot), withLog(adm_foot, 'adm_foot', { 'tournaments/t2/config/nome': 'Padel Hack' }, 't2')));
+await check('admin padel muda config de padel', true, update(ref(adm_padel), withLog(adm_padel, 'adm_padel', { 'tournaments/t2/config/nome': 'Padel Editado' }, 't2')));
+await check('admin padel NÃO muda config de futebol', false, update(ref(adm_padel), withLog(adm_padel, 'adm_padel', { 'tournaments/t1/config/nome': 'Futebol Hack' })));
+await check('admin padel cria novo torneio de padel', true, update(ref(adm_padel), withLog(adm_padel, 'adm_padel', {
+  'tournaments/t3_padel/meta': { name: 'Open Padel', sport: 'padel', status: 'active', createdAt: 3000 },
+  'tournaments/t3_padel/schedule': [{ home: 0, away: 1 }],
+  'tournaments/t3_padel/teams': [{ name: 'A' }],
+}, 't3_padel')));
+await check('admin padel NÃO cria torneio de futebol', false, update(ref(adm_padel), withLog(adm_padel, 'adm_padel', {
+  'tournaments/t4_foot/meta': { name: 'Futebol Não Autorizado', sport: 'football', status: 'active', createdAt: 4000 },
+  'tournaments/t4_foot/schedule': [{ home: 0, away: 1 }],
+  'tournaments/t4_foot/teams': [{ name: 'A' }],
+}, 't4_foot')));
+
+// --- users management (only master manages roles) ---
+await check('master altera role de utilizador', true, update(ref(mst), { 'users/pend/role': 'user' }));
+await check('master define admin de modalidade', true, update(ref(mst), { 'users/pend/role': 'admin', 'users/pend/admin/padel': true }));
+await check('admin futebol NÃO altera role de utilizador', false, update(ref(adm_foot), { 'users/pend/role': 'admin' }));
+await check('admin padel NÃO altera role de utilizador', false, update(ref(adm_padel), { 'users/pend/role': 'admin' }));
+await check('user NÃO altera role de utilizador', false, update(ref(u), { 'users/pend/role': 'admin' }));
+await check('master lê lista de utilizadores', true, get(ref(mst, 'users')));
+await check('admin futebol NÃO lê lista de utilizadores', false, get(ref(adm_foot, 'users')));
+await check('user NÃO lê lista de utilizadores', false, get(ref(u, 'users')));
 
 // --- arquivo e terminar torneio ---
 await check('anónimo lê arquivo', true, get(ref(anon, 'arquivo')));
-await check('admin grava arquivo', true, update(ref(a), { 'arquivo/a2': { id: 'a2', nome: 'Final 2025', sport: 'football' } }));
+await check('master grava arquivo', true, update(ref(mst), { 'arquivo/a2': { id: 'a2', nome: 'Final 2025', sport: 'football' } }));
+await check('admin futebol grava arquivo de futebol', true, update(ref(adm_foot), { 'arquivo/a_foot': { id: 'a_foot', nome: 'Futebol 2025', sport: 'football' } }));
+await check('admin futebol NÃO grava arquivo de padel', false, update(ref(adm_foot), { 'arquivo/a_padel_bad': { id: 'a_padel_bad', nome: 'Padel 2025', sport: 'padel' } }));
 await check('user não grava arquivo', false, update(ref(u), { 'arquivo/a3': { id: 'a3', nome: 'Hack' } }));
-await check('admin termina torneio e grava arquivo com registo', true, update(ref(a), withLog(a, 'adm', {
-  'tournaments/t1/meta': { name: 'Novo Nome', sport: 'football', status: 'finished', createdAt: 1000 },
+await check('admin futebol termina torneio de futebol com registo', true, update(ref(adm_foot), withLog(adm_foot, 'adm_foot', {
+  'tournaments/t1/meta': { name: 'T1 Finalizado', sport: 'football', status: 'finished', createdAt: 1000 },
   'arquivo/entry_t1': { id: 'entry_t1', nome: 'T1 Finalizado', sport: 'football' },
 })));
+await check('admin futebol NÃO termina torneio de padel', false, update(ref(adm_foot), withLog(adm_foot, 'adm_foot', {
+  'tournaments/t2/meta': { name: 'T2 Finalizado', sport: 'padel', status: 'finished', createdAt: 1500 },
+  'arquivo/entry_t2': { id: 'entry_t2', nome: 'T2 Finalizado', sport: 'padel' },
+}, 't2')));
 await check('user não termina torneio', false, update(ref(u), withLog(u, 'usr', {
-  'tournaments/t1/meta': { name: 'Novo Nome', sport: 'football', status: 'finished', createdAt: 1000 },
-})));
+  'tournaments/t2/meta': { name: 'T2 Hack', sport: 'padel', status: 'finished', createdAt: 1500 },
+}, 't2')));
 
 // --- players (global) ---
 await check('anónimo lê players', true, get(ref(anon, 'players')));
-await check('admin grava players', true, update(ref(a), { 'players/p1': { id: 'p1', nome: 'Jogador 1', ratings: { football: { velocidade: 5 } } } }));
-await check('user não grava players', false, update(ref(u), { 'players/p2': { id: 'p2', nome: 'Hacker' } }));
+await check('master grava players', true, update(ref(mst), { 'players/p1': { id: 'p1', nome: 'Jogador 1', ratings: { football: { velocidade: 5 } } } }));
+await check('admin futebol grava players', true, update(ref(adm_foot), { 'players/p2': { id: 'p2', nome: 'Jogador 2', ratings: { football: { velocidade: 4 } } } }));
+await check('user não grava players', false, update(ref(u), { 'players/p3': { id: 'p3', nome: 'Hacker' } }));
 
 console.log(`\n${ok} ok, ${bad} falharam`);
 await env.cleanup();

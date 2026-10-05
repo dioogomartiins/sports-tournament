@@ -27,7 +27,12 @@ export function cacheDom() {
   dom.panels = Array.from(document.querySelectorAll('.panel'));
 }
 
-/** O perfil atual é admin? (o mesmo que o CSS usa para esconder controlos) */
+/** O perfil atual é admin ou master? (o mesmo que o CSS usa para esconder controlos) */
 export function isAdminView() {
-  return document.body.dataset.role === 'admin';
+  return document.body.dataset.role === 'admin' || document.body.dataset.role === 'master';
+}
+
+/** O perfil atual é master? */
+export function isMasterView() {
+  return document.body.dataset.master === 'true' || document.body.dataset.role === 'master';
 }
