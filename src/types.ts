@@ -160,9 +160,20 @@ export interface ArchivePlayer {
   recorde: number;
 }
 
+export type TournamentStatus = 'active' | 'finished';
+
+export interface TournamentMeta {
+  id?: string;
+  name: string;
+  sport: string;
+  status: TournamentStatus;
+  createdAt: number;
+}
+
 export interface ArchiveEntry {
   id: string;
   nome: string;
+  sport: string;
   data: string;
   campeao: ArchiveTeam | null;
   jogos: number;
@@ -175,6 +186,7 @@ export interface Tournament {
   version?: number;
   exportedAt?: string;
   logRef?: string;
+  meta: TournamentMeta;
   config: Config;
   teams: Team[];
   squads: SquadPlayer[][];
@@ -185,7 +197,7 @@ export interface Tournament {
   results: Record<string | number, Score | string>;
   players: Player[];
   jogosSingulares: SingleMatch[];
-  arquivo: ArchiveEntry[];
+  arquivo?: ArchiveEntry[];
 }
 
 export type TournamentSnapshot = Tournament;

@@ -4,9 +4,10 @@
 
 import { generateSchedule } from './algorithms.js';
 import { pushStateToFirebase, getSyncedSnapshot, getCurrentRole } from './firebase.js';
-import { normalizeResults, normalizeArquivo, normalizeConfig } from './sync.js';
+import { normalizeResults, normalizeArquivo, normalizeConfig, normalizeMeta } from './sync.js';
 import type {
   TournamentSnapshot,
+  TournamentMeta,
   Config,
   Team,
   SquadPlayer,
@@ -22,7 +23,7 @@ import type {
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
-export const SNAPSHOT_VERSION = 8;
+export const SNAPSHOT_VERSION = 9;
 export const MAX_TEAMS = 32;
 const DEFAULT_COLOR = '#2F7A4F';
 
@@ -69,6 +70,10 @@ export function setCurrentTheme(t: string): void {
 // ---------------------------------------------------------------------------
 export function defaultConfig(): Config {
   return normalizeConfig();
+}
+
+export function defaultMeta(sport?: string, name?: string): TournamentMeta {
+  return normalizeMeta({}, { sport, nome: name });
 }
 
 export function ensureTeamsStructure(arr?: unknown[]): Team[] {
@@ -118,6 +123,8 @@ export function ensureSquadsLength(arr?: unknown[]): SquadPlayer[][] {
 // Global Application State
 // ---------------------------------------------------------------------------
 export interface AppState {
+  currentTournamentId: string;
+  meta: TournamentMeta | null;
   config: Config | null;
   teams: Team[] | null;
   squads: SquadPlayer[][] | null;
@@ -132,6 +139,8 @@ export interface AppState {
 }
 
 export const state: AppState = {
+  currentTournamentId: 'default',
+  meta: null,
   config: null,
   teams: null,
   squads: null,
@@ -144,6 +153,14 @@ export const state: AppState = {
   jogosSingulares: [],
   arquivo: [],
 };
+
+export function setCurrentTournamentId(id: string): void {
+  state.currentTournamentId = id || 'default';
+}
+
+export function getCurrentTournamentId(): string {
+  return state.currentTournamentId || 'default';
+}
 
 // ---------------------------------------------------------------------------
 // Persistence Layer (localStorage with in-memory fallback)
@@ -217,10 +234,12 @@ export function normalizePlayer(p: unknown): Player | null {
 // Snapshot — Serialization & Deserialization
 // ---------------------------------------------------------------------------
 export function buildSnapshot(): TournamentSnapshot {
+  const config = JSON.parse(JSON.stringify(state.config || defaultConfig()));
   return {
     version: SNAPSHOT_VERSION,
     exportedAt: new Date().toISOString(),
-    config: JSON.parse(JSON.stringify(state.config || defaultConfig())),
+    meta: JSON.parse(JSON.stringify(state.meta || defaultMeta(config.sport, config.nome))),
+    config,
     teams: JSON.parse(JSON.stringify(state.teams || defaultTeams())),
     squads: JSON.parse(JSON.stringify(state.squads || defaultSquads())),
     schedule: state.schedule.slice(),
@@ -244,6 +263,7 @@ export function validateSnapshot(s: unknown): s is TournamentSnapshot {
 
 export function applySnapshot(s: Partial<TournamentSnapshot>): void {
   state.config = normalizeConfig(s.config);
+  state.meta = normalizeMeta(s.meta, state.config);
   state.teams = ensureTeamsStructure(s.teams);
   state.squads = ensureSquadsLength(s.squads);
   state.schedule = (s.schedule as Match[]) || [];
@@ -253,7 +273,9 @@ export function applySnapshot(s: Partial<TournamentSnapshot>): void {
   state.results = normalizeResults(s.results);
   state.players = (s.players || []).map(normalizePlayer).filter((p): p is Player => p !== null);
   state.jogosSingulares = (s.jogosSingulares as SingleMatch[]) || [];
-  state.arquivo = normalizeArquivo(s.arquivo);
+  if (s.arquivo) {
+    state.arquivo = normalizeArquivo(s.arquivo);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -315,6 +337,7 @@ export async function persistConfigTeams(): Promise<void> {
   await storageSet(
     'config-teams',
     JSON.stringify({
+      meta: state.meta,
       config: state.config,
       teams: state.teams,
       squads: state.squads,
@@ -366,7 +389,7 @@ export async function persistArquivo(): Promise<void> {
 export async function storeAllLayers(): Promise<void> {
   await storageSet(
     'config-teams',
-    JSON.stringify({ config: state.config, teams: state.teams, squads: state.squads }),
+    JSON.stringify({ meta: state.meta, config: state.config, teams: state.teams, squads: state.squads }),
   );
   await storageSet(
     'schedule',
@@ -460,6 +483,7 @@ export async function loadState(): Promise<void> {
 
   if (ct && ct.config && ct.teams) {
     state.config = normalizeConfig(ct.config);
+    state.meta = normalizeMeta((ct as { meta?: unknown }).meta, state.config);
     state.teams = ensureTeamsStructure(ct.teams);
     state.squads = ensureSquadsLength(ct.squads);
 
@@ -484,6 +508,7 @@ export async function loadState(): Promise<void> {
     ui.flashBackup(bk.exportedAt);
   } else {
     state.config = defaultConfig();
+    state.meta = defaultMeta(state.config.sport, state.config.nome);
     state.teams = defaultTeams();
     state.squads = defaultSquads();
     state.players = [];

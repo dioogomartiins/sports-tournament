@@ -4,6 +4,7 @@
 
 import type {
   Tournament,
+  TournamentMeta,
   Config,
   Score,
   ArchiveEntry,
@@ -114,6 +115,31 @@ export function normalizeConfig(config?: Partial<Config> | null): Config {
 }
 
 /**
+ * Normalizes tournament metadata, ensuring sport, name, status, and createdAt
+ * are defined. Defaults to config values or football defaults.
+ */
+export function normalizeMeta(
+  meta?: unknown,
+  config?: Partial<Config> | null,
+): TournamentMeta {
+  const raw = (meta && typeof meta === 'object' ? meta : {}) as Partial<TournamentMeta>;
+  const sport =
+    typeof raw.sport === 'string' && raw.sport
+      ? raw.sport
+      : (typeof config?.sport === 'string' && config.sport ? config.sport : 'football');
+  const name =
+    typeof raw.name === 'string' && raw.name
+      ? raw.name
+      : (typeof config?.nome === 'string' && config.nome ? config.nome : 'Futebol ILOG');
+  const status = raw.status === 'finished' ? 'finished' : 'active';
+  const createdAt =
+    typeof raw.createdAt === 'number' && !isNaN(raw.createdAt) ? raw.createdAt : Date.now();
+  const res: TournamentMeta = { name, sport, status, createdAt };
+  if (typeof raw.id === 'string' && raw.id) res.id = raw.id;
+  return res;
+}
+
+/**
  * Firebase removes empty arrays and converts objects with numeric keys into
  * sparse arrays (with null holes). Restores the expected structure for match results.
  */
@@ -162,6 +188,7 @@ export function normalizeArquivo(arquivo?: unknown): ArchiveEntry[] {
 
   return list<Record<string, unknown>>(arquivo).map((e) => ({
     ...e,
+    sport: typeof e.sport === 'string' && e.sport ? e.sport : 'football',
     grupos: list<Record<string, unknown>>(e.grupos).map((g) => ({
       ...g,
       tabela: list<ArchiveStandingRow>(g.tabela),
@@ -171,6 +198,7 @@ export function normalizeArquivo(arquivo?: unknown): ArchiveEntry[] {
 }
 
 const SECTION_LABELS: Record<string, string | null> = {
+  meta: 'Detalhes do torneio alterados',
   config: 'Configuração alterada',
   teams: 'Equipas alteradas',
   squads: 'Plantéis alterados',

@@ -6,11 +6,22 @@ vi.mock('../src/firebase.js', () => ({
   getCurrentRole: vi.fn(() => 'admin'),
 }));
 
-import { applySnapshot, state, defaultConfig, SNAPSHOT_VERSION, buildSnapshot } from '../src/state.js';
+import {
+  applySnapshot,
+  state,
+  defaultConfig,
+  defaultMeta,
+  SNAPSHOT_VERSION,
+  buildSnapshot,
+  setCurrentTournamentId,
+  getCurrentTournamentId,
+} from '../src/state.js';
 import type { TournamentSnapshot } from '../src/types.js';
 
 describe('state and snapshot versioning', () => {
   beforeEach(() => {
+    state.currentTournamentId = 'default';
+    state.meta = null;
     state.config = null;
     state.teams = null;
     state.squads = null;
@@ -24,8 +35,8 @@ describe('state and snapshot versioning', () => {
     state.arquivo = [];
   });
 
-  it('SNAPSHOT_VERSION is 8', () => {
-    expect(SNAPSHOT_VERSION).toBe(8);
+  it('SNAPSHOT_VERSION is 9', () => {
+    expect(SNAPSHOT_VERSION).toBe(9);
   });
 
   it('defaultConfig initializes sport as football', () => {
@@ -34,7 +45,21 @@ describe('state and snapshot versioning', () => {
     expect(config.nome).toBe('Futebol ILOG');
   });
 
-  it('loads a real version 7 snapshot and assigns football as sport', () => {
+  it('defaultMeta initializes sport as football and active status', () => {
+    const meta = defaultMeta();
+    expect(meta.sport).toBe('football');
+    expect(meta.name).toBe('Futebol ILOG');
+    expect(meta.status).toBe('active');
+    expect(typeof meta.createdAt).toBe('number');
+  });
+
+  it('manages currentTournamentId', () => {
+    expect(getCurrentTournamentId()).toBe('default');
+    setCurrentTournamentId('padel-2026');
+    expect(getCurrentTournamentId()).toBe('padel-2026');
+  });
+
+  it('loads a real version 7 snapshot and assigns football as sport and creates meta', () => {
     const v7Snapshot: Record<string, unknown> = {
       version: 7,
       exportedAt: '2026-03-01T10:00:00.000Z',
@@ -50,7 +75,7 @@ describe('state and snapshot versioning', () => {
         golosGoleada: 3,
         mataMata: false,
         numPlayoffTeams: 4,
-        // Notice: version 7 snapshots do NOT have a `sport` field
+        // Notice: version 7 snapshots do NOT have a `sport` or `meta` field
       },
       teams: [
         { name: 'Águias', color: '#2F7A4F' },
@@ -92,16 +117,59 @@ describe('state and snapshot versioning', () => {
     expect(state.config).toBeDefined();
     expect(state.config?.sport).toBe('football');
     expect(state.config?.nome).toBe('Torneio da Primavera');
+    expect(state.meta).toBeDefined();
+    expect(state.meta?.sport).toBe('football');
+    expect(state.meta?.name).toBe('Torneio da Primavera');
+    expect(state.meta?.status).toBe('active');
     expect(state.teams?.length).toBe(32); // ensureTeamsStructure pads to MAX_TEAMS
     expect(state.teams?.[0].name).toBe('Águias');
     expect(state.schedule.length).toBe(2);
     expect(state.players.length).toBe(2);
   });
 
-  it('buildSnapshot produces a version 8 snapshot with sport football', () => {
+  it('loads a version 8 snapshot (sport in config, no meta) and derives meta', () => {
+    const v8Snapshot = {
+      version: 8,
+      config: { nome: 'Padel Cup 2026', sport: 'padel', numEquipas: 4, numGrupos: 1, numVoltas: 1 },
+      teams: [],
+      schedule: [],
+      results: {},
+    };
+
+    applySnapshot(v8Snapshot as unknown as TournamentSnapshot);
+
+    expect(state.config?.sport).toBe('padel');
+    expect(state.meta?.sport).toBe('padel');
+    expect(state.meta?.name).toBe('Padel Cup 2026');
+    expect(state.meta?.status).toBe('active');
+  });
+
+  it('loads a version 9 snapshot with explicit meta', () => {
+    const v9Snapshot = {
+      version: 9,
+      meta: { name: 'Super Liga', sport: 'futsal', status: 'finished' as const, createdAt: 99999 },
+      config: { nome: 'Super Liga', sport: 'futsal' },
+      teams: [],
+      schedule: [],
+      results: {},
+    };
+
+    applySnapshot(v9Snapshot as unknown as TournamentSnapshot);
+
+    expect(state.meta?.sport).toBe('futsal');
+    expect(state.meta?.name).toBe('Super Liga');
+    expect(state.meta?.status).toBe('finished');
+    expect(state.meta?.createdAt).toBe(99999);
+  });
+
+  it('buildSnapshot produces a version 9 snapshot with meta and sport', () => {
     state.config = defaultConfig();
+    state.meta = defaultMeta('padel', 'Open Padel');
     const snap = buildSnapshot();
-    expect(snap.version).toBe(8);
+    expect(snap.version).toBe(9);
     expect(snap.config.sport).toBe('football');
+    expect(snap.meta.sport).toBe('padel');
+    expect(snap.meta.name).toBe('Open Padel');
+    expect(snap.meta.status).toBe('active');
   });
 });

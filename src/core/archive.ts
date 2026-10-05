@@ -9,6 +9,7 @@ import {
   type MatchResult,
   type PlayerStats,
   type Team,
+  type TournamentMeta,
 } from '../types.js';
 
 // ---------------------------------------------------------------------------
@@ -50,6 +51,7 @@ export function countPlayedGames(results: Record<string | number, MatchResult>):
 }
 
 export interface ArchiveSnapshotInput {
+  meta?: TournamentMeta;
   config: Config;
   teams: (Team | string)[];
   schedule: Match[];
@@ -66,7 +68,8 @@ export function buildArchiveEntry(
   id: string,
   dataIso: string
 ): ArchiveEntry {
-  const sport = getSport(snap.config?.sport);
+  const sportId = snap.meta?.sport || snap.config?.sport || 'football';
+  const sport = getSport(sportId);
   const teamsArray = snap.teams.slice(0, snap.scheduleTeamCount || snap.config.numEquipas);
   const groupsData = sport.computeStandings(teamsArray, snap.schedule, snap.results, snap.config);
 
@@ -95,7 +98,8 @@ export function buildArchiveEntry(
 
   return {
     id,
-    nome: snap.config.nome || 'Torneio',
+    nome: snap.meta?.name || snap.config.nome || 'Torneio',
+    sport: sportId,
     data: dataIso,
     campeao: champIdx === null ? null : teamOf(champIdx),
     jogos: countPlayedGames(snap.results),
