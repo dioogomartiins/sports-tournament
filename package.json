@@ -9,7 +9,10 @@
     "test": "vitest run",
     "lint": "eslint .",
     "typecheck": "tsc",
-    "test:rules": "npx -y firebase-tools@15 emulators:exec --config tests/rules/firebase.json --only database --project demo-torneio \"node tests/rules/rules.check.mjs\""
+    "test:rules": "npx -y firebase-tools@15 emulators:exec --config tests/rules/firebase.json --only database --project demo-torneio \"node tests/rules/rules.check.mjs\"",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f"
   },
   "repository": {
     "type": "git",

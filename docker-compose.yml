@@ -1,0 +1,51 @@
+services:
+  # Firebase Emulator Suite (Realtime Database + Authentication + Emulator UI)
+  firebase:
+    build:
+      context: .
+      dockerfile: docker/firebase/Dockerfile
+    image: torneio-firebase:latest
+    container_name: torneio-firebase
+    restart: unless-stopped
+    ports:
+      - "9000:9000" # Firebase Realtime Database Emulator
+      - "9099:9099" # Firebase Authentication Emulator
+      - "4000:4000" # Firebase Emulator Suite UI
+      - "4400:4400" # Firebase Emulator Hub
+    volumes:
+      - ./firebase.json:/app/firebase.json:ro
+      - ./database.rules.json:/app/database.rules.json:ro
+      - firebase-data:/data
+    environment:
+      - FIREBASE_PROJECT_ID=demo-torneio
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://127.0.0.1:4000/ || curl -f http://127.0.0.1:9000/ || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  # Torneio ILOG frontend (Vite dev server with hot reload)
+  app:
+    build:
+      context: .
+      dockerfile: docker/app/Dockerfile
+    image: torneio-app:latest
+    container_name: torneio-app
+    restart: unless-stopped
+    ports:
+      - "5173:5173" # Vite development server
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - VITE_USE_EMULATORS=true
+      - VITE_FIREBASE_PROJECT_ID=demo-torneio
+      - VITE_FIREBASE_DATABASE_URL=https://demo-torneio-default-rtdb.firebaseio.com
+    depends_on:
+      firebase:
+        condition: service_healthy
+
+volumes:
+  firebase-data:
+    name: torneio-firebase-data

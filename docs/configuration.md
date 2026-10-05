@@ -76,10 +76,38 @@ And in `.env.development.local`:
 ```env
 VITE_USE_EMULATORS=true
 VITE_FIREBASE_PROJECT_ID=demo-torneio
-VITE_FIREBASE_DATABASE_URL=https://demo-torneio.firebaseio.com
+VITE_FIREBASE_DATABASE_URL=https://demo-torneio-default-rtdb.firebaseio.com
 ```
 
-Load `database.rules.json` into the emulator to test the roles. To edit you need a user with `users/<uid>/role` set (`"master"` for full access, or `"admin"` plus `users/<uid>/admin/football: true`); create it in the emulator UI.
+The emulator loads `database.rules.json` (from `firebase.json`) into the `demo-torneio-default-rtdb` namespace only, so the database URL must use that name: any other namespace runs with no rules and every write succeeds. With `VITE_USE_EMULATORS=true` the header shows a role switcher instead of Google sign-in. It signs in as one of the dev accounts (`master@torneio.local`, `admin@torneio.local` with `admin/football: true`, `user@torneio.local`, all with password `password123`) and sets its role through the emulator's admin token; **Viewer** signs out.
+
+**C. Docker Compose (fully containerized, zero local Java/Firebase install needed).**
+
+Run both the Firebase Emulator Suite (Realtime Database + Auth + Emulator UI) and the Vite frontend inside Docker:
+
+```bash
+docker compose up -d
+```
+
+- **Torneio App**: `http://localhost:5173/sports-tournament/`
+- **Firebase Emulator Suite UI**: `http://localhost:4000/` (explore database, auth users, logs)
+- **Realtime Database Emulator**: `localhost:9000`
+- **Auth Emulator**: `localhost:9099`
+
+On startup the `firebase` container seeds the three dev accounts described in B, and the app signs in as Master. Switch role from the header.
+
+To run only the Firebase emulators in Docker while running `npm run dev` on your host machine:
+
+```bash
+docker compose up -d firebase
+npm run dev
+```
+
+Data in the emulator persists in the `torneio-firebase-data` volume across container restarts. To stop containers:
+
+```bash
+docker compose down
+```
 
 **Before opening a PR:**
 

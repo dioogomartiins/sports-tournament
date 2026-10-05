@@ -46,6 +46,7 @@ export const en = {
     user: 'User',
     pending: 'Pending',
     cannotChangeOwn: 'You cannot change your own role',
+    viewer: 'Viewer',
   },
 
   nav: {
@@ -574,6 +575,8 @@ export const en = {
     couldNotSignInGoogle: 'Could not sign in with Google.',
     roleUpdated: 'Role updated.',
     couldNotUpdateRole: 'Could not update role.',
+    devRoleSwitched: (role: string) => `Signed in as ${role}.`,
+    couldNotSwitchDevRole: 'Could not switch role.',
     scheduleGenerated: (count: number) => `Schedule generated: ${count} matches.`,
     tournamentExported: 'Tournament exported successfully!',
     invalidFile: 'Invalid file.',
