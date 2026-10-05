@@ -147,11 +147,11 @@
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  transition: transform .12s ease, filter .12s ease;
+  transition: transform var(--press) var(--ease-out), filter var(--press) ease;
 }
 
 .btn:active {
-  transform: translateY(1px);
+  transform: scale(.97);
 }
 
 .btn-gold {

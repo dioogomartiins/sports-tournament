@@ -25,12 +25,14 @@
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
   /* Motion: one curve for things entering or leaving, one for things moving
-     on screen. Durations stay under 300ms so the app keeps feeling instant. */
+     on screen, and the iOS sheet curve for the bottom drawer. Durations stay
+     under 300ms so the app keeps feeling instant. */
   --ease-out: cubic-bezier(.23, 1, .32, 1);
   --ease-in-out: cubic-bezier(.77, 0, .175, 1);
+  --ease-drawer: cubic-bezier(.32, .72, 0, 1);
   --press: 120ms;
   --quick: 180ms;
-  --slide: 260ms;
+  --slide: 280ms;
 
   /* Smallest comfortable tap target on a phone. */
   --tap: 44px;

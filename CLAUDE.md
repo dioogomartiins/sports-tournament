@@ -66,12 +66,18 @@ Database. Deployed to GitHub Pages at `/sports-tournament/` on release tags (`re
   - **Emil Kowalski's skills** (MIT, `emilkowalski/skills`: `emil-design-eng`,
     `animate`, `review-animations`, `improve-animations`,
     `find-animation-opportunities`, `animation-vocabulary`, `mobile-native`,
-    `break-ui`). Use `review-animations` or `animate` whenever a transition, a modal or the
-    goal animation changes. The motion tokens in `css/base.css` (`--ease-out`,
-    `--ease-in-out`, `--press`, `--quick`, `--slide`) come from those rules:
-    `ease-out` for anything entering or leaving, nothing over 300ms, and no
-    animation on an action repeated through a whole match.
-  - Keep new taps at `--tap` (44px) and keep reduced motion to less movement,
+    `break-ui`). Use `review-animations` or `animate` whenever a transition, a
+    modal or the goal animation changes, and `mobile-native` when polishing
+    the phone experience. Their rules, as applied here:
+    - Use the motion tokens in `css/base.css` instead of new curves:
+      `--ease-out` for anything entering or leaving, `--ease-in-out` for
+      movement on screen, `--ease-drawer` for the bottom sheet, and the
+      `--press` / `--quick` / `--slide` durations. Nothing goes over 300ms.
+    - Scale entrances start at `scale(.92–.97)`, never `scale(0)` or `.5`.
+    - Every button gets an `:active` press (`scale(.97)`, smaller targets
+      down to `.92`).
+    - Nothing animates on an action repeated through a whole match.
+  - Keep new taps at `--tap` (44px), and keep reduced motion to less movement,
     not none: colour and opacity still answer the tap.
 
 ## Checks
