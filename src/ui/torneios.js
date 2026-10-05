@@ -1,7 +1,8 @@
 import { escapeHtml, fmtDate } from '../utils.js';
 import { getSport } from '../sports/registry.js';
 import { dom } from './dom.js';
-import { setConfirmCallback } from './modais.js';
+import { html } from 'lit';
+import { openDialog } from './modals.js';
 import { en } from '../i18n/en.js';
 
 /**
@@ -104,60 +105,35 @@ export function renderHeaderTournament(meta) {
 }
 
 /**
- * Opens new tournament modal.
+ * Opens the new tournament dialog.
+ * @param {(t: { name: string, sport: string, numEquipas: number }) => Promise<void>} onCreate
+ * @param {{ id: string, label: string }[]} sports - sports the user may create
  */
-export function openNovoTorneioModal(onCreate, sportsList = null) {
-  const sports = sportsList || [
-    { id: 'football', label: '⚽ Football' },
-    { id: 'padel', label: '🎾 Padel' },
-  ];
-  const sportOptions = sports
-    .map((s) => `<option value="${escapeHtml(s.id)}">${escapeHtml(s.label)}</option>`)
-    .join('');
-
-  dom.modalTitle.textContent = en.tournaments.modalTitle;
-  dom.modalBody.innerHTML = `
-    <div style="display:flex; flex-direction:column; gap:12px;">
-      <div class="field">
-        <label for="novoTorneioNome">${escapeHtml(en.tournaments.nameLabel)}</label>
-        <input type="text" id="novoTorneioNome" class="input" placeholder="${escapeHtml(en.tournaments.namePlaceholder)}" maxlength="60" required>
-      </div>
-      <div class="field">
-        <label for="novoTorneioSport">${escapeHtml(en.tournaments.sportLabel)}</label>
-        <select id="novoTorneioSport" class="input">
-          ${sportOptions}
-        </select>
-      </div>
-      <div class="field">
-        <label for="novoTorneioEquipas">${escapeHtml(en.tournaments.numTeamsLabel)}</label>
-        <input type="number" id="novoTorneioEquipas" class="input" min="2" max="32" value="8">
-      </div>
-    </div>
-  `;
-  dom.modalCancel.innerHTML = en.common.cancel;
-  dom.modalCancel.style.background = 'var(--paper)';
-  dom.modalCancel.style.color = 'var(--ink)';
-  dom.modalCancel.hidden = false;
-
-  dom.modalConfirm.innerHTML = escapeHtml(en.tournaments.createButton);
-  dom.modalConfirm.style.background = 'var(--gold)';
-  dom.modalConfirm.style.color = '#000';
-  dom.modalConfirm.hidden = false;
-  dom.modalConfirm.style.display = '';
-
-  setConfirmCallback(async () => {
-    const nomeInput = document.getElementById('novoTorneioNome');
-    const sportSelect = document.getElementById('novoTorneioSport');
-    const equipasInput = document.getElementById('novoTorneioEquipas');
-    const nome = (nomeInput?.value || '').trim() || en.tournaments.defaultNewName;
-    const sport = sportSelect?.value || 'football';
-    const numEquipas = Number(equipasInput?.value) || 8;
-    if (onCreate) {
-      await onCreate({ name: nome, sport, numEquipas });
-    }
+export function openNovoTorneioModal(onCreate, sports) {
+  const value = (id) => dom.modalBody.querySelector(`#${id}`)?.value;
+  openDialog({
+    title: en.tournaments.modalTitle,
+    body: html`
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div class="field">
+          <label for="novoTorneioNome">${en.tournaments.nameLabel}</label>
+          <input type="text" id="novoTorneioNome" class="input" placeholder=${en.tournaments.namePlaceholder} maxlength="60" required>
+        </div>
+        <div class="field">
+          <label for="novoTorneioSport">${en.tournaments.sportLabel}</label>
+          <select id="novoTorneioSport" class="input">${sports.map((s) => html`<option value=${s.id}>${s.label}</option>`)}</select>
+        </div>
+        <div class="field">
+          <label for="novoTorneioEquipas">${en.tournaments.numTeamsLabel}</label>
+          <input type="number" id="novoTorneioEquipas" class="input" min="2" max="32" value="8">
+        </div>
+      </div>`,
+    confirm: { label: en.tournaments.createButton, tone: 'gold' },
+    onConfirm: () => {
+      const name = (value('novoTorneioNome') || '').trim() || en.tournaments.defaultNewName;
+      const sport = value('novoTorneioSport') || 'football';
+      const numEquipas = Number(value('novoTorneioEquipas')) || 8;
+      onCreate({ name, sport, numEquipas });
+    },
   });
-
-  dom.modalOverlay.hidden = false;
-  const input = document.getElementById('novoTorneioNome');
-  if (input) input.focus();
 }

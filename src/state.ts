@@ -2,6 +2,7 @@
 // Global Application State & Persistence
 // ---------------------------------------------------------------------------
 
+import type { TemplateResult } from 'lit';
 import { generateSchedule } from './algorithms.js';
 import { pushStateToFirebase, getSyncedSnapshot, getCurrentRole } from './firebase.js';
 import {
@@ -45,7 +46,7 @@ export interface StateHooks {
   flashSaved?: () => void;
   flashBackup?: (exportedAt?: string) => void;
   showToast?: (msg: string, type?: 'ok' | 'error') => void;
-  openConfirm?: (title: string, message: string, onConfirm: () => void | Promise<void>) => void;
+  openConfirm?: (title: string, message: string | TemplateResult, onConfirm: () => void | Promise<void>) => void;
   renderAll?: () => void;
 }
 

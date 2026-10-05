@@ -7,7 +7,7 @@ import type { ArchiveList } from '../components/ArchiveList.js';
 import '../components/AllTimeStats.js';
 import '../components/ArchiveList.js';
 import { dom } from './dom.js';
-import { openConfirm } from './modais.js';
+import { openConfirm } from './modals.js';
 import { en } from '../i18n/en.js';
 
 // ---------------------------------------------------------------------------

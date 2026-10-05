@@ -107,11 +107,11 @@ export const en = {
     defaultNewName: 'New Tournament',
     finishTitle: 'Finish Tournament',
     finishPrompt: (name: string) =>
-      `Are you sure you want to finish tournament <strong>${name}</strong>? ` +
-      'Final standings and player stats will be saved to History and the tournament will be marked as finished.',
+      html`Are you sure you want to finish tournament <strong>${name}</strong>?
+        Final standings and player stats will be saved to History and the tournament will be marked as finished.`,
     finishPendingMatches: (count: number) =>
-      `<br><br>⚠️ There ${count === 1 ? 'is' : 'are'} still <strong>${count} unfinished match${count !== 1 ? 'es' : ''}</strong>: ` +
-      'the saved champion will be the current leader (or none, if the final is unfinished).',
+      html`<br><br>⚠️ There ${count === 1 ? 'is' : 'are'} still <strong>${count} unfinished match${count !== 1 ? 'es' : ''}</strong>:
+        the saved champion will be the current leader (or none, if the final is unfinished).`,
   },
 
   config: {
@@ -200,7 +200,7 @@ export const en = {
     deleteButton: '🗑️',
     deleteModalTitle: 'Delete Player',
     deleteModalPrompt: (name: string) =>
-      `Are you sure you want to delete <strong>${name}</strong>? They will be removed from all squads.`,
+      html`Are you sure you want to delete <strong>${name}</strong>? They will be removed from all squads.`,
     editModalTitle: 'Edit Player',
     createModalTitle: 'New Player',
     nameLabel: 'Name',
@@ -482,7 +482,7 @@ export const en = {
     cancelButton: '❌ Cancel',
     signOutTitle: 'Sign out',
     signOutPrompt: (user: string) =>
-      `You are signed in as <strong>${user}</strong>. Do you want to sign out? You will still be able to view the tournament, but without edit permissions.`,
+      html`You are signed in as <strong>${user}</strong>. Do you want to sign out? You will still be able to view the tournament, but without edit permissions.`,
   },
 
   playoffs: {
