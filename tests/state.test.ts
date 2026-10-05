@@ -4,6 +4,7 @@ vi.mock('../src/firebase.js', () => ({
   pushStateToFirebase: vi.fn(() => ({ ok: true })),
   getSyncedSnapshot: vi.fn(() => null),
   getCurrentRole: vi.fn(() => 'admin'),
+  resyncFromServer: vi.fn(async () => {}),
 }));
 
 import {
@@ -171,5 +172,16 @@ describe('state and snapshot versioning', () => {
     expect(snap.meta.sport).toBe('padel');
     expect(snap.meta.name).toBe('Open Padel');
     expect(snap.meta.status).toBe('active');
+  });
+});
+
+describe('refused saves', () => {
+  it('re-reads the server when a save is refused before the first sync', async () => {
+    const firebase = await import('../src/firebase.js');
+    vi.mocked(firebase.pushStateToFirebase).mockReturnValueOnce({ ok: false, reason: 'sem-sync' });
+    vi.mocked(firebase.resyncFromServer).mockClear();
+    const { persistResults } = await import('../src/state.js');
+    await persistResults();
+    expect(firebase.resyncFromServer).toHaveBeenCalledTimes(1);
   });
 });

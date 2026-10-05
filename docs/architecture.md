@@ -169,7 +169,7 @@ In the app, anyone who is not an admin of the tournament's sport sees Teams, Squ
 
 If Firebase rejects a write the client let through, the server value comes back by itself and the app warns: "The change was rejected by the database (permission denied). It has been reverted."
 
-When the client knows before sending that the change is not allowed (not signed in, no role, or an admin-only section), it sends nothing: `state.ts` goes back to the last synced snapshot and shows the reason.
+When the client knows before sending that the change is not allowed (not signed in, no role, or an admin-only section), it sends nothing: `state.ts` goes back to the last synced snapshot and shows the reason. If nothing has synced yet, or Firebase refuses a save the client did send, the app reads the tournament from Firebase again (`resyncFromServer`) and stores that, so a refused change does not stay on screen or in the local cache. Only the latest value from Firebase is applied: a refused save fires its optimistic value and then the server value, and the older one is skipped.
 
 ## Activity log
 
