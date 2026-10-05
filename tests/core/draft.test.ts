@@ -19,11 +19,50 @@ describe('ratings e snake draft', () => {
     expect(getTeamTotalRating([p('x', 4), p('y', 3.5)])).toBe(7.5);
   });
 
+  it('calcula rating específico para cada modalidade', () => {
+    const multiPlayer: PlayerWithAttributes = {
+      name: 'Atleta',
+      ratings: {
+        football: { velocidade: 5, finalizacao: 5, passe: 5, drible: 5, defesa: 5, fisico: 5 },
+        padel: { velocidade: 2, finalizacao: 2, passe: 2, drible: 2, defesa: 2, fisico: 2 },
+      },
+    };
+    expect(getPlayerRating(multiPlayer, 'football')).toBe(5);
+    expect(getPlayerRating(multiPlayer, 'padel')).toBe(2);
+    // Modalidade não registada faz fallback para football
+    expect(getPlayerRating(multiPlayer, 'basquetebol')).toBe(5);
+    expect(getTeamTotalRating([multiPlayer], 'padel')).toBe(2);
+  });
+
   it('distribui os picks no padrão A, B, B, A, A, B, B, A', () => {
     const players = [8, 7, 6, 5, 4, 3, 2, 1].map((v) => p(`p${v}`, v / 2));
     const { equipaA, equipaB } = snakeDraft(players);
     expect(equipaA.map((x) => x.name)).toEqual(['p8', 'p5', 'p4', 'p1']);
     expect(equipaB.map((x) => x.name)).toEqual(['p7', 'p6', 'p3', 'p2']);
+  });
+
+  it('faz draft equilibrado baseado na modalidade selecionada', () => {
+    // p1 é forte no padel (5) mas fraco no futebol (1)
+    // p2 é forte no futebol (5) mas fraco no padel (1)
+    const p1: PlayerWithAttributes = {
+      name: 'Especialista Padel',
+      ratings: {
+        football: { velocidade: 1, finalizacao: 1, passe: 1, drible: 1, defesa: 1, fisico: 1 },
+        padel: { velocidade: 5, finalizacao: 5, passe: 5, drible: 5, defesa: 5, fisico: 5 },
+      },
+    };
+    const p2: PlayerWithAttributes = {
+      name: 'Especialista Futebol',
+      ratings: {
+        football: { velocidade: 5, finalizacao: 5, passe: 5, drible: 5, defesa: 5, fisico: 5 },
+        padel: { velocidade: 1, finalizacao: 1, passe: 1, drible: 1, defesa: 1, fisico: 1 },
+      },
+    };
+    // No padel, draft deve colocar p1 e p2 em equipas opostas
+    const draftPadel = balancedDraft([p1, p2], 'padel');
+    expect(draftPadel.equipaA.length).toBe(1);
+    expect(draftPadel.equipaB.length).toBe(1);
+    expect(draftPadel.equipaA[0].name).not.toBe(draftPadel.equipaB[0].name);
   });
 });
 

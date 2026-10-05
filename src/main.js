@@ -595,7 +595,8 @@ export function onFazerDraft() {
   }
 
   const players = selectedIds.map((id) => state.players.find((p) => p.id === id)).filter(Boolean);
-  const { equipaA, equipaB } = balancedDraft(players);
+  const currentSport = state.meta?.sport || state.config?.sport || 'football';
+  const { equipaA, equipaB } = balancedDraft(players, currentSport);
 
   // Store in module-level variable (imported as currentDraft)
   currentDraft.equipaA = equipaA;

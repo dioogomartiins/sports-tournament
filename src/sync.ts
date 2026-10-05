@@ -10,6 +10,8 @@ import type {
   ArchiveEntry,
   ArchiveStandingRow,
   ArchivePlayer,
+  Player,
+  PlayerAttributes,
 } from './types.js';
 
 function same(a: unknown, b: unknown): boolean {
@@ -195,6 +197,71 @@ export function normalizeArquivo(arquivo?: unknown): ArchiveEntry[] {
     })),
     jogadores: list<ArchivePlayer>(e.jogadores),
   })) as unknown as ArchiveEntry[];
+}
+
+export function defaultPlayerAttrs(sport?: string): PlayerAttributes {
+  void sport;
+  return { velocidade: 0, finalizacao: 0, passe: 0, drible: 0, defesa: 0, fisico: 0 };
+}
+
+/**
+ * Normalizes a player, ensuring per-sport ratings dictionary exists.
+ * Migrates legacy `atributos` to `ratings.football` if needed.
+ */
+export function normalizePlayer(p: unknown): Player | null {
+  if (!p || typeof p !== 'object') return null;
+  const obj = p as Record<string, unknown>;
+
+  const ratingsRaw =
+    obj.ratings && typeof obj.ratings === 'object'
+      ? (obj.ratings as Record<string, unknown>)
+      : {};
+  const ratings: Record<string, PlayerAttributes> = {};
+
+  Object.keys(ratingsRaw).forEach((s) => {
+    if (ratingsRaw[s] && typeof ratingsRaw[s] === 'object') {
+      ratings[s] = Object.assign(
+        defaultPlayerAttrs(s),
+        ratingsRaw[s] as Partial<PlayerAttributes>,
+      );
+    }
+  });
+
+  // Migrate legacy atributos to ratings.football if not present
+  if (!ratings.football) {
+    const legacyAttrs =
+      obj.atributos && typeof obj.atributos === 'object'
+        ? (obj.atributos as Partial<PlayerAttributes>)
+        : {};
+    ratings.football = Object.assign(defaultPlayerAttrs('football'), legacyAttrs);
+  }
+
+  return {
+    id: typeof obj.id === 'string' && obj.id ? obj.id : crypto.randomUUID(),
+    nome: typeof obj.nome === 'string' ? obj.nome : '',
+    teamIdx:
+      obj.teamIdx !== undefined && obj.teamIdx !== null
+        ? (typeof obj.teamIdx === 'number' ? obj.teamIdx : Number(obj.teamIdx))
+        : null,
+    ratings,
+    atributos: ratings.football,
+  };
+}
+
+/**
+ * Restores empty lists or objects that Firebase removes in player database
+ * (and converts objects with numeric/UUID keys back to arrays).
+ */
+export function normalizePlayers(players?: unknown): Player[] {
+  const list = <T>(v: unknown): T[] => {
+    if (Array.isArray(v)) return v.filter(Boolean);
+    if (v && typeof v === 'object') return Object.values(v).filter(Boolean) as T[];
+    return [];
+  };
+
+  return list<unknown>(players)
+    .map(normalizePlayer)
+    .filter((p): p is Player => p !== null);
 }
 
 const SECTION_LABELS: Record<string, string | null> = {

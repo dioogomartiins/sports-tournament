@@ -4,7 +4,15 @@
 
 import { generateSchedule } from './algorithms.js';
 import { pushStateToFirebase, getSyncedSnapshot, getCurrentRole } from './firebase.js';
-import { normalizeResults, normalizeArquivo, normalizeConfig, normalizeMeta } from './sync.js';
+import {
+  normalizeResults,
+  normalizeArquivo,
+  normalizeConfig,
+  normalizeMeta,
+  normalizePlayer,
+  normalizePlayers,
+  defaultPlayerAttrs,
+} from './sync.js';
 import type {
   TournamentSnapshot,
   TournamentMeta,
@@ -15,7 +23,6 @@ import type {
   RoundMeta,
   Score,
   Player,
-  PlayerAttributes,
   SingleMatch,
   ArchiveEntry,
 } from './types.js';
@@ -209,26 +216,7 @@ export async function storageSet(key: string, value: string): Promise<{ value: s
 // ---------------------------------------------------------------------------
 // Player Normalization Helpers
 // ---------------------------------------------------------------------------
-export function defaultPlayerAttrs(): PlayerAttributes {
-  return { velocidade: 0, finalizacao: 0, passe: 0, drible: 0, defesa: 0, fisico: 0 };
-}
-
-export function normalizePlayer(p: unknown): Player | null {
-  if (!p || typeof p !== 'object') return null;
-  const obj = p as Record<string, unknown>;
-  return {
-    id: typeof obj.id === 'string' && obj.id ? obj.id : crypto.randomUUID(),
-    nome: typeof obj.nome === 'string' ? obj.nome : '',
-    teamIdx:
-      obj.teamIdx !== undefined && obj.teamIdx !== null
-        ? (typeof obj.teamIdx === 'number' ? obj.teamIdx : Number(obj.teamIdx))
-        : null,
-    atributos: Object.assign(
-      defaultPlayerAttrs(),
-      obj.atributos && typeof obj.atributos === 'object' ? obj.atributos : {},
-    ),
-  };
-}
+export { defaultPlayerAttrs, normalizePlayer, normalizePlayers };
 
 // ---------------------------------------------------------------------------
 // Snapshot — Serialization & Deserialization
@@ -271,7 +259,7 @@ export function applySnapshot(s: Partial<TournamentSnapshot>): void {
   state.scheduleTeamCount = s.scheduleTeamCount || state.config.numEquipas;
   state.scheduleVoltas = s.scheduleVoltas || state.config.numVoltas;
   state.results = normalizeResults(s.results);
-  state.players = (s.players || []).map(normalizePlayer).filter((p): p is Player => p !== null);
+  state.players = normalizePlayers(s.players);
   state.jogosSingulares = (s.jogosSingulares as SingleMatch[]) || [];
   if (s.arquivo) {
     state.arquivo = normalizeArquivo(s.arquivo);
@@ -498,7 +486,7 @@ export async function loadState(): Promise<void> {
     }
 
     state.results = normalizeResults(rs);
-    state.players = (pl || []).map(normalizePlayer).filter((p): p is Player => p !== null);
+    state.players = normalizePlayers(pl);
     state.jogosSingulares = js || [];
     state.arquivo = normalizeArquivo(ar);
   } else if (validateSnapshot(bk)) {

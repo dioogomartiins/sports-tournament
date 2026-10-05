@@ -42,7 +42,8 @@ export interface Player {
   id: string;
   nome: string;
   teamIdx: number | null;
-  atributos: PlayerAttributes;
+  ratings?: Record<string, PlayerAttributes>;
+  atributos?: PlayerAttributes;
 }
 
 export interface SquadPlayer {

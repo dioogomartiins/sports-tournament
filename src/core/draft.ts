@@ -5,17 +5,24 @@ import type { Player, PlayerAttributes } from '../types.js';
 // ---------------------------------------------------------------------------
 
 export type PlayerWithAttributes = Partial<Player> & {
+  ratings?: Record<string, Partial<PlayerAttributes>>;
   atributos?: Partial<PlayerAttributes>;
   [key: string]: unknown;
 };
 
 /**
- * Calculates a player's overall rating (average of 6 attributes, 0-5).
+ * Calculates a player's overall rating for a given sport (average of attributes, 0-5).
+ * Defaults to football if not specified.
  * @returns rating rounded to 1 decimal place.
  */
-export function getPlayerRating(player: PlayerWithAttributes | null | undefined): number {
-  if (!player || !player.atributos) return 0;
-  const a = player.atributos;
+export function getPlayerRating(
+  player: PlayerWithAttributes | null | undefined,
+  sport = 'football'
+): number {
+  if (!player) return 0;
+  const ratings = player.ratings || {};
+  const a = ratings[sport] || ratings.football || player.atributos;
+  if (!a) return 0;
   const vals = [a.velocidade, a.finalizacao, a.passe, a.drible, a.defesa, a.fisico];
   const sum = vals.reduce((s, v) => s + (Number(v) || 0), 0);
   return Math.round((sum / 6) * 10) / 10;
@@ -24,8 +31,11 @@ export function getPlayerRating(player: PlayerWithAttributes | null | undefined)
 /**
  * Calculates the combined total rating of a team (sum of individual ratings).
  */
-export function getTeamTotalRating(players: PlayerWithAttributes[]): number {
-  return Math.round(players.reduce((s, p) => s + getPlayerRating(p), 0) * 10) / 10;
+export function getTeamTotalRating(
+  players: PlayerWithAttributes[],
+  sport = 'football'
+): number {
+  return Math.round(players.reduce((s, p) => s + getPlayerRating(p, sport), 0) * 10) / 10;
 }
 
 export interface DraftTeams<T> {
@@ -40,8 +50,11 @@ export interface DraftTeams<T> {
  * Pick 1 -> A, Pick 2 -> B, Pick 3 -> B, Pick 4 -> A, Pick 5 -> A, ...
  * (A, BB, AA, BB, AA, ...)
  */
-export function snakeDraft<T extends PlayerWithAttributes>(players: T[]): DraftTeams<T> {
-  const sorted = players.slice().sort((a, b) => getPlayerRating(b) - getPlayerRating(a));
+export function snakeDraft<T extends PlayerWithAttributes>(
+  players: T[],
+  sport = 'football'
+): DraftTeams<T> {
+  const sorted = players.slice().sort((a, b) => getPlayerRating(b, sport) - getPlayerRating(a, sport));
   const equipaA: T[] = [];
   const equipaB: T[] = [];
 
@@ -65,13 +78,16 @@ export function snakeDraft<T extends PlayerWithAttributes>(players: T[]): DraftT
  * For up to 20 players, it explores all combinations. Above 20, it starts from snake draft
  * and greedily swaps player pairs to minimize rating difference.
  */
-export function balancedDraft<T extends PlayerWithAttributes>(players: T[]): DraftTeams<T> {
-  const sorted = players.slice().sort((a, b) => getPlayerRating(b) - getPlayerRating(a));
+export function balancedDraft<T extends PlayerWithAttributes>(
+  players: T[],
+  sport = 'football'
+): DraftTeams<T> {
+  const sorted = players.slice().sort((a, b) => getPlayerRating(b, sport) - getPlayerRating(a, sport));
   const n = sorted.length;
   if (n < 2) return { equipaA: sorted, equipaB: [] };
 
   // Ratings in tenths to avoid floating point precision issues
-  const r = sorted.map((p) => Math.round(getPlayerRating(p) * 10));
+  const r = sorted.map((p) => Math.round(getPlayerRating(p, sport) * 10));
   const total = r.reduce((s, v) => s + v, 0);
   const sizeA = Math.ceil(n / 2);
 
@@ -104,7 +120,7 @@ export function balancedDraft<T extends PlayerWithAttributes>(players: T[]): Dra
     const mask = bestMask;
     inA = sorted.map((_, i) => (mask & (1 << i)) !== 0);
   } else {
-    const snake = snakeDraft(sorted);
+    const snake = snakeDraft(sorted, sport);
     const setA = new Set(snake.equipaA);
     inA = sorted.map((p) => setA.has(p));
     let sumA = r.reduce((s, v, i) => s + (inA[i] ? v : 0), 0);

@@ -1,4 +1,4 @@
-import { state, normalizePlayer, persistPlayers, persistConfigTeams } from '../state.js';
+import { state, normalizePlayer, defaultPlayerAttrs, persistPlayers, persistConfigTeams } from '../state.js';
 import { getTeamName, escapeHtml } from '../utils.js';
 import { getPlayerRating } from '../algorithms.js';
 import { dom, isAdminView } from './dom.js';
@@ -28,6 +28,7 @@ function playerInitials(nome) {
 export function renderPlayersList() {
   if (!dom.playersList) return;
 
+  const currentSport = state.meta?.sport || state.config?.sport || 'football';
   const search = (dom.playerSearchInput ? dom.playerSearchInput.value.toLowerCase() : '');
   const players = state.players.filter((p) => !search || p.nome.toLowerCase().includes(search));
 
@@ -38,12 +39,13 @@ export function renderPlayersList() {
 
   const sorted = players.slice().sort((a, b) => a.nome.localeCompare(b.nome));
   const cards = sorted.map((p) => {
-    const rating = getPlayerRating(p);
+    const rating = getPlayerRating(p, currentSport);
     const teamName = p.teamIdx !== null && p.teamIdx !== undefined ? getTeamName(p.teamIdx) : 'Sem equipa';
+    const playerAttrs = p.ratings?.[currentSport] || p.ratings?.football || p.atributos || {};
     const attrs = Object.entries(ATTR_LABELS).map(([key, label]) =>
       `<div class="player-attr-item">` +
       `<span class="player-attr-label">${label.substring(0, 3)}</span>` +
-      `<span class="player-attr-val">${Number(p.atributos[key]) || 0}</span>` +
+      `<span class="player-attr-val">${Number(playerAttrs[key]) || 0}</span>` +
       `</div>`
     ).join('');
 
@@ -103,6 +105,15 @@ export function renderPlayersList() {
 export function openPlayerModal(pid = null) {
   const existing = pid ? state.players.find((p) => p.id === pid) : null;
   const title = existing ? 'Editar Jogador' : 'Novo Jogador';
+  const currentSport = state.meta?.sport || state.config?.sport || 'football';
+  let activeSport = currentSport;
+
+  // Initialize or clone ratings map
+  const playerRatings = {
+    football: { ...(existing?.ratings?.football || existing?.atributos || defaultPlayerAttrs('football')) },
+    padel: { ...(existing?.ratings?.padel || defaultPlayerAttrs('padel')) },
+    ...(existing?.ratings || {}),
+  };
 
   // Build team options
   const teamOpts = ['<option value="">Sem equipa</option>'];
@@ -111,20 +122,21 @@ export function openPlayerModal(pid = null) {
     teamOpts.push(`<option value="${i}" ${sel}>${escapeHtml(getTeamName(i))}</option>`);
   }
 
-  // Build attr rows
-  const currentAttrs = existing ? existing.atributos : { velocidade: 0, finalizacao: 0, passe: 0, drible: 0, defesa: 0, fisico: 0 };
-  const attrRows = Object.entries(ATTR_LABELS).map(([key, label]) => {
-    const val = currentAttrs[key] || 0;
-    const stars = [1, 2, 3, 4, 5].map((n) =>
-      `<button type="button" class="star-btn${n <= val ? ' filled' : ''}" data-attr="${key}" data-val="${n}">★</button>`
-    ).join('');
-    return (
-      `<div class="star-row">` +
-      `<span class="star-row-label">${label}</span>` +
-      `<div class="stars-input" data-attr="${key}">${stars}</div>` +
-      `</div>`
-    );
-  }).join('');
+  // Sport options for attributes
+  const sportOpts = [
+    { id: 'football', label: '⚽ Futebol' },
+    { id: 'padel', label: '🎾 Padel' },
+  ];
+  if (!sportOpts.some((s) => s.id === activeSport)) {
+    sportOpts.push({ id: activeSport, label: activeSport });
+  }
+
+  function getActiveAttrs() {
+    if (!playerRatings[activeSport]) {
+      playerRatings[activeSport] = defaultPlayerAttrs(activeSport);
+    }
+    return playerRatings[activeSport];
+  }
 
   dom.modalTitle.textContent = title;
   dom.modalBody.innerHTML =
@@ -132,39 +144,82 @@ export function openPlayerModal(pid = null) {
     `<label style="display:block; font-weight:600; margin-bottom:6px; font-size:13px;">Nome</label>` +
     `<input type="text" id="playerModalNome" class="input" value="${escapeHtml(existing ? existing.nome : '')}" placeholder="Ex: João Silva" maxlength="60" style="width:100%;">` +
     `</div>` +
-    `<div style="margin-bottom:16px;">` +
+    `<div style="margin-bottom:12px;">` +
     `<label style="display:block; font-weight:600; margin-bottom:6px; font-size:13px;">Equipa</label>` +
     `<select id="playerModalTeam" class="input" style="width:100%;">${teamOpts.join('')}</select>` +
     `</div>` +
+    `<div style="margin-bottom:16px;">` +
+    `<label style="display:block; font-weight:600; margin-bottom:6px; font-size:13px;">Modalidade dos Atributos</label>` +
+    `<select id="playerModalSport" class="input" style="width:100%;">` +
+    sportOpts.map((s) => `<option value="${s.id}" ${s.id === activeSport ? 'selected' : ''}>${escapeHtml(s.label)}</option>`).join('') +
+    `</select>` +
+    `</div>` +
     `<div id="playerModalRatingPreview" class="rating-preview">★ 0.0</div>` +
-    `<div class="rating-preview-label">Rating Global</div>` +
-    `${attrRows}`;
-
-  // Live star interaction
-  const currentVals = { ...currentAttrs };
+    `<div class="rating-preview-label">Rating (${escapeHtml(sportOpts.find((s) => s.id === activeSport)?.label || activeSport)})</div>` +
+    `<div id="playerModalAttrsRows"></div>`;
 
   function updateRatingPreview() {
-    const avg = Object.values(currentVals).reduce((s, v) => s + v, 0) / 6;
+    const currentAttrs = getActiveAttrs();
+    const avg = Object.values(currentAttrs).reduce((s, v) => s + (Number(v) || 0), 0) / 6;
     const el = document.getElementById('playerModalRatingPreview');
     if (el) el.textContent = `★ ${avg.toFixed(1)}`;
   }
 
-  updateRatingPreview();
-
-  dom.modalBody.querySelectorAll('.star-btn').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const attr = btn.dataset.attr;
-      const val = parseInt(btn.dataset.val, 10);
-      // Toggle: click same star = set to 0
-      currentVals[attr] = currentVals[attr] === val ? 0 : val;
-      // Re-render stars in this row
-      const row = dom.modalBody.querySelector(`.stars-input[data-attr="${attr}"]`);
-      row.querySelectorAll('.star-btn').forEach((s) => {
-        s.classList.toggle('filled', parseInt(s.dataset.val, 10) <= currentVals[attr]);
+  function attachStarEvents() {
+    const currentAttrs = getActiveAttrs();
+    dom.modalBody.querySelectorAll('.star-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const attr = btn.dataset.attr;
+        const val = parseInt(btn.dataset.val, 10);
+        // Toggle: click same star = set to 0
+        currentAttrs[attr] = currentAttrs[attr] === val ? 0 : val;
+        // Re-render stars in this row
+        const row = dom.modalBody.querySelector(`.stars-input[data-attr="${attr}"]`);
+        if (row) {
+          row.querySelectorAll('.star-btn').forEach((s) => {
+            s.classList.toggle('filled', parseInt(s.dataset.val, 10) <= currentAttrs[attr]);
+          });
+        }
+        updateRatingPreview();
       });
-      updateRatingPreview();
     });
-  });
+  }
+
+  function renderStarRows() {
+    const currentAttrs = getActiveAttrs();
+    const rows = Object.entries(ATTR_LABELS).map(([key, label]) => {
+      const val = currentAttrs[key] || 0;
+      const stars = [1, 2, 3, 4, 5].map((n) =>
+        `<button type="button" class="star-btn${n <= val ? ' filled' : ''}" data-attr="${key}" data-val="${n}">★</button>`
+      ).join('');
+      return (
+        `<div class="star-row">` +
+        `<span class="star-row-label">${label}</span>` +
+        `<div class="stars-input" data-attr="${key}">${stars}</div>` +
+        `</div>`
+      );
+    }).join('');
+
+    const container = document.getElementById('playerModalAttrsRows');
+    if (container) {
+      container.innerHTML = rows;
+      attachStarEvents();
+    }
+    updateRatingPreview();
+  }
+
+  renderStarRows();
+
+  const sportSelect = document.getElementById('playerModalSport');
+  if (sportSelect) {
+    sportSelect.addEventListener('change', () => {
+      activeSport = sportSelect.value;
+      const labelEl = dom.modalBody.querySelector('.rating-preview-label');
+      const sportObj = sportOpts.find((s) => s.id === activeSport);
+      if (labelEl) labelEl.textContent = `Rating (${sportObj ? sportObj.label : activeSport})`;
+      renderStarRows();
+    });
+  }
 
   dom.modalCancel.innerHTML = 'Cancelar';
   dom.modalCancel.style.background = 'var(--paper)';
@@ -184,10 +239,18 @@ export function openPlayerModal(pid = null) {
     const teamVal = document.getElementById('playerModalTeam').value;
     const teamIdx = teamVal !== '' ? parseInt(teamVal, 10) : null;
 
+    const footballAttrs = playerRatings.football || defaultPlayerAttrs('football');
+
     if (existing) {
       const idx = state.players.findIndex((p) => p.id === existing.id);
       if (idx !== -1) {
-        state.players[idx] = normalizePlayer({ ...existing, nome, teamIdx, atributos: { ...currentVals } });
+        state.players[idx] = normalizePlayer({
+          ...existing,
+          nome,
+          teamIdx,
+          ratings: playerRatings,
+          atributos: footballAttrs,
+        });
         // Update name in all squads
         state.squads.forEach((squad) => {
           const sp = squad.find((p) => p.id === existing.id);
@@ -195,7 +258,13 @@ export function openPlayerModal(pid = null) {
         });
       }
     } else {
-      const newPlayer = normalizePlayer({ id: crypto.randomUUID(), nome, teamIdx, atributos: { ...currentVals } });
+      const newPlayer = normalizePlayer({
+        id: crypto.randomUUID(),
+        nome,
+        teamIdx,
+        ratings: playerRatings,
+        atributos: footballAttrs,
+      });
       state.players.push(newPlayer);
     }
 
@@ -236,18 +305,20 @@ export function openPlayerProfile(pId, tIdx = null) {
 
   let attrsHtml = '';
   if (dbPlayer) {
-    const rating = getPlayerRating(dbPlayer);
-    const ATTR_LABELS = { velocidade: 'Velocidade', finalizacao: 'Finalização', passe: 'Passe', drible: 'Drible', defesa: 'Defesa', fisico: 'Físico' };
+    const currentSport = state.meta?.sport || state.config?.sport || 'football';
+    const rating = getPlayerRating(dbPlayer, currentSport);
+    const sportLabel = currentSport === 'padel' ? '🎾 Padel' : '⚽ Futebol';
+    const playerAttrs = dbPlayer.ratings?.[currentSport] || dbPlayer.ratings?.football || dbPlayer.atributos || {};
     const attrs = Object.entries(ATTR_LABELS).map(([key, label]) =>
       `<div class="player-attr-item">` +
       `<span class="player-attr-label">${label.substring(0, 3)}</span>` +
-      `<span class="player-attr-val">${Number(dbPlayer.atributos[key]) || 0}</span>` +
+      `<span class="player-attr-val">${Number(playerAttrs[key]) || 0}</span>` +
       `</div>`
     ).join('');
     attrsHtml =
       `<div style="margin-top: 20px; padding: 12px; background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius-sm);">` +
       `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">` +
-      `<div style="font-size:12px; font-weight:700; color:var(--ink-soft); text-transform:uppercase;">Atributos Base</div>` +
+      `<div style="font-size:12px; font-weight:700; color:var(--ink-soft); text-transform:uppercase;">Atributos (${escapeHtml(sportLabel)})</div>` +
       `<div style="font-family:var(--font-display); font-size:14px; font-weight:700; color:var(--gold-dark);">★ ${rating.toFixed(1)}</div>` +
       `</div>` +
       `<div class="player-attrs-mini">${attrs}</div>` +
