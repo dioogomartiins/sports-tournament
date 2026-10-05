@@ -101,4 +101,4 @@ assets/<slug>-illustrations/
   01-topic-name.jpg
   02-topic-name.jpg
 ```
-For Torneio ILOG, save images to `docs/assets/illustrations/` using the file names, target sections and prompts listed in GitHub issue #10 (copied from the CarCity skill; same style as the CarCity docs). Embed each image right below the target section heading, e.g. `![Algoritmo de Berger](assets/illustrations/02-algoritmo-de-berger.jpg)` in `docs/regras.md`, and tick it off in the issue.
+For Torneio ILOG, save images to `docs/assets/illustrations/` using the file names, target sections and prompts listed in GitHub issue #10 (copied from the CarCity skill; same style as the CarCity docs). Embed each image right below the target section heading, e.g. `![Algoritmo de Berger](assets/illustrations/02-algoritmo-de-berger.jpg)` in `docs/rules.md`, and tick it off in the issue.
