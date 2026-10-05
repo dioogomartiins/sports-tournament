@@ -278,7 +278,7 @@ export const en = {
     generatePlayoffs: '🏆 Generate Playoffs',
     roundHead: (j: string | number) => `Round ${j}`,
     viewMatchTitle: 'View match',
-    byeRound: (team: string) => `💤 ${team} — bye this round`,
+    byeRound: (team: unknown) => html`💤 ${team} — bye this round`,
     noScheduledMatches: 'No scheduled matches.',
   },
 
