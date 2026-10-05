@@ -13,10 +13,11 @@ export const ROLES: Record<Role, string> = {
 };
 
 /**
- * Sections of tournament_state that a regular user (non-admin) can write to.
- * From schedule, they can only write `schedule/<game>/home` and `away` (playoffs).
+ * Sections of a tournament that a regular user (or an admin of another sport)
+ * can write to. Results, match status and the schedule are for the sport's
+ * admins only.
  */
-const USER_SECTIONS = ['results', 'jogosSingulares', 'exportedAt', 'version'] as const;
+const USER_SECTIONS = ['jogosSingulares', 'exportedAt', 'version'] as const;
 
 export function isKnownRole(role: string | null | undefined): role is Role {
   return typeof role === 'string' && Object.prototype.hasOwnProperty.call(ROLES, role);
@@ -87,11 +88,6 @@ export function canWritePath(
   }
 
   if (role !== 'user' && role !== 'admin') return false;
-
-  // In the schedule, a regular user can only pass winning teams to subsequent playoff matches
-  if (parts[0] === 'schedule') {
-    return parts.length === 3 && (parts[2] === 'home' || parts[2] === 'away');
-  }
   return (USER_SECTIONS as readonly string[]).includes(parts[0]);
 }
 

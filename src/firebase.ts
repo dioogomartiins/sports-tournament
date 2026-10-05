@@ -74,6 +74,8 @@ let onPushErrorCallback: ((err: Error) => void) | null = null;
 let isFirstLoad = true;
 let lastSynced: Snapshot | null = null; // last snapshot equal to what Firebase holds
 let stopStateListener: Unsubscribe | null = null;
+/** Counts tournament values from Firebase, so only the latest one is applied. */
+let serverStateSeq = 0;
 let stopArquivoListener: Unsubscribe | null = null;
 let stopPlayersListener: Unsubscribe | null = null;
 
@@ -103,43 +105,9 @@ export function initFirebaseListener(tournamentId: string = activeTournamentId):
   }
 
   const stateRef = ref(database, `tournaments/${activeTournamentId}`);
-  stopStateListener = onValue(stateRef, async (snapshot) => {
-    let data: Snapshot | null = snapshot.val();
-    if (!data) {
-      // Fall back to the legacy data while the migration has not run yet
-      try {
-        const legacySnap = await get(ref(database, 'torneio_state'));
-        data = legacySnap.val();
-      } catch {
-        // Ignore permission or network errors
-      }
-    }
-    if (data) {
-      // The global archive lives in /arquivo
-      try {
-        const arqSnap = await get(ref(database, 'arquivo'));
-        const arqVal = arqSnap.val();
-        if (arqVal) data.arquivo = arqVal;
-      } catch {
-        // Ignora
-      }
-
-      // Global players live in /players
-      try {
-        const playersSnap = await get(ref(database, 'players'));
-        const playersVal = playersSnap.val();
-        if (playersVal) data.players = playersVal;
-      } catch {
-        // Ignora
-      }
-    }
-    // Empty database: already in sync, the first save sends everything
-    if (!data && !lastSynced) lastSynced = {};
-    if (data && onStateChangeCallback) {
-      onStateChangeCallback(data, isFirstLoad);
-      isFirstLoad = false;
-    }
-  });
+  stopStateListener = onValue(stateRef, (snapshot) => {
+    void applyServerState(snapshot.val());
+  }, (err) => console.error("Firebase error reading tournament:", err));
 
   if (!stopArquivoListener) {
     const arquivoRef = ref(database, 'arquivo');
@@ -163,6 +131,65 @@ export function initFirebaseListener(tournamentId: string = activeTournamentId):
         onStateChangeCallback(current, false);
       }
     }, (err) => console.error("Firebase error reading players:", err));
+  }
+}
+
+/**
+ * Applies the tournament as Firebase holds it (from the listener or a
+ * re-read), adding the global archive and players.
+ */
+async function applyServerState(value: Snapshot | null): Promise<void> {
+  const seq = ++serverStateSeq;
+  let data: Snapshot | null = value;
+  if (!data) {
+    // Fall back to the legacy data while the migration has not run yet
+    try {
+      const legacySnap = await get(ref(database, 'torneio_state'));
+      data = legacySnap.val();
+    } catch {
+      // Ignore permission or network errors
+    }
+  }
+  if (data) {
+    // The global archive lives in /arquivo
+    try {
+      const arqSnap = await get(ref(database, 'arquivo'));
+      const arqVal = arqSnap.val();
+      if (arqVal) data.arquivo = arqVal;
+    } catch {
+      // Ignora
+    }
+
+    // Global players live in /players
+    try {
+      const playersSnap = await get(ref(database, 'players'));
+      const playersVal = playersSnap.val();
+      if (playersVal) data.players = playersVal;
+    } catch {
+      // Ignora
+    }
+  }
+  // A newer value arrived while this one was reading the archive and players
+  // (a rejected save fires the optimistic value, then the server one): skip it
+  if (seq !== serverStateSeq) return;
+  // Empty database: already in sync, the first save sends everything
+  if (!data && !lastSynced) lastSynced = {};
+  if (data && onStateChangeCallback) {
+    onStateChangeCallback(data, isFirstLoad);
+    isFirstLoad = false;
+  }
+}
+
+/**
+ * Reads the tournament from Firebase again and applies it, so a save the
+ * server refused does not stay on screen or in the local cache.
+ */
+export async function resyncFromServer(): Promise<void> {
+  try {
+    const snap = await get(ref(database, `tournaments/${activeTournamentId}`));
+    await applyServerState(snap.val());
+  } catch (err) {
+    console.error("Firebase error re-reading tournament:", err);
   }
 }
 
@@ -219,7 +246,9 @@ export function pushStateToFirebase(newState: Snapshot, tournamentId: string = a
 
   update(ref(database), rootUpdates).catch((err) => {
     console.error("Firebase error pushing state:", err);
-    // Firebase restores the server value itself (onValue); only the warning is left
+    // Firebase reverts its own cache; read the server value again so the
+    // screen and the local cache follow it too
+    void resyncFromServer();
     if (onPushErrorCallback) onPushErrorCallback(err);
   });
   return { ok: true };

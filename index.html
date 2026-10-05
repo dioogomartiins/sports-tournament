@@ -54,7 +54,7 @@
       <button class="tab active" data-tab="dashboard">🏠 Dashboard</button>
       <button class="tab" data-tab="standings">🏆 Standings</button>
       <button class="tab" data-tab="calendar">📅 Schedule</button>
-      <button class="tab" data-tab="results">⚽ Results</button>
+      <button class="tab" data-requires="admin" data-tab="results">⚽ Results</button>
       <button class="tab" data-tab="stats">📊 Stats</button>
       <button class="tab" data-tab="historico">🗄️ History</button>
       <button class="tab" data-tab="config" data-requires="admin">⚙️ Settings</button>
@@ -77,7 +77,7 @@
     <!-- NAVIGATION PILL (mobile only): match tabs and "More" for the rest -->
     <nav class="bottom-nav" aria-label="Main navigation">
       <button class="tab" data-tab="dashboard" aria-label="Home"><span class="bn-icon" aria-hidden="true">🏠</span><span class="bn-label">Home</span></button>
-      <button class="tab" data-tab="results" aria-label="Results"><span class="bn-icon" aria-hidden="true">⚽</span><span class="bn-label">Results</span></button>
+      <button class="tab" data-requires="admin" data-tab="results" aria-label="Results"><span class="bn-icon" aria-hidden="true">⚽</span><span class="bn-label">Results</span></button>
       <button class="tab" data-tab="standings" aria-label="Standings"><span class="bn-icon" aria-hidden="true">🏆</span><span class="bn-label">Standings</span></button>
       <button class="tab" data-tab="calendar" aria-label="Schedule"><span class="bn-icon" aria-hidden="true">📅</span><span class="bn-label">Schedule</span></button>
       <button class="bn-more" id="btnMobileMenu" aria-label="More" aria-controls="tabs" aria-expanded="false"><span class="bn-icon" aria-hidden="true">☰</span><span class="bn-label">More</span></button>
@@ -89,11 +89,15 @@
       <section id="tab-dashboard" class="panel active">
         <div class="card" id="cardTorneiosAtivos">
           <div class="torneios-header">
-            <div class="section-title" style="margin-bottom:0;">🏆 Active Tournaments</div>
+            <button type="button" class="section-title collapse-toggle" id="btnToggleTorneios" aria-expanded="true" aria-controls="torneiosBody">
+              🏆 Active Tournaments <span class="collapse-count" id="torneiosCount"></span><span class="collapse-chevron" aria-hidden="true">▾</span>
+            </button>
             <button class="btn btn-sm btn-gold" id="btnNovoTorneioModal" data-requires="admin">➕ New Tournament</button>
           </div>
-          <p class="section-sub">Select the tournament you want to follow on this device.</p>
-          <tournament-list class="torneios-grid" id="listaTorneiosAtivos"></tournament-list>
+          <div id="torneiosBody">
+            <p class="section-sub">Select the tournament you want to follow on this device.</p>
+            <tournament-list class="torneios-grid" id="listaTorneiosAtivos"></tournament-list>
+          </div>
         </div>
 
         <div class="card">
@@ -105,7 +109,7 @@
           <div class="stats-grid"><stat-cards id="dashboardStats"></stat-cards></div>
         </div>
         <div class="card">
-          <top-scorers id="dashboardScorers"></top-scorers>
+          <dashboard-leaders id="dashboardScorers"></dashboard-leaders>
         </div>
       </section>
 
@@ -215,6 +219,17 @@
           </div>
           <p class="field-note" style="margin-top:10px;">A set is won with a 2-game lead (6-4) or 7-6. The super
             tie-break is played to 10 points by 2 and counts as one game in the standings.</p>
+        </div>
+
+        <div class="card" data-sport-only="padel tennis" hidden>
+          <div class="section-title">📐 Scoring</div>
+          <div class="form-grid">
+            <div class="field"><label for="cfgWinPoints">Win</label><input type="number" id="cfgWinPoints" class="input"
+                min="0" max="10" step="1"></div>
+          </div>
+          <p class="field-note" style="margin-top:10px;">Points per match won (1 by default). Pairs are ranked by points,
+            then set difference, game difference and head-to-head. Not used in Americano and Mexicano, which rank
+            players by points won.</p>
         </div>
 
         <div class="card" data-sport-only="football">
@@ -425,9 +440,10 @@
           </div>
           <p class="field-note" style="margin-top:14px;" data-sport-only="football">Tiebreaker criteria, in order: points → goal difference → goals
             scored → head-to-head (mini-table of matches between tied teams) → fewest goals conceded → alphabetical order.</p>
-          <p id="standingsNoteRacket" class="field-note" style="margin-top:14px;" data-sport-only="padel tennis" hidden>Ranked by games won (GW). Tiebreaker
-            criteria, in order: game difference → head-to-head → fewest games lost → alphabetical order. A super tie-break
-            counts as one game.</p>
+          <p id="standingsNoteRacket" class="field-note" style="margin-top:14px;" data-sport-only="padel tennis" hidden>Ranked by points (Pts, from matches won).
+            Tiebreaker criteria, in order: set difference (SD) → game difference (GD) → head-to-head (matches won, then set
+            and game difference between the tied pairs) → fewest games lost → alphabetical order. A super tie-break counts
+            as a set and as one game.</p>
         </div>
       </section>
 
@@ -443,7 +459,7 @@
       <section id="tab-historico" class="panel">
         <div class="card">
           <div class="section-title">🌟 All-Time Stats</div>
-          <p class="section-sub">All archived tournaments, the current tournament, and single matches.</p>
+          <p class="section-sub">Finished tournaments of this sport. The tournament being played counts once it is finished.</p>
           <all-time-stats id="historicoSempre"></all-time-stats>
         </div>
         <div class="card">

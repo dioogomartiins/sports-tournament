@@ -2,6 +2,9 @@ import { state, persistArquivo } from '../state.js';
 import { buildPlayerIndex } from '../utils.js';
 import { tallyPlayerStats, mergePlayerStats, archiveTally } from '../algorithms.js';
 import type { PlayerStats } from '../types.js';
+import { archiveRecords } from '../core/archive.js';
+import { getSport } from '../sports/registry.js';
+import type { PlayerRecord, Sport } from '../sports/Sport.js';
 import type { AllTimeRow, AllTimeStats, TitleCount } from '../components/AllTimeStats.js';
 import type { ArchiveList } from '../components/ArchiveList.js';
 import '../components/AllTimeStats.js';
@@ -22,19 +25,59 @@ export function computeAllTimeStats(): Record<string, PlayerStats> {
   );
 }
 
-/** Players with any goal, assist or MVP, best first, and titles per champion. */
-function allTimeRows(): { rows: AllTimeRow[]; titles: TitleCount } {
-  const index = buildPlayerIndex();
-  const archivedNames: Record<string, string> = {};
-  state.arquivo.forEach((e) => (e.jogadores || []).forEach((j) => { archivedNames[j.pid] = j.nome; }));
-  const titles: TitleCount = {};
-  state.arquivo.forEach((e) => { if (e.campeao) titles[e.campeao.nome] = (titles[e.campeao.nome] || 0) + 1; });
+/**
+ * Matches played and won per player in one sport: its archived tournaments
+ * plus the tournament on screen and its single matches.
+ */
+export function computeAllTimeRecords(sport: Sport): Record<string, PlayerRecord> {
+  return sumRecords([
+    ...state.arquivo.filter((e) => e.sport === sport.id).map(archiveRecords),
+    sport.playerRecords(state.schedule, state.results, state.squads, state.jogosSingulares, state.config),
+  ]);
+}
 
-  const totals = computeAllTimeStats();
-  const rows = Object.keys(totals)
-    .map((pid) => ({ pid, name: (index[pid] && index[pid].name) || archivedNames[pid] || en.common.unknownPlayer, ...totals[pid] }))
-    .filter((r) => r.golos || r.assistencias || r.mvp)
-    .sort((a, b) => (b.golos - a.golos) || (b.assistencias - a.assistencias) || (b.mvp - a.mvp));
+function sumRecords(list: Record<string, PlayerRecord>[]): Record<string, PlayerRecord> {
+  const out: Record<string, PlayerRecord> = Object.create(null);
+  list.forEach((records) => {
+    Object.keys(records).forEach((pid) => {
+      const r = out[pid] || (out[pid] = { played: 0, won: 0 });
+      r.played += records[pid].played;
+      r.won += records[pid].won;
+    });
+  });
+  return out;
+}
+
+/**
+ * The all-time table of the sport on screen, best first, and titles per
+ * champion in that sport. Only finished (archived) tournaments count; a
+ * player is listed with any match or any of the sport's stats (goals,
+ * assists, MVP in football).
+ */
+function allTimeRows(sport: Sport): { rows: AllTimeRow[]; titles: TitleCount } {
+  const index = buildPlayerIndex();
+  const archive = state.arquivo.filter((e) => e.sport === sport.id);
+  const archivedNames: Record<string, string> = {};
+  archive.forEach((e) => (e.jogadores || []).forEach((j) => { archivedNames[j.pid] = j.nome; }));
+  const titles: TitleCount = {};
+  archive.forEach((e) => { if (e.campeao) titles[e.campeao.nome] = (titles[e.campeao.nome] || 0) + 1; });
+
+  const columns = sport.allTimeColumns();
+  const totals = columns.length ? mergePlayerStats(...archive.map(archiveTally)) : {};
+  const records = sumRecords(archive.map(archiveRecords));
+  const empty: PlayerStats = { golos: 0, assistencias: 0, mvp: 0, jogosAMarcar: 0, recorde: 0 };
+  const rows = [...new Set([...Object.keys(totals), ...Object.keys(records)])]
+    .map((pid) => ({
+      pid,
+      name: (index[pid] && index[pid].name) || archivedNames[pid] || en.common.unknownPlayer,
+      ...empty,
+      ...totals[pid],
+      played: records[pid]?.played ?? 0,
+      won: records[pid]?.won ?? 0,
+    }))
+    .filter((r) => r.played || columns.some((c) => r[c.key]))
+    // The sport's columns first (goals, assists, MVP), then wins and matches
+    .sort((a, b) => columns.reduce((d, c) => d || (Number(b[c.key]) - Number(a[c.key])), 0) || (b.won - a.won) || (b.played - a.played));
   return { rows, titles };
 }
 
@@ -43,7 +86,9 @@ export function renderHistorico(): void {
   const archive = dom.arquivoList as ArchiveList | undefined;
   if (!allTime || !archive) return;
 
-  const { rows, titles } = allTimeRows();
+  const sport = getSport(state.meta?.sport || state.config?.sport);
+  const { rows, titles } = allTimeRows(sport);
+  allTime.columns = sport.allTimeColumns();
   allTime.rows = rows;
   allTime.titles = titles;
   archive.entries = state.arquivo;

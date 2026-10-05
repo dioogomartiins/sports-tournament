@@ -1,5 +1,5 @@
 import { getSport } from '../sports/registry.js';
-import type { Sport } from '../sports/Sport.js';
+import type { PlayerRecord, Sport } from '../sports/Sport.js';
 import {
   GAME_STATUS,
   type ArchiveEntry,
@@ -9,6 +9,7 @@ import {
   type Match,
   type MatchResult,
   type PlayerStats,
+  type SquadPlayer,
   type Team,
   type TournamentMeta,
 } from '../types.js';
@@ -60,6 +61,8 @@ export interface ArchiveSnapshotInput {
   schedule: Match[];
   results: Record<string | number, MatchResult>;
   scheduleTeamCount?: number;
+  /** Players of each team, for matches played and won per player. */
+  squads?: SquadPlayer[][] | null;
 }
 
 /**
@@ -86,11 +89,16 @@ export function buildArchiveEntry(
 
   const champIdx = getChampion(snap.schedule, snap.results, groupsData, sport, snap.config);
   const tally = sport.tallyPlayerStats(snap.results, []);
-  const jogadores: ArchivePlayer[] = Object.keys(tally)
+  const records = sport.playerRecords(snap.schedule, snap.results, snap.squads, [], snap.config);
+  const empty: PlayerStats = { golos: 0, assistencias: 0, mvp: 0, jogosAMarcar: 0, recorde: 0 };
+  const jogadores: ArchivePlayer[] = [...new Set([...Object.keys(tally), ...Object.keys(records)])]
     .map((pid) => ({
       pid,
       nome: playerNames[pid] || 'Unknown Player',
+      ...empty,
       ...tally[pid],
+      played: records[pid]?.played ?? 0,
+      won: records[pid]?.won ?? 0,
     }))
     .sort(
       (a, b) =>
@@ -138,6 +146,15 @@ export function archiveTally(entry: { jogadores?: ArchivePlayer[] }): Record<str
       jogosAMarcar: j.jogosAMarcar || 0,
       recorde: j.recorde || 0,
     };
+  });
+  return out;
+}
+
+/** Matches played and won per player in an archive entry (none before v12). */
+export function archiveRecords(entry: { jogadores?: ArchivePlayer[] }): Record<string, PlayerRecord> {
+  const out: Record<string, PlayerRecord> = Object.create(null);
+  (entry.jogadores || []).forEach((j) => {
+    if (j.played) out[j.pid] = { played: j.played, won: j.won || 0 };
   });
   return out;
 }

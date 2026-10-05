@@ -1,3 +1,5 @@
+import { GAME_STATUS } from '../types.js';
+import { en } from '../i18n/en.js';
 import type {
   Config,
   GameEvent,
@@ -8,6 +10,7 @@ import type {
   PlayerStats,
   Score,
   SingleMatch,
+  SquadPlayer,
   StandingsRow,
   Team,
 } from '../types.js';
@@ -27,6 +30,52 @@ export interface PlayerStatColumn {
   /** Text after the count, e.g. "goals". */
   unit: string;
   /** Shown when nobody has any yet. */
+  empty: string;
+}
+
+/** Matches a player played and won (finished matches only). */
+export interface PlayerRecord {
+  played: number;
+  won: number;
+}
+
+/** One extra column of the all-time table in History (goals, assists… in football). */
+export interface AllTimeColumn {
+  key: keyof PlayerStats;
+  /** Short header (an icon), with `title` as its tooltip. */
+  label: string;
+  title: string;
+}
+
+/** One card of the player profile. */
+export interface ProfileStat {
+  label: string;
+  value: string | number;
+  /** Small text after the value, e.g. "goals". */
+  unit?: string;
+  /** Takes the full width of the two-column grid. */
+  wide?: boolean;
+}
+
+/** A player with goals, for the football leaderboard. */
+export interface ScorerCount {
+  name: string;
+  team: string;
+  count: number;
+}
+
+/** One line of the dashboard leaderboard. */
+export interface LeaderRow {
+  name: string;
+  /** Small text after the name (team, matches…). */
+  detail?: string;
+  value: string;
+}
+
+/** The dashboard leaderboard: top scorers in football, most wins elsewhere. */
+export interface Leaderboard {
+  title: string;
+  rows: LeaderRow[];
   empty: string;
 }
 
@@ -149,6 +198,96 @@ export abstract class Sport {
   scoreTotals(score: string | undefined): { home: number; away: number } | null {
     const m = /^(\d+)-(\d+)$/.exec((score || '').trim());
     return m ? { home: +m[1], away: +m[2] } : null;
+  }
+
+  /**
+   * The score shown for a match in the schedule and results lists (goals in
+   * football), or null when it has none yet.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  shownScore(res: MatchResult | undefined, config?: Config | null): { home: number; away: number } | null {
+    return this.scoreTotals(res && typeof res === 'object' ? res.score : res);
+  }
+
+  /** Is the match finished? A legacy result saved as plain text counts as finished. */
+  isFinished(res: MatchResult | undefined): boolean {
+    if (!res) return false;
+    return typeof res === 'string' ? !!res.trim() : res.status === GAME_STATUS.TERMINADO;
+  }
+
+  /** Side that won a finished match, or null (not finished yet, or a draw). */
+  winnerSide(res: MatchResult | undefined, config?: Config | null): 'home' | 'away' | null {
+    if (!this.isFinished(res)) return null;
+    const score = this.shownScore(res, config);
+    if (!score || score.home === score.away) return null;
+    return score.home > score.away ? 'home' : 'away';
+  }
+
+  /**
+   * Matches played and won per player id, the same for every sport: a side's
+   * players are its squad (and, in Americano, the partner's), and single
+   * matches count with their two teams.
+   */
+  playerRecords(
+    schedule: Match[],
+    results: Record<string | number, MatchResult>,
+    squads: SquadPlayer[][] | null | undefined,
+    singleMatches: SingleMatch[] = [],
+    config?: Config | null
+  ): Record<string, PlayerRecord> {
+    const out: Record<string, PlayerRecord> = Object.create(null);
+    const count = (ids: string[], won: boolean) => {
+      new Set(ids.filter(Boolean)).forEach((id) => {
+        const r = out[id] || (out[id] = { played: 0, won: 0 });
+        r.played++;
+        if (won) r.won++;
+      });
+    };
+    const squadIds = (idx: unknown) => (typeof idx === 'number' ? (squads?.[idx] || []).map((p) => p?.id) : []);
+
+    (schedule || []).forEach((game, gi) => {
+      const res = results?.[gi];
+      if (!this.isFinished(res)) return;
+      const winner = this.winnerSide(res, config);
+      (['home', 'away'] as const).forEach((side) => {
+        count([...squadIds(game[side]), ...squadIds(game.partners?.[side])], winner === side);
+      });
+    });
+
+    (singleMatches || []).forEach((m) => {
+      const score = this.scoreTotals(m.resultado ?? undefined);
+      if (!score) return;
+      count(m.equipaA || [], score.home > score.away);
+      count(m.equipaB || [], score.away > score.home);
+    });
+    return out;
+  }
+
+  /** Extra columns of the all-time table, after matches and wins. None by default. */
+  allTimeColumns(): AllTimeColumn[] {
+    return [];
+  }
+
+  /**
+   * The dashboard leaderboard: by default the sides (teams, pairs or, in
+   * Americano, players) with the most wins, then the most points.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  leaderboard(standings: StandingsRow[], scorers: ScorerCount[]): Leaderboard {
+    const rows = standings
+      .filter((s) => s.V > 0)
+      .sort((a, b) => (b.V - a.V) || (b.Pts - a.Pts) || (a.J - b.J))
+      .map((s) => ({ name: s.name, detail: en.dashboard.matchesLabel(s.J), value: en.dashboard.winsLabel(s.V) }));
+    return { title: en.dashboard.mostWins, rows, empty: en.dashboard.noWinsYet };
+  }
+
+  /**
+   * The sport's own cards in the player profile, after matches and wins
+   * (goals, assists… in football). None by default.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  profileStats(totals: PlayerStats): ProfileStat[] {
+    return [];
   }
 
   /**

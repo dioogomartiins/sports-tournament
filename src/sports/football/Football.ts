@@ -1,4 +1,4 @@
-import { Sport, type PlayerStatColumn, type StandingsColumn } from '../Sport.js';
+import { Sport, type AllTimeColumn, type Leaderboard, type PlayerStatColumn, type ProfileStat, type ScorerCount, type StandingsColumn } from '../Sport.js';
 import { en } from '../../i18n/en.js';
 import {
   GAME_STATUS,
@@ -245,6 +245,42 @@ export class Football extends Sport {
       if (a.GS !== b.GS) return a.GS - b.GS;
       return a.name.localeCompare(b.name);
     });
+  }
+
+  /** A level match decided on penalties is won by the side that won them. */
+  winnerSide(res: MatchResult | undefined, config?: Config | null): 'home' | 'away' | null {
+    const winner = super.winnerSide(res, config);
+    if (winner || !this.isFinished(res) || typeof res !== 'object') return winner;
+    const pen = this.scoreTotals(res.penalties);
+    if (!pen || pen.home === pen.away) return null;
+    return pen.home > pen.away ? 'home' : 'away';
+  }
+
+  allTimeColumns(): AllTimeColumn[] {
+    return [
+      { key: 'golos', label: '⚽', title: en.historyTab.goalsTitle },
+      { key: 'assistencias', label: '🅰️', title: en.historyTab.assistsTitle },
+      { key: 'mvp', label: '⭐', title: en.historyTab.mvpTitle },
+    ];
+  }
+
+  /** Football's dashboard leaderboard is the top scorers. */
+  leaderboard(_standings: StandingsRow[], scorers: ScorerCount[]): Leaderboard {
+    return {
+      title: en.dashboard.topScorers,
+      rows: scorers.map((s) => ({ name: s.name, detail: s.team, value: en.statsTab.goalsLabel(s.count) })),
+      empty: en.statsTab.noGoalsYet,
+    };
+  }
+
+  profileStats(totals: PlayerStats): ProfileStat[] {
+    return [
+      { label: en.players.totalGoals, value: totals.golos },
+      { label: en.players.assists, value: totals.assistencias },
+      { label: en.players.mvp, value: totals.mvp },
+      { label: en.players.scoringMatches, value: totals.jogosAMarcar },
+      { label: en.players.singleMatchRecord, value: totals.recorde, unit: en.players.recordGoalsUnit, wide: true },
+    ];
   }
 
   getPlayoffWinner(game: Match, res: MatchResult | undefined): number | string | null {

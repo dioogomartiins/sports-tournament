@@ -91,6 +91,8 @@ export interface Config {
   padelFormat?: 'pairs' | 'americano' | 'mexicano';
   /** Americano / Mexicano: total points of each match (24 by default). */
   matchPoints?: number;
+  /** Padel and tennis (fixed pairs): standings points per match won (0-10, 1 by default). */
+  winPoints?: number;
   [key: string]: unknown;
 }
 
@@ -192,6 +194,9 @@ export interface ArchivePlayer {
   mvp: number;
   jogosAMarcar: number;
   recorde: number;
+  /** Finished matches played and won (entries archived before v12 have none). */
+  played?: number;
+  won?: number;
 }
 
 export type TournamentStatus = 'active' | 'finished';
@@ -248,6 +253,9 @@ export interface StandingsRow {
   GM: number;
   GS: number;
   DG?: number;
+  /** Padel and tennis: sets won and lost. */
+  SW?: number;
+  SL?: number;
   Pts: number;
 }
 

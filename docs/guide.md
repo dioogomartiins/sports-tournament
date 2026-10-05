@@ -24,7 +24,7 @@ Anyone with the link can view the tournaments, without an account. To change any
 | Role | Can |
 |---|---|
 | **Pending** (just signed in) | Only view. Waits for the Master Admin to give them a role. |
-| **User** | Record results, scorers, assists and MVP, change match status (including playoff matches) and record single matches. |
+| **User** | Record single matches. Results, scorers, MVP and match status are recorded by the admins of the tournament's sport. |
 | **Admin** (per sport) | For tournaments of the sports they administer (⚽ Football, 🎾 Padel, 🎾 Tennis): everything else — create and finish tournaments, settings, schedule, playoffs, teams, squads, import, delete data and remove archived tournaments from History. Admins can also edit the players database. In tournaments of other sports they have no admin rights. |
 | **Master Admin** | Everything, in every sport, plus managing users. |
 
@@ -36,10 +36,10 @@ Buttons your role cannot use are hidden. Even if someone bypasses the app, Fireb
 
 | Tab | What for |
 |---|---|
-| 🏠 Dashboard | List of active tournaments (to switch between them), plus a summary of the one being viewed: top 3 of the standings and the tournament numbers. The 🔁 button at the top refreshes the numbers. |
+| 🏠 Dashboard | List of active tournaments (to switch between them), plus a summary of the one being viewed: top 3 of the standings, the tournament numbers and a leaderboard (top scorers in football, most wins in padel and tennis). The 🔁 button at the top refreshes the numbers. |
 | 🏆 Standings | Full table (per group, with the points right after the team) and the playoff bracket. |
-| 📅 Schedule | Rounds, matches and byes; generate playoffs and add rounds. Tapping a match opens the match window. |
-| ⚽ Results | Where matches are recorded live. |
+| 📅 Schedule | Rounds, matches and byes, with each match's status and score; generate playoffs and add rounds. Tapping a match opens the match window. |
+| ⚽ Results | Where matches are recorded live. Only shown to admins of the tournament's sport and the Master Admin; everyone else follows the scores in the Schedule. |
 | 📊 Stats | Scorers, assists and MVPs of the current tournament and its single matches. |
 | 🗄️ History | Archived tournaments and all-time stats. |
 | ⚙️ Settings | Name, format and scoring (admins only). |
@@ -48,7 +48,7 @@ Buttons your role cannot use are hidden. Even if someone bypasses the app, Fireb
 
 The header shows the tournament name and its sport. The theme button switches between light and dark.
 
-On a phone, the header is a single line pinned to the top: on the left the tournament name and the round, on the right 🔁 (refresh), the theme and the account (👤 when signed in; tapping it shows which account and role you are using before confirming the sign-out). At the bottom there is a floating navigation pill with 🏠 Home, ⚽ Results, 🏆 Standings, 📅 Schedule and ☰ More (the open tab shows its name); **More** opens a panel with the remaining tabs (Stats, History, Settings, Manage and Single Match). The "Saved ✓" notice only appears at the top right after a save or if there is an error.
+On a phone, the header is a single line pinned to the top: on the left the tournament name and the round, on the right 🔁 (refresh), the theme and the account (👤 when signed in; tapping it shows which account and role you are using before confirming the sign-out). At the bottom there is a floating navigation pill with 🏠 Home, ⚽ Results, 🏆 Standings, 📅 Schedule and ☰ More (the open tab shows its name; ⚽ Results only for admins); **More** opens a panel with the remaining tabs (Stats, History, Settings, Manage and Single Match). The "Saved ✓" notice only appears at the top right after a save or if there is an error.
 
 ## Tournaments
 
@@ -56,7 +56,7 @@ On a phone, the header is a single line pinned to the top: on the left the tourn
 
 Several tournaments can run at the same time, each with its own sport, teams, schedule, results and single matches. The players database and the History are shared by all of them.
 
-- **🏆 Active Tournaments** (on the 🏠 Dashboard) lists every tournament that has not been finished. Tap a card, or **👁️ View Tournament**, to follow it; the whole app then shows that tournament. Each device remembers the last tournament it viewed.
+- **🏆 Active Tournaments** (on the 🏠 Dashboard) lists every tournament that has not been finished. Tap a card, or **👁️ View Tournament**, to follow it; the whole app then shows that tournament. Each device remembers the last tournament it viewed. Tap the card's title to fold it; each device remembers that too. Renaming the tournament in ⚙️ Settings renames it in this list.
 - **➕ New Tournament** (Master Admin, or an Admin of at least one sport) asks for the **Tournament Name**, the **Sport** and the **Number of Teams (2–32)**, then **Create Tournament**. The sport cannot be changed later. An Admin can only pick the sports they administer. What each sport changes is in [Sports](sports.md).
 - **🏁 Finish Tournament** appears on the card of the tournament being viewed (for its admins): see [Finishing and archiving](#finishing-and-archiving).
 
@@ -71,7 +71,7 @@ These steps are done by an **admin** of the tournament's sport (or the Master Ad
    - **🎾 Padel — 🔄 Pairs card:** Format (*Fixed pairs*, *Americano*, or *Mexicano*), Points per match (4–99, default 24), and the **👤 Choose players** button.
    - **🎾 Padel & Tennis — 🎾 Set format card:** Sets per match (*1 set*, *Best of 3*, *Best of 5*), Games per set (1 to 9, default 6), and the **Super tie-break in the deciding set** checkbox (checked by default in padel; unchecked by default in tennis).
 4. **Teams** (Manage → 👥 Teams): give each team a name and a colour.
-5. **Squads** (Manage → 👕 Squads): pick the team and add players from the database, with their jersey number. The squad's average ★ is shown at the top. In padel each team is a pair: add two players to each (no jersey number), or tap **🎲 Draw pairs**, tick two players per team, and the app pairs them by padel rating and names each team after its pair (see [Rules](rules.md#pairs)). In tennis a team is one player (singles) or two (doubles), added the same way.
+5. **Squads** (Manage → 👕 Squads): pick the team and add players from the database, with their jersey number. The squad's average ★ is shown at the top. In padel each team is a pair: add two players to each (no jersey number), or tap **🎲 Draw pairs**, tick two players per team, and the app pairs them by padel rating and names each team after its pair (see [Rules](rules.md#pairs)). In tennis a team is one player (singles) or two (doubles), added the same way. Picking a team when creating or editing a player in 👤 Players also adds them to that team's squad here (with the next jersey number) and takes them out of any other squad.
 6. **🔄 Generate Schedule** (⚙️ Settings): creates all the rounds. With more than one group, the teams are drawn into the groups at this point.
 
 Generating a new schedule deletes the results already entered (the app asks for confirmation). Teams, squads and settings are kept.
@@ -94,9 +94,11 @@ In the **⚽ Results** tab, each match has:
 
 You can also type the score straight into the boxes; in that case no scorers are attached.
 
-**Padel.** ＋ / − add or remove **one game** for that pair, with no scorer to pick. The boxes show the sets won and the games of every set are written underneath (e.g. `6-4 3-2`). When a set ends the next one starts on its own, and in the deciding set the super tie-break points are entered the same way. The match window shows a grid with each set's games and the set being played highlighted, and the animations say *GAME* and *SET!* instead of *GOAL*. Scores cannot be typed in padel. **Tennis** works the same way; by default its deciding set is a normal set, not a super tie-break.
+Only admins of the tournament's sport (and the Master Admin) see the Results tab. In the Schedule everyone sees each match's status and score; only admins can tap the status to change it.
 
-**Match window.** Opens with **📋 Match** in Results, or by tapping the match in the Schedule. It shows the score and, per team, each goal with the scorer and the assist. It updates by itself when someone records a goal on another phone. Once the match is finished, it has the **⭐ Pick MVP** and **📤 Share image** buttons (the result image).
+**Padel.** ＋ / − add or remove **one game** for that pair, with no scorer to pick. Each match is a small scoreboard with one line per pair: the games of every set (the set being played highlighted, lost sets faded), the sets won on the right, and ＋ / − for admins. The Schedule shows the same scoreboard, read-only. When a set ends the next one starts on its own, the game that decides the match (the sets needed in best of 3 or 5, or the games of a one-set match, or the points total in Americano and Mexicano) sets it to *Finished*, and cancelling that game sets it back to *In Progress*; in the deciding set the super tie-break points are entered the same way. The match window shows a grid with each set's games and the set being played highlighted, and the animations say *GAME* and *SET!* instead of *GOAL*. Scores cannot be typed in padel. **Tennis** works the same way; by default its deciding set is a normal set, not a super tie-break.
+
+**Match window.** Opens with **📋 Match** in Results, or by tapping the match in the Schedule. It shows the score and, per team, each goal with the scorer and the assist. It updates by itself when someone records a goal on another phone. Once the match is finished, it has the **📤 Share image** button (the result image) and, when opened from Results, **⭐ Pick MVP**. From the Schedule the MVP is only shown, never picked.
 
 **Live on every phone.** When a match kicks off, a goal is scored (background in the team colour, scorer and assist), a goal is cancelled or the match ends, a short animation appears on every device, and in the Standings the teams slide to their new place. If the standings changed while you were on another tab, when you open it you briefly see the order from the last time you looked and then the teams slide to their current position. Next to the position, a green (▲) or red (▼) arrow shows how many places each team gained or lost since then, and stays until the order changes again. With *reduced motion* turned on in the phone, the animations do not play.
 
@@ -143,8 +145,8 @@ Single matches are saved with the tournament being viewed. Their goals, assists 
   - **⚽ Football:** leaderboards for Top Scorers, Top Assists, and MVPs for the current tournament and its single matches, plus stat cards (total goals, goals per match, highest score, most wins).
   - **🎾 Padel & Tennis:** stat cards highlighting games played, games per match, most games won, fewest games lost, biggest win (by game difference), and most match wins. There are no individual scorer tables because matches are tracked game by game without player goal events.
   - **🎾 Americano & Mexicano:** rankings and stats are strictly per individual player (points won, point difference, and matches won) rather than team pairs.
-- **🗄️ History**: list of archived tournaments and an all-time table (archived tournaments, the current tournament and single matches).
-- **Player profile**: tap a player's name to see their attributes, rating, and all-time goals, assists and MVPs.
+- **🗄️ History**: list of archived tournaments and an all-time table of the sport on screen, from its finished tournaments: matches and wins per player, plus goals, assists and MVPs in football.
+- **Player profile**: tap a player's name to see their attributes and rating for the tournament's sport, the matches they played and won in that sport (finished matches only; a draw is played, not won), and the sport's own stats: in football, goals, assists, MVPs, scoring matches and the single match record.
 - **Share**: the **📤** button next to the Standings title, and **📤 Share image** in the window of each finished match. The standings image uses the sport's columns (Pts in football, GW in padel); a padel result image shows the sets won with the games of each set. On a phone it opens the system share sheet (WhatsApp, etc.); on a computer it downloads the PNG image.
 
 ## Data: export, import and delete

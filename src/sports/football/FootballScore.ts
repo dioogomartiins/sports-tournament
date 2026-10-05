@@ -3,7 +3,8 @@
 // ---------------------------------------------------------------------------
 // Adds to ScoreBase the football event banners (goal, cancelled goal,
 // kick-off, full time) and the goals timeline. Emits `mvp` and `share`
-// (detail: { gi }) besides the ScoreBase events.
+// (detail: { gi }) besides the ScoreBase events; Pick MVP only shows with
+// `canPickMvp` (the match opened from Results by an admin).
 import { html, css, nothing } from 'lit';
 import type { TemplateResult } from 'lit';
 import { ScoreBase } from '../../components/ScoreBase.js';
@@ -14,6 +15,18 @@ import { playerName } from '../../utils.js';
 import { en } from '../../i18n/en.js';
 
 export class FootballScore extends ScoreBase {
+  static properties = {
+    ...ScoreBase.properties,
+    canPickMvp: { attribute: false },
+  };
+
+  declare canPickMvp: boolean;
+
+  constructor() {
+    super();
+    this.canPickMvp = false;
+  }
+
   static styles = [...ScoreBase.styles, css`
     .gm-body {
       padding: 16px 12px;
@@ -199,9 +212,10 @@ export class FootballScore extends ScoreBase {
     if (this.status === GAME_STATUS.TERMINADO && res && typeof res === 'object') {
       return html`
         <div class="gm-actions">
-          <button class="gm-action" title=${en.gameModal.pickMvpTitle} @click=${() => this.emitAction('mvp')}>
-            ⭐ ${mvpName ? html`MVP: <strong>${mvpName}</strong>` : en.gameModal.pickMvpButton}
-          </button>
+          ${this.canPickMvp ? html`
+            <button class="gm-action" title=${en.gameModal.pickMvpTitle} @click=${() => this.emitAction('mvp')}>
+              ⭐ ${mvpName ? html`MVP: <strong>${mvpName}</strong>` : en.gameModal.pickMvpButton}
+            </button>` : mvpName ? html`<div class="gm-mvp">⭐ MVP: <strong>${mvpName}</strong></div>` : nothing}
           <button class="gm-action" title=${en.gameModal.shareImageTitle} @click=${() => this.emitAction('share')}>
             ${en.gameModal.shareImageButton}
           </button>
