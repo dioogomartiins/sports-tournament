@@ -97,7 +97,7 @@ export class StandingsTable extends LightElement {
   private rowTemplate(row: StandingsRow, i: number, columns: StandingsColumn[]): TemplateResult {
     return html`
       <tr class=${MEDALS[i] || ''} data-team=${row.idx}>
-        <td class="pos-cell"><span class="pos-badge">${i + 1}</span>${this.moveBadge(row.idx)}</td>
+        <td class="pos-cell"><span class="pos-wrap"><span class="pos-badge">${i + 1}</span>${this.moveBadge(row.idx)}</span></td>
         <td class="team-cell">${teamLabel(this.teams, row.idx)}</td>
         ${columns.map((c) => html`<td class="num ${c.className || ''}">${c.value(row)}</td>`)}
       </tr>`;
