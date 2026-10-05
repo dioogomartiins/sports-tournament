@@ -15,7 +15,7 @@ export function cacheDom(): void {
     'btnMobileMenu', 'tabs',
     'btnAdicionarVolta', 'btnGerarEliminatorias', 'calendarActions',
     'dashboardPodium', 'dashboardStats', 'dashboardScorers',
-    'cfgNome', 'cfgNumEquipas', 'cfgNumGrupos', 'cfgNumVoltas', 'cfgVitoria', 'cfgEmpate', 'cfgDerrota', 'cfgBonus', 'cfgGoleada', 'cfgSets', 'cfgGamesPerSet', 'cfgSuperTieBreak', 'cfgPadelFormat', 'cfgMatchPoints', 'btnPickRotationPlayers', 'scheduleHint',
+    'cfgNome', 'cfgNumEquipas', 'cfgNumGrupos', 'cfgNumVoltas', 'cfgVitoria', 'cfgEmpate', 'cfgDerrota', 'cfgBonus', 'cfgGoleada', 'cfgSets', 'cfgGamesPerSet', 'cfgSuperTieBreak', 'cfgPadelFormat', 'cfgMatchPoints', 'cfgWinPoints', 'btnPickRotationPlayers', 'scheduleHint',
     'cfgMataMata', 'cfgNumPlayoffTeams',
     'teamsList', 'squadTeamSelect', 'squadPlayerNum', 'squadPlayerFromDB', 'btnAddPlayerFromDB', 'btnDrawPairs', 'squadList',
     'calendarList', 'resultsList', 'standingsWrapper', 'standingsNoteRacket', 'statsCards', 'statsTable',
@@ -26,7 +26,7 @@ export function cacheDom(): void {
     'singularHistoricoList',
     'btnConta', 'usersList', 'logList',
     'historicoSempre', 'arquivoList', 'btnArquivar', 'btnPartilharTabela',
-    'cardTorneiosAtivos', 'listaTorneiosAtivos', 'btnNovoTorneioModal', 'headerSportBadge',
+    'cardTorneiosAtivos', 'listaTorneiosAtivos', 'btnToggleTorneios', 'torneiosBody', 'torneiosCount', 'btnNovoTorneioModal', 'headerSportBadge',
   ].forEach((id) => {
     const el = document.getElementById(id);
     if (el) dom[id] = el;

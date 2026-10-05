@@ -14,7 +14,8 @@ import { showToast } from './toasts.js';
 import { renderSquadList, renderSquadPlayerFromDBDropdown } from './teams.js';
 import { openDialog, openConfirm } from './modals.js';
 import { renderDraftPlayerList } from './singular.js';
-import { computeAllTimeStats } from './history.js';
+import { computeAllTimeStats, computeAllTimeRecords } from './history.js';
+import type { ProfileStat } from '../sports/Sport.js';
 import { en } from '../i18n/en.js';
 
 // ---------------------------------------------------------------------------
@@ -141,10 +142,12 @@ async function savePlayer(existing: Player | null, editor: PlayerEditor): Promis
   }
   const fields = { nome: name, teamIdx, ratings, atributos: ratings.football || defaultPlayerAttrs('football') };
 
+  let saved: Player | null;
   if (existing) {
     const idx = state.players.findIndex((p) => p.id === existing.id);
     const updated = normalizePlayer({ ...existing, ...fields });
     if (idx !== -1 && updated) state.players[idx] = updated;
+    saved = updated;
     (state.squads || []).forEach((squad) => {
       const sp = squad.find((p) => p.id === existing.id);
       if (sp) sp.name = name;
@@ -152,19 +155,46 @@ async function savePlayer(existing: Player | null, editor: PlayerEditor): Promis
   } else {
     const created = normalizePlayer({ id: crypto.randomUUID(), ...fields });
     if (created) state.players.push(created);
+    saved = created;
   }
 
   await persistPlayers();
+  // The team picked in the editor is the player's squad in this tournament
+  if (saved && (!existing || existing.teamIdx !== teamIdx)) await placeInSquad(saved, teamIdx);
   refreshPlayerLists();
   showToast(existing ? en.toasts.playerUpdated : en.toasts.playerCreated, 'ok');
+}
+
+/**
+ * Moves a player to a team's squad in the tournament on screen (out of any
+ * other squad), with the next jersey number; no team takes them out.
+ */
+async function placeInSquad(player: Player, teamIdx: number | null): Promise<void> {
+  const squads = state.squads;
+  if (!squads) return;
+  const target = teamIdx !== null ? squads[teamIdx] : undefined;
+  if (target?.some((p) => p.id === player.id)) return;
+  if (target && !getSport(currentSportId()).usesJerseyNumbers && target.length >= 2) {
+    showToast(en.toasts.pairFull, 'error');
+    return;
+  }
+  squads.forEach((squad, i) => { squads[i] = squad.filter((p) => p.id !== player.id); });
+  if (target) {
+    const next = Math.max(0, ...target.map((p) => Number(p.num) || 0)) + 1;
+    squads[teamIdx!].push({ id: player.id, num: next, name: player.nome });
+  }
+  await persistConfigTeams();
+  renderSquadList();
+  renderSquadPlayerFromDBDropdown();
 }
 
 // ---------------------------------------------------------------------------
 // Player profile
 // ---------------------------------------------------------------------------
-function statCard(label: string, value: unknown, span = false): TemplateResult {
-  return html`<div class="stat-card" style="text-align:center;${span ? ' grid-column: span 2;' : ''}">
-    <div class="stat-label">${label}</div><div class="stat-value">${value}</div></div>`;
+function statCard({ label, value, unit, wide }: ProfileStat): TemplateResult {
+  return html`<div class="stat-card" style="text-align:center;${wide ? ' grid-column: span 2;' : ''}">
+    <div class="stat-label">${label}</div>
+    <div class="stat-value">${value}${unit ? html` <span style="font-size:14px; font-weight:normal; color:var(--ink-faint);">${unit}</span>` : ''}</div></div>`;
 }
 
 export function openPlayerProfile(pId: string, tIdx: number | null = null): void {
@@ -177,6 +207,13 @@ export function openPlayerProfile(pId: string, tIdx: number | null = null): void
   const teamName = squadPlayer ? getTeamName(tIdx!) : teamOf(dbPlayer!);
   const sport = getSport(currentSportId());
   const totals = computeAllTimeStats()[pId] || { golos: 0, assistencias: 0, mvp: 0, jogosAMarcar: 0, recorde: 0 };
+  const record = computeAllTimeRecords(sport)[pId] || { played: 0, won: 0 };
+  // Every sport: matches and wins; then the sport's own (goals, assists… in football)
+  const cards: ProfileStat[] = [
+    { label: en.players.matchesPlayed, value: record.played },
+    { label: en.players.wins, value: record.won },
+    ...sport.profileStats(totals),
+  ];
 
   const ratings = dbPlayer ? html`
     <div style="margin-top: 20px; padding: 12px; background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius-sm);">
@@ -197,11 +234,7 @@ export function openPlayerProfile(pId: string, tIdx: number | null = null): void
       </div>
       ${ratings}
       <div class="stats-grid" style="margin-top:20px; grid-template-columns: 1fr 1fr;">
-        ${statCard(en.players.totalGoals, totals.golos)}
-        ${statCard(en.players.assists, totals.assistencias)}
-        ${statCard(en.players.mvp, totals.mvp)}
-        ${statCard(en.players.scoringMatches, totals.jogosAMarcar)}
-        ${statCard(en.players.singleMatchRecord, html`${totals.recorde} <span style="font-size:14px; font-weight:normal; color:var(--ink-faint);">${en.players.recordGoalsUnit}</span>`, true)}
+        ${cards.map(statCard)}
       </div>
       <p style="text-align:center; font-size:12px; color:var(--ink-faint); margin-top:8px;">${en.players.profileFooterNote}</p>`,
     cancel: { label: en.common.close, tone: 'paper' },

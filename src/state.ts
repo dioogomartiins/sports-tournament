@@ -5,7 +5,7 @@
 import type { TemplateResult } from 'lit';
 import { generateSchedule } from './algorithms.js';
 import { americanoRounds, mexicanoRound, rotationSchedule, type RotationFormat } from './core/americano.js';
-import { pushStateToFirebase, getSyncedSnapshot, getCurrentRole } from './firebase.js';
+import { pushStateToFirebase, getSyncedSnapshot, getCurrentRole, resyncFromServer } from './firebase.js';
 import {
   normalizeResults,
   normalizeArquivo,
@@ -35,7 +35,8 @@ import { en } from './i18n/en.js';
 // ---------------------------------------------------------------------------
 // 10: config.setFormat (padel) and per-sport rating attribute keys
 // 11: padel Americano / Mexicano (config.padelFormat, config.matchPoints, schedule[].partners)
-export const SNAPSHOT_VERSION = 11;
+// 12: archived players' played / won, config.winPoints (padel and tennis)
+export const SNAPSHOT_VERSION = 12;
 export const MAX_TEAMS = 32;
 const DEFAULT_COLOR = '#2F7A4F';
 
@@ -336,7 +337,12 @@ async function rejectLocalChange(reason?: string): Promise<void> {
   showSaveError(msg);
 
   const synced = getSyncedSnapshot();
-  if (!validateSnapshot(synced)) return;
+  // Not synced yet (the first read has not arrived): read the server instead,
+  // so the refused change does not stay in the local cache
+  if (!validateSnapshot(synced)) {
+    await resyncFromServer();
+    return;
+  }
   applySnapshot(synced);
   await storeAllLayers();
   ui.renderAll();

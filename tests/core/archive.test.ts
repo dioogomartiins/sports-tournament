@@ -4,6 +4,7 @@ import {
   getChampion,
   buildArchiveEntry,
   archiveTally,
+  archiveRecords,
 } from '../../src/core/archive.js';
 import { computeStandings } from '../../src/sports/football/Football.js';
 import { GAME_STATUS, type Config, type Match, type MatchResult, type Team } from '../../src/types.js';
@@ -78,7 +79,10 @@ describe('arquivo de torneios', () => {
       2: { score: '0-0', status: GAME_STATUS.AGENDADO },
     };
     const entry = buildArchiveEntry(
-      { config: { ...config, nome: 'Verão' }, teams, schedule, results, scheduleTeamCount: 3 },
+      {
+        config: { ...config, nome: 'Verão' }, teams, schedule, results, scheduleTeamCount: 3,
+        squads: [[{ id: 'ana', num: 9, name: 'Ana' }], [{ id: 'rui', num: 7, name: 'Rui' }], [{ id: 'ze', num: 1, name: 'Zé' }]],
+      },
       { ana: 'Ana', rui: 'Rui' },
       'id1',
       '2026-10-02T10:00:00.000Z'
@@ -98,7 +102,11 @@ describe('arquivo de torneios', () => {
       mvp: 1,
       jogosAMarcar: 1,
       recorde: 2,
+      played: 1,
+      won: 1,
     });
+    // Finished matches only: a draw is played, not won; the scheduled match does not count
+    expect(archiveRecords(entry)).toEqual({ ana: { played: 1, won: 1 }, rui: { played: 2, won: 0 }, ze: { played: 1, won: 0 } });
     expect(entry.jogadores.find((j) => j.pid === 'ze')?.nome).toBe('Unknown Player');
     expect(archiveTally(entry).rui).toEqual({
       golos: 1,

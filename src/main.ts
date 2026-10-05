@@ -1,5 +1,5 @@
 import { state, loadedConfig, loadedTeams, loadedSquads, persistConfigTeams, loadState, persistSchedule, persistResults, storeAllLayers, notifyPushError, currentTheme, setCurrentTheme, exportJSON, importJSON, applyGeneratedSchedule, applyRotationSchedule, applySnapshot, buildSnapshot, defaultTeams, defaultSquads, setStateHooks, setCurrentTournamentId, getCurrentTournamentId } from './state.js';
-import { closeGameModal, openGameModal, animateResultChanges, dom, cacheDom, renderAll, refreshComputed, renderScheduleHint, renderSquadList, renderSquadsDropdown, flashError, flashBackup, renderCalendar, renderResults, showToast, flashSaved, openConfirm, closeConfirm, runConfirm, openDangerConfirm, switchTab, openScorerModal, openPlayerProfile, computeStatsSummary, renderPlayersList, openPlayerModal, renderSquadPlayerFromDBDropdown, renderAuth, renderUsers, renderLog, openPickPlayerModal, squadPickList, renderTournamentsList, openNovoTorneioModal, openDrawPairsModal, openRotationPlayersModal, bindHistoryEvents, bindPlayersEvents, bindSingleMatchEvents, fieldValue, setFieldValue, isChecked, onEvent } from './ui.js';
+import { closeGameModal, openGameModal, animateResultChanges, dom, cacheDom, renderAll, refreshComputed, renderScheduleHint, renderSquadList, renderSquadsDropdown, flashError, flashBackup, renderCalendar, renderResults, showToast, flashSaved, openConfirm, closeConfirm, runConfirm, openDangerConfirm, switchTab, openScorerModal, openPlayerProfile, computeStatsSummary, renderPlayersList, openPlayerModal, renderSquadPlayerFromDBDropdown, renderAuth, renderUsers, renderLog, openPickPlayerModal, squadPickList, renderTournamentsList, openNovoTorneioModal, openDrawPairsModal, openRotationPlayersModal, bindHistoryEvents, bindTournamentsToggle, bindPlayersEvents, bindSingleMatchEvents, fieldValue, setFieldValue, isChecked, onEvent } from './ui.js';
 import { html } from 'lit';
 import { clamp, numOr, buildPlayerIndex } from './utils.js';
 import { shareStandings, shareResult } from './share.js';
@@ -26,6 +26,8 @@ import { en } from './i18n/en.js';
 export function onConfigFieldChange(): void {
   const config = loadedConfig();
   config.nome = fieldValue('cfgNome').trim() || en.common.tournament;
+  // The name in Active Tournaments and the header comes from meta
+  if (state.meta) state.meta.name = config.nome;
   config.pontosVitoria = numOr(fieldValue('cfgVitoria'), 3);
   config.pontosEmpate = numOr(fieldValue('cfgEmpate'), 1);
   config.pontosDerrota = numOr(fieldValue('cfgDerrota'), 0);
@@ -42,6 +44,7 @@ export function onConfigFieldChange(): void {
   const padelFormat = fieldValue('cfgPadelFormat');
   config.padelFormat = isRotationFormat(padelFormat) ? padelFormat : 'pairs';
   config.matchPoints = clamp(parseInt(fieldValue('cfgMatchPoints'), 10) || DEFAULT_MATCH_POINTS, 4, 99);
+  config.winPoints = clamp(Math.round(numOr(fieldValue('cfgWinPoints'), 1)), 0, 10);
   persistConfigTeams();
   refreshComputed();
 }
@@ -660,6 +663,7 @@ function bindMenuDrawer(): void {
 export function bindEvents(): void {
   bindMenuDrawer();
   bindHistoryEvents();
+  bindTournamentsToggle();
   bindPlayersEvents();
   bindSingleMatchEvents();
 
@@ -717,8 +721,9 @@ export function bindEvents(): void {
   // Lit components emit their events to the container element
   onEvent<TeamChange>(dom.teamsList, 'team-change', onTeamChange);
   // <schedule-list> and <results-list> (detail: the match gi, or an object with it)
+  onEvent<string>(dom.calendarList, 'open-match', (gi) => openGameModal(gi, 'schedule'));
+  onEvent<string>(dom.resultsList, 'open-match', (gi) => openGameModal(gi, 'results'));
   [dom.calendarList, dom.resultsList].forEach((list) => {
-    onEvent<string>(list, 'open-match', openGameModal);
     onEvent<string>(list, 'status-click', (gi) => onStatusClick(Number(gi)));
   });
   onEvent<ScoreStep>(dom.resultsList, 'score-step', onScoreStep);
@@ -747,6 +752,7 @@ export function bindEvents(): void {
   dom.cfgNumGrupos.addEventListener('change', () => { onConfigFieldChange(); renderScheduleHint(); });
   dom.cfgPadelFormat.addEventListener('change', () => { onConfigFieldChange(); renderAll(); });
   dom.cfgMatchPoints.addEventListener('blur', onConfigFieldChange);
+  dom.cfgWinPoints.addEventListener('blur', onConfigFieldChange);
   dom.cfgMataMata.addEventListener('change', onConfigFieldChange);
   dom.cfgNumPlayoffTeams.addEventListener('change', onConfigFieldChange);
 

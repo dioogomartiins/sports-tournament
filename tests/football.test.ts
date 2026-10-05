@@ -11,6 +11,7 @@ import {
   mergePlayerStats,
   standingsOrder,
   rankMoves,
+  football,
 } from '../src/sports/football/Football.js';
 import { GAME_STATUS, type Config, type Match, type MatchResult, type Team } from '../src/types.js';
 
@@ -273,5 +274,25 @@ describe('rankMoves', () => {
 
   it('sem classificação anterior não há mudanças', () => {
     expect(rankMoves(null, standingsOrder(groups([0, 1]))).size).toBe(0);
+  });
+});
+
+describe('player records and profile', () => {
+  it('wins on goals or penalties; draws and unfinished matches are not won', () => {
+    expect(football.winnerSide({ score: '2-1', status: 'terminado' })).toBe('home');
+    expect(football.winnerSide({ score: '1-1', status: 'terminado', penalties: '3-4' })).toBe('away');
+    expect(football.winnerSide({ score: '1-1', status: 'terminado' })).toBe(null);
+    expect(football.winnerSide({ score: '2-1', status: 'decorrer' })).toBe(null);
+    expect(football.winnerSide('3-0')).toBe('home');
+  });
+
+  it('counts single matches and shows the football cards', () => {
+    const records = football.playerRecords([], {}, [], [
+      { id: 's1', data: '', nomeEquipaA: 'A', nomeEquipaB: 'B', equipaA: ['ana'], equipaB: ['rui'], resultado: '3-2' },
+      { id: 's2', data: '', nomeEquipaA: 'A', nomeEquipaB: 'B', equipaA: ['ana'], equipaB: ['rui'], resultado: null },
+    ]);
+    expect(records).toEqual({ ana: { played: 1, won: 1 }, rui: { played: 1, won: 0 } });
+    const cards = football.profileStats({ golos: 4, assistencias: 2, mvp: 1, jogosAMarcar: 3, recorde: 2 });
+    expect(cards.map((c) => c.value)).toEqual([4, 2, 1, 3, 2]);
   });
 });

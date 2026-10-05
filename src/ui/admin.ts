@@ -11,6 +11,7 @@ import { dom } from './dom.js';
 import { switchTab } from './navigation.js';
 import { renderTeams, renderSquadList } from './teams.js';
 import { renderPlayersList } from './players.js';
+import { renderCalendar, renderResults } from './schedule.js';
 import { en } from '../i18n/en.js';
 
 // ---------------------------------------------------------------------------
@@ -37,7 +38,7 @@ export function renderAuth(user: AuthUser | null, role: string | null, userAdmin
   document.body.dataset.master = role === 'master' ? 'true' : 'false';
 
   // Editable fields and empty list messages depend on permissions
-  if (state.config) { renderTeams(); renderSquadList(); renderPlayersList(); }
+  if (state.config) { renderTeams(); renderSquadList(); renderPlayersList(); renderCalendar(); renderResults(); }
 
   const btn = dom.btnConta;
   if (btn) {
