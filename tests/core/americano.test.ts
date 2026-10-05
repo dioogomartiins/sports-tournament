@@ -104,6 +104,13 @@ describe('padel played to points', () => {
     expect(padel.removePoint(res, 'home').score).toBe('2-1');
   });
 
+  it('finishes the match when the points total is reached', () => {
+    const cfg = config({ padelFormat: 'americano', matchPoints: 4 });
+    expect(padel.addPoint({ score: '2-0', status: 'decorrer' }, 'away', cfg).status).toBe('decorrer');
+    expect(padel.addPoint({ score: '2-1', status: 'decorrer' }, 'away', cfg)).toEqual({ score: '2-2', status: 'terminado' });
+    expect(padel.removePoint({ score: '2-2', status: 'terminado' }, 'away', cfg)).toEqual({ score: '2-1', status: 'decorrer' });
+  });
+
   it('ranks players, not pairs, with points columns', () => {
     const cfg = config({ padelFormat: 'americano' });
     const teams = ['A', 'B', 'C', 'D'].map((name) => ({ name, color: '#000' }));

@@ -80,6 +80,23 @@ describe('scoring game by game', () => {
     expect(padel.removePoint({ score: '6-4 0-1', status: 'decorrer' }, 'home').score).toBe('6-4 0-1');
   });
 
+  it('finishes the match on the game that decides it', () => {
+    const won = padel.addPoint({ score: '6-4 5-3', status: 'decorrer' }, 'home', config());
+    expect(won).toEqual({ score: '6-4 6-3', status: 'terminado' });
+    // A set that is not the last one keeps the match going
+    expect(padel.addPoint({ score: '5-4', status: 'decorrer' }, 'home', config()).status).toBe('decorrer');
+    // One set of 4 games
+    const oneSet = config({ setFormat: { sets: 1, gamesPerSet: 4, superTieBreak: false } });
+    expect(padel.addPoint({ score: '3-2', status: 'decorrer' }, 'away', oneSet).status).toBe('decorrer');
+    expect(padel.addPoint({ score: '3-2', status: 'decorrer' }, 'home', oneSet)).toEqual({ score: '4-2', status: 'terminado' });
+  });
+
+  it('reopens a finished match when the deciding game is cancelled', () => {
+    expect(padel.removePoint({ score: '6-4 6-3', status: 'terminado' }, 'home', config())).toEqual({ score: '6-4 5-3', status: 'decorrer' });
+    // Still decided (the other side lost a game): stays finished
+    expect(padel.removePoint({ score: '6-4 6-3', status: 'terminado' }, 'away', config()).status).toBe('terminado');
+  });
+
   it('starts at 0-0 in the first set', () => {
     expect(padel.setGameStatus(undefined, 'decorrer')).toEqual({ score: '0-0', status: 'decorrer' });
     expect(padel.addPoint(padel.setGameStatus(undefined, 'decorrer'), 'away', config()).score).toBe('0-1');

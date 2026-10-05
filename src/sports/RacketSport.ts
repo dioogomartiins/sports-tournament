@@ -191,8 +191,9 @@ export abstract class RacketSport extends Sport {
   }
 
   /**
-   * Adds one game to a side; a finished set opens the next one. No-op once the
-   * match is decided. In a match played to points, adds a point until the total.
+   * Adds one game to a side; a finished set opens the next one. The game that
+   * decides the match finishes it, and once decided adding is a no-op. In a
+   * match played to points, adds a point until the total, which finishes it.
    */
   addPoint(res: MatchResult | undefined, side: Side, config: Config): Score {
     const total = this.pointsPerMatch(config);
@@ -207,6 +208,7 @@ export abstract class RacketSport extends Sport {
     if (last < 0 || this.setWinner(sets[last], last, format)) sets.push({ home: 0, away: 0 });
     sets[sets.length - 1][side]++;
     out.score = this.formatSets(sets);
+    if (this.matchWinner(sets, format)) out.status = GAME_STATUS.TERMINADO;
     return out;
   }
 
@@ -217,11 +219,16 @@ export abstract class RacketSport extends Sport {
     if (!out.status || out.status === GAME_STATUS.AGENDADO) out.status = GAME_STATUS.DECORRER;
     pts[side]++;
     out.score = this.formatSets([pts]);
+    if (pts.home + pts.away >= total) out.status = GAME_STATUS.TERMINADO;
     return out;
   }
 
-  /** Removes the last game of a side in the current set (reopening the previous set if the current one is empty). */
-  removePoint(res: MatchResult | undefined, side: Side): Score {
+  /**
+   * Removes the last game of a side in the current set (reopening the previous
+   * set if the current one is empty). A finished match that is no longer
+   * decided goes back to in progress.
+   */
+  removePoint(res: MatchResult | undefined, side: Side, config?: Config): Score {
     const sets = this.setsOf(res);
     while (sets.length > 1 && sets[sets.length - 1].home === 0 && sets[sets.length - 1].away === 0) sets.pop();
     const current = sets[sets.length - 1];
@@ -229,7 +236,15 @@ export abstract class RacketSport extends Sport {
     current[side]--;
     const out = this.copy(res);
     out.score = this.formatSets(sets);
+    if (out.status === GAME_STATUS.TERMINADO && !this.isDecided(sets, config)) out.status = GAME_STATUS.DECORRER;
     return out;
+  }
+
+  /** Is the match over: a side won the sets it needs, or the points total is reached? */
+  isDecided(sets: SetScore[], config?: Config | null): boolean {
+    const total = this.pointsPerMatch(config);
+    if (total) return sets.length === 1 && sets[0].home + sets[0].away >= total;
+    return !!this.matchWinner(sets, this.format(config));
   }
 
   // -------------------------------------------------------------------------
