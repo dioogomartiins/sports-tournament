@@ -588,6 +588,7 @@ export const en = {
     dbSaveFailed: 'Could not save the change to the database. It has been reverted.',
     dbStillConnecting: 'Still connecting to the database. Try again shortly.',
     dbSignInRequired: 'Sign in with your Google account to make changes.',
+    noTournamentToSave: 'There is no tournament yet. Create one first.',
     onlyAdminCanChange: 'Only an admin can make this change.',
     accountNotApproved: 'Your account has not been approved by an admin yet.',
   },

@@ -302,6 +302,7 @@ export async function persistBackup(): Promise<void> {
 const REJECT_MESSAGES: Record<string, string> = {
   'sem-sync': en.toasts.dbStillConnecting,
   'sem-sessao': en.toasts.dbSignInRequired,
+  'sem-torneio': en.toasts.noTournamentToSave,
 };
 
 let lastErrorToast = { msg: '', at: 0 };

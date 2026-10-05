@@ -128,6 +128,7 @@ Notes:
 - In `scorers`, `'auto'` is an own goal. `assists` is aligned with `scorers` (same position = same goal; `''` = no assist).
 - Player names in `arquivo` are copied when archiving, so the history survives deleted players.
 - In the app, the snapshot of the current tournament also carries `players` and `arquivo`; `pushStateToFirebase` writes them to the root nodes.
+- A tournament exists only once it is created (`createTournament`). While the id being viewed has no node (no tournament yet, or the last one was removed), the app shows an empty tournament but saves only `players` and `arquivo`, with no `tournament_log` entry since there is no tournament to log against; any change to the tournament itself is refused with a toast, so it is never created with default settings and listed as active.
 - Legacy nodes from before multiple tournaments (`torneio_state`, `torneio_log`, `utilizadores`) are read-only. `firebase.ts` falls back to `torneio_state` while `tournaments/default` does not exist, and migrates it the first time a Master Admin signs in (see [Setup](configuration.md#setting-up-firebase-once)).
 
 Each device also keeps a copy in localStorage, to show the tournament as soon as it opens, before Firebase replies, and remembers the last tournament viewed.
