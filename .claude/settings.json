@@ -1,0 +1,10 @@
+{
+  "extraKnownMarketplaces": {
+    "hellosverre-mods": { "source": { "source": "github", "repo": "hellosverre/claude-skins" } },
+    "claude-code-filetree": { "source": { "source": "github", "repo": "data-goblin/claude-code-filetree" } }
+  },
+  "enabledPlugins": {
+    "skins@hellosverre-mods": true,
+    "filetree@claude-code-filetree": true
+  }
+}
